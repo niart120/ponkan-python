@@ -43,7 +43,6 @@ class CaptureSizes:
 
 def video_size(mode_3d: bool) -> int:
     """Return RGB8 video payload bytes for 2D or 3D mode."""
-
     stacked_screen_width = TOP_WIDTH_3DS + BOTTOM_WIDTH_3DS
     if mode_3d:
         stacked_screen_width += TOP_WIDTH_3DS
@@ -52,7 +51,6 @@ def video_size(mode_3d: bool) -> int:
 
 def struct_total_before_1024_floor(mode_3d: bool) -> int:
     """Return the C capture struct size before cc3dsfs' 1024-byte floor operation."""
-
     return (
         video_size(mode_3d) + AUDIO_SIZE_BYTES + UNUSED_BUFFER_SIZE_BYTES + ERROR_BUFFER_SIZE_BYTES
     )
@@ -60,20 +58,17 @@ def struct_total_before_1024_floor(mode_3d: bool) -> int:
 
 def capture_size(mode_3d: bool) -> int:
     """Return the transfer size after the 1024-byte floor operation."""
-
     total = struct_total_before_1024_floor(mode_3d)
     return (total // USB_CAPTURE_ALIGNMENT_BYTES) * USB_CAPTURE_ALIGNMENT_BYTES
 
 
 def max_non_error_transferred(mode_3d: bool) -> int:
     """Return the largest transfer length that does not enter the error buffer."""
-
     return capture_size(mode_3d) - ERROR_BUFFER_SIZE_BYTES
 
 
 def capture_sizes(mode_3d: bool) -> CaptureSizes:
     """Return all calculated size values for one transfer mode."""
-
     total = struct_total_before_1024_floor(mode_3d)
     transfer_size = capture_size(mode_3d)
     return CaptureSizes(

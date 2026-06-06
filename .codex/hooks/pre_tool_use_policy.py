@@ -30,6 +30,7 @@ DESTRUCTIVE_GIT_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
 
 
 def iter_strings(value: object) -> Iterable[str]:
+    """Yield every string nested in a decoded hook payload."""
     if isinstance(value, str):
         yield value
         return
@@ -45,6 +46,7 @@ def iter_strings(value: object) -> Iterable[str]:
 
 
 def violation_for_text(text: str) -> str | None:
+    """Return the policy violation for a command-like text."""
     direct_match = FORBIDDEN_DIRECT_COMMAND_PATTERN.search(text)
     if direct_match is not None:
         command = direct_match.group(2)
@@ -58,6 +60,7 @@ def violation_for_text(text: str) -> str | None:
 
 
 def load_payload(raw_input: str) -> object:
+    """Decode Codex hook input, falling back to plain text."""
     if raw_input.strip() == "":
         return {}
     try:
@@ -69,6 +72,7 @@ def load_payload(raw_input: str) -> object:
 
 
 def main() -> int:
+    """Run the command policy check."""
     payload = load_payload(sys.stdin.read())
     for text in iter_strings(payload):
         violation = violation_for_text(text)
