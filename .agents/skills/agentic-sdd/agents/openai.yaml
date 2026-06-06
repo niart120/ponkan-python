@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agentic SDD"
+  short_description: "Spec-driven workflow orchestration"
+  default_prompt: "Use $agentic-sdd to select and run the next Work Unit."

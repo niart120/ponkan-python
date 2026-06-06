@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agentic Self Review"
+  short_description: "Agentic SDD gate reporting"
+  default_prompt: "Use $agentic-self-review to summarize quality gates for this Work Unit."

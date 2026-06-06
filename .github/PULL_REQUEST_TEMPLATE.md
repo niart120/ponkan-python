@@ -37,6 +37,29 @@ uv run ty check --no-progress
 uv run pytest tests/unit
 ```
 
+## Agentic SDD Gates
+
+<!-- Agentic SDD で作業した場合は、Work Unit と gate 結果を記載する。該当しない場合は "not used" と明記する -->
+
+- Work Unit:
+- Intent Delta:
+- Non-goals:
+
+| gate | result | evidence |
+| ---- | ------ | -------- |
+| Requirements |  |  |
+| Plan / Tasks |  |  |
+| Source Audit |  |  |
+| Tests |  |  |
+| Static |  |  |
+| Hardware |  |  |
+| Integration Review |  |  |
+
+Subagent review:
+
+- used / not used:
+- findings and disposition:
+
 ## Hardware
 
 <!-- 実機を使っていない場合は "not tested with hardware" と明記する -->

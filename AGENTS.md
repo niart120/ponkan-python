@@ -20,6 +20,8 @@ agent skill は `.agents/skills` を正本として管理します。`.github/sk
 
 主な skill:
 
+- `agentic-sdd`: `spec/initial` と作業仕様から次の Work Unit を選び、Plan / Tasks / Implement / Gate を進める
+- `agentic-self-review`: Agentic SDD の Work Unit 完了前に gate 結果、未検証リスク、次候補を圧縮報告する
 - `spec-format`: 仕様書を `spec/wip/local_{連番}` または `spec/complete/local_{連番}` に作成・更新する
 - `dev-journal`: 実装中の観測・疑問・先送り事項を `spec/dev-journal.md` に記録する
 - `cc3dsfs-source-audit`: 原典 C++ から抽出した定数・command・構造体サイズ・仮説を記録する
@@ -49,6 +51,23 @@ spec/
   complete/       - 完了済み仕様
 .agents/skills/  - agent skill の正本
 ```
+
+## Agentic SDD
+
+`AGENTS.md`、`spec/initial/*`、作業仕様を Constitution とし、Main Agent は Intent Delta が明示された場合だけ既存仕様との差分として扱います。
+
+ユーザが `Agentic SDD で進めて`、`次の Work Unit を進めて`、または同等の依頼をした場合、Main Agent は次を行います。
+
+1. 現在の worktree と仕様を確認する。
+2. `spec/initial` の Step、作業仕様の TDD item、source audit item、hardware-gated item から Work Unit を 1つだけ選ぶ。
+3. 選択した Work Unit の対象、非対象、影響範囲、実機要否、検証 command を Plan として示す。
+4. Task Graph を blocking local task、sidecar task、hardware task に分ける。
+5. ユーザが Subagent 利用を許可している場合、sidecar task や観点別 gate に必要な Subagent を起動し、結果の採否を Main Agent が統合する。
+6. TDD が適する実装では 1項目ずつ red / green / refactor を進める。
+7. Work Unit 終了時に gate 結果、未実行 gate、source / hardware 状態、次候補を報告する。
+
+未選択の Step、device、backend、GUI、audio、recording、old DS は実装しません。
+実機 command は、device identity、command scope、安全理由、artifact、cleanup の説明と人間の明示承認があるまで実行しません。
 
 ## 実機安全制約
 
@@ -107,6 +126,7 @@ uv run pytest tests/unit
 - Codex project-local hooks / rules は `.codex/` に置く。
 - 生 `python` / `pip` / `pytest` / `ruff` / `ty` は使わず、`uv run ...` または `uv add ...` を使う。
 - project `.codex/` layer は trusted project でだけ読み込まれる。hook 変更後は `/hooks` で review/trust する。
+- 実機 command は `.codex` hook で承認フラグなしの実行を block する。人間承認後に限り、同じ command 内で `PONKAN_HARDWARE_APPROVED=1` を明示する。
 
 実機テスト:
 

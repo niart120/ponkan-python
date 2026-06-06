@@ -27,6 +27,19 @@ DESTRUCTIVE_GIT_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"(?i)(^|[;&|]\s*)git\s+clean(\s|$)"),
     re.compile(r"(?i)(^|[;&|]\s*)git\s+checkout\s+--(\s|$)"),
 )
+HARDWARE_APPROVAL_PATTERN: Final = re.compile(
+    r"(?i)(?:^|[;&|]\s*)(?:\$env:)?PONKAN_HARDWARE_APPROVED\s*=\s*['\"]?1['\"]?"
+)
+HARDWARE_COMMAND_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
+    re.compile(
+        r"(?i)(?:^|[;&|]\s*)(?:\$env:)?PONKAN_RUN_(?:N3DSXL|PERFORMANCE)\s*=\s*['\"]?1['\"]?"
+    ),
+    re.compile(r"(?i)(?:^|[;&|]\s*)uv\s+run\s+pytest\b[^\r\n;&|]*requires_n3dsxl"),
+    re.compile(r"(?i)(?:^|[;&|]\s*)uv\s+run\s+pytest\b[^\r\n;&|]*tests[/\\]performance"),
+    re.compile(
+        r"(?i)(?:^|[;&|]\s*)uv\s+run\s+python\s+-m\s+py3dscapture\.tools\.(?:capture_raw|stream_n3dsxl)\b"
+    ),
+)
 
 
 def iter_strings(value: object) -> Iterable[str]:
@@ -55,6 +68,13 @@ def violation_for_text(text: str) -> str | None:
     for pattern in DESTRUCTIVE_GIT_PATTERNS:
         if pattern.search(text) is not None:
             return "destructive git commands require explicit user direction outside Codex hooks"
+
+    hardware_match = any(pattern.search(text) is not None for pattern in HARDWARE_COMMAND_PATTERNS)
+    if hardware_match and HARDWARE_APPROVAL_PATTERN.search(text) is None:
+        return (
+            "N3DSXL hardware commands require explicit human approval and "
+            "`PONKAN_HARDWARE_APPROVED=1` in the same command"
+        )
 
     return None
 

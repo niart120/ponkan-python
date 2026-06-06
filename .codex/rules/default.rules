@@ -84,3 +84,12 @@ prefix_rule(
     justification = "Do not discard file changes with `git checkout --`; ask for explicit direction first.",
     match = ["git checkout -- pyproject.toml"],
 )
+
+# Hardware-gated N3DSXL commands need a conditional approval check:
+# - present device identity, command scope, artifact, and cleanup plan first
+# - execute only after explicit human approval
+# - include PONKAN_HARDWARE_APPROVED=1 in the same command
+#
+# The conditional enforcement lives in .codex/hooks/pre_tool_use_policy.py because
+# prefix_rule is intentionally static and should not permanently block approved
+# hardware commands.
