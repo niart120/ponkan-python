@@ -1,0 +1,4 @@
+interface:
+  display_name: "TCR Workflow Exp"
+  short_description: "TCRを隔離worktreeで試す"
+  default_prompt: "Use $tcr-workflow-exp to run a safe experimental test && commit || revert workflow in an isolated worktree."

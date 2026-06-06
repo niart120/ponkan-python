@@ -148,15 +148,15 @@ uv run ruff format --check .
 
 ## 6. 実装チェックリスト
 
-- [ ] 本仕様書を作成する。
-- [ ] 本仕様書を単独 commit する。
-- [ ] `tcr-lab` を `tcr-workflow-exp` に rename する。
-- [ ] `SKILL.md` を `tcr-workflow-exp` 向けに更新する。
-- [ ] `agents/openai.yaml` を更新する。
-- [ ] `scripts/tcr_workflow_exp.py` を追加する。
-- [ ] `AGENTS.md` と `local_004` 仕様を rename 後の skill 名へ追従する。
-- [ ] skill-creator の `quick_validate.py` で skill を検証する。
-- [ ] harness の help / unsafe path smoke test を実行する。
-- [ ] `uv run ruff check .` を実行する。
-- [ ] `uv run ruff format --check .` を実行する。
-- [ ] 実装差分を commit する。
+- [x] 本仕様書を作成する。
+- [x] 本仕様書を単独 commit する。
+- [x] `tcr-lab` を `tcr-workflow-exp` に rename する。
+- [x] `SKILL.md` を `tcr-workflow-exp` 向けに更新する。
+- [x] `agents/openai.yaml` を更新する。
+- [x] `scripts/tcr_workflow_exp.py` を追加する。
+- [x] `AGENTS.md` と `local_004` 仕様を rename 後の skill 名へ追従する。
+- [x] skill-creator の `quick_validate.py` で skill を検証する。
+- [x] harness の help / unsafe path smoke test を実行する。
+- [x] `uv run ruff check .` を実行する。
+- [x] `uv run ruff format --check .` を実行する。
+- [x] 実装差分を commit する。

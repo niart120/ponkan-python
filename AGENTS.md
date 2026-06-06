@@ -29,7 +29,7 @@ agent skill は `.agents/skills` を正本として管理します。`.github/sk
 - `tdd-one-cycle`: TDD Test List の 1 項目だけを red/green/refactor で実行する
 - `tidy-first`: 振る舞い変更と構造変更を分け、構造改善のタイミングを判断する
 - `test-desiderata-review`: Test Desiderata に基づいてテスト品質の trade-off を確認する
-- `tcr-lab`: TCR を通常 TDD とは別の明示的な実験として扱う
+- `tcr-workflow-exp`: TCR を隔離 worktree 上の明示的な実験 workflow として扱う
 
 ## プロジェクト構造
 
