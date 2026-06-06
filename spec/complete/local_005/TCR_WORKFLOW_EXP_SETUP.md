@@ -22,6 +22,8 @@ Kent Beck の TCR は、小さい increment を強制し、壊れた状態を長
 
 現行の `.codex` guardrail は `git reset --hard`、`git clean`、`git checkout --` を禁止している。この禁止を通常 command として緩和するのではなく、TCR 専用 harness が `.worktrees/` 配下の検査済み worktree に限って revert できるようにする。
 
+この仕様は通常の TDD / Agentic SDD に隔離 worktree を要求するものではない。通常の変更作業は作業ブランチ上の通常 worktree で行い、TCR をユーザが明示した場合だけ `.worktrees/tcr-workflow-exp/` 配下の隔離 worktree を使う。
+
 参考文献:
 
 | 種別 | 参照 |
@@ -76,10 +78,10 @@ Kent Beck の TCR は、小さい increment を強制し、壊れた状態を長
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | `tcr-lab` を `tcr-workflow-exp` に rename する | new behavior | 3.1 | `git mv` を使う |
-| todo | harness が `.worktrees/` 外 path を拒否する | edge case | 3.1 | script smoke test で確認する |
-| todo | harness の help / status command が実行できる | new behavior | 3.1 | 実際の reset は smoke test では行わない |
-| todo | skill metadata を validate できる | regression | 5 | `quick_validate.py` |
+| green | `tcr-lab` を `tcr-workflow-exp` に rename する | new behavior | 3.1 | `git mv` で実施済み |
+| green | harness が `.worktrees/` 外 path を拒否する | edge case | 3.1 | smoke test 実行済み |
+| green | harness の help / status command が実行できる | new behavior | 3.1 | destructive 操作なしで確認済み |
+| green | skill metadata を validate できる | regression | 5 | `quick_validate.py` 通過 |
 
 ### 3.3 設計方針
 

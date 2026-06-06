@@ -7,6 +7,8 @@ description: "test && commit || revert を隔離 worktree 上で試す実験 wor
 
 TCR は `test && commit || revert` を小さい increment で試す実験 workflow として扱う。失敗時の revert は本体作業ツリーではなく、`.worktrees/tcr-workflow-exp/` 配下の隔離 worktree に閉じ込める。
 
+この skill は通常の TDD / Agentic SDD の branch policy ではなく、破壊的 revert を隔離するための例外である。ユーザが TCR を明示していない通常作業では使わない。
+
 ## Preconditions
 
 - ユーザが TCR を明示的に要求している。

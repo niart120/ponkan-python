@@ -10,6 +10,7 @@ Agentic SDD における review を、自律実装の主役ではなく品質ゲ
 
 | Gate | 実行タイミング | 主担当 | 失敗時の戻り先 |
 | ---- | -------------- | ------ | -------------- |
+| Git Context Gate | 変更前 | Main Agent | Branch setup / User clarification |
 | Requirements Gate | Plan 前 | Main Agent | Spec / Clarify |
 | Plan Gate | Tasks 前 | Main Agent | Plan |
 | Source Audit Gate | 原典値使用前 | Main Agent + Subagent | Source audit |
@@ -27,6 +28,7 @@ Agentic SDD における review を、自律実装の主役ではなく品質ゲ
 
 ### Work Unit
 - selected:
+- git context:
 - intent delta:
 - non-goals:
 
