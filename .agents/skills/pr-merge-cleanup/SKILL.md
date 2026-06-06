@@ -6,12 +6,14 @@ description: "作業ブランチを GitHub PR 経由で default branch にマー
 # PR Merge Cleanup
 
 作業ブランチの変更を GitHub PR 経由で default branch に取り込み、ローカル同期と不要ブランチ削除まで行う。
+この skill は project の GitHub Flow における PR 作成、merge、default branch 同期、branch cleanup を担当する。
 既定は merge commit を残す `gh pr merge --merge` とし、squash merge はユーザが明示した場合だけ使う。
 
 ## Preconditions
 
 - GitHub リモートが設定済みであること。
 - 作業ブランチで必要な commit が完了していること。
+- GitHub Flow の短命な作業ブランチであり、Agentic SDD / TDD の Git Context Gate を通していること。
 - `git status --short` が空であること。
 - default branch 上で実行していないこと。
 - GitHub への push / PR / merge 権限があること。

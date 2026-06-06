@@ -26,13 +26,20 @@ Main Agent は、ユーザから曖昧な作業依頼を受けても、すぐ Su
 Main Agent の責務:
 
 1. `AGENTS.md` と `spec/initial` を既定コンテキストとして読む。
-2. Intent Delta がある場合だけ、既存仕様との差分として扱う。
-3. 次の Work Unit を 1つ選ぶ。
-4. Plan と Task Graph を作る。
-5. Subagent に出す sidecar task を切り出す。
-6. sidecar task や観点別 gate がある場合は、必要に応じて Subagent を起動する。
-7. blocking task と実装統合を担当する。
-8. Gate 結果と次の Work Unit 候補を報告する。
+2. 変更を伴う作業では branch、default branch、dirty 状態を確認する。
+3. Intent Delta がある場合だけ、既存仕様との差分として扱う。
+4. 次の Work Unit を 1つ選ぶ。
+5. Plan と Task Graph を作る。
+6. Subagent に出す sidecar task を切り出す。
+7. sidecar task や観点別 gate がある場合は、必要に応じて Subagent を起動する。
+8. blocking task と実装統合を担当する。
+9. Gate 結果と次の Work Unit 候補を報告する。
+
+## 3.1 Git Context
+
+変更を伴う Work Unit では、Main Agent は作業開始前に `git branch --show-current` と `git status --short` を確認する。default branch 上で clean な場合は、read-only 調査やユーザの明示指示を除き、作業ブランチを作るか既存作業ブランチへ切り替える。dirty worktree では既存変更を読んで、ユーザ変更を破棄しない。
+
+TCR をユーザが明示した場合だけ `tcr-workflow-exp` の隔離 worktree を使う。通常の TDD / Agentic SDD は通常 worktree 上の作業ブランチで進める。
 
 ## 4. Bootstrap 入力
 
@@ -95,6 +102,7 @@ Main Agent は開始直後に次を出す。
 ```text
 Agentic SDD bootstrap:
 - Constitution: AGENTS.md, spec/initial/*
+- Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <Step or TDD item>
 - Non-goals: <Step outside scope>

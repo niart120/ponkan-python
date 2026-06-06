@@ -72,6 +72,8 @@ TDD の workflow step と skill は 1:1 対応に固定しない。実装中の 
 
 `tcr-workflow-exp` は通常の開発 workflow には組み込まない。現在の Codex policy は `git reset --hard` などの破壊的 git 操作を禁止しているため、TCR は安全な一時 branch / worktree と明示承認がある場合に限る。
 
+Git context は Agentic SDD の Git Context Gate に従う。通常の TDD skill 群は隔離 worktree を要求しないが、変更を伴う red / green / refactor は default branch ではなく作業ブランチ上で行う。default branch 上で変更を始める場合は、read-only 調査やユーザの明示指示を除き、先に作業ブランチを作る。TCR だけは通常 branch policy ではなく `tcr-workflow-exp` の隔離 worktree を使う。
+
 ## 4. 実装仕様
 
 ### 4.1 skill 構成

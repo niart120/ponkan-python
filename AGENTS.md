@@ -57,18 +57,33 @@ spec/
 
 `AGENTS.md`、`spec/initial/*`、作業仕様を Constitution とし、Main Agent は Intent Delta が明示された場合だけ既存仕様との差分として扱います。
 
+変更を伴う Work Unit では、Main Agent は作業開始前に現在 branch と `git status --short` を確認します。default branch 上で clean な場合は、read-only 調査やユーザの明示指示を除き、作業ブランチを作るか既存作業ブランチへ切り替えます。dirty worktree では既存変更を読んで、ユーザ変更を破棄しません。TCR を明示された場合だけ、通常 branch ではなく `tcr-workflow-exp` の隔離 worktree を使います。
+
 ユーザが `Agentic SDD で進めて`、`次の Work Unit を進めて`、または同等の依頼をした場合、Main Agent は次を行います。
 
-1. 現在の worktree と仕様を確認する。
-2. `spec/initial` の Step、作業仕様の TDD item、source audit item、hardware-gated item から Work Unit を 1つだけ選ぶ。
-3. 選択した Work Unit の対象、非対象、影響範囲、実機要否、検証 command を Plan として示す。
-4. Task Graph を blocking local task、sidecar task、hardware task に分ける。
-5. ユーザが Subagent 利用を許可している場合、sidecar task や観点別 gate に必要な Subagent を起動し、結果の採否を Main Agent が統合する。
-6. TDD が適する実装では 1項目ずつ red / green / refactor を進める。
-7. Work Unit 終了時に gate 結果、未実行 gate、source / hardware 状態、次候補を報告する。
+1. 現在の branch、worktree、仕様を確認する。
+2. 変更を伴う作業では Git Context Gate を通す。
+3. `spec/initial` の Step、作業仕様の TDD item、source audit item、hardware-gated item から Work Unit を 1つだけ選ぶ。
+4. 選択した Work Unit の対象、非対象、影響範囲、実機要否、検証 command を Plan として示す。
+5. Task Graph を blocking local task、sidecar task、hardware task に分ける。
+6. ユーザが Subagent 利用を許可している場合、sidecar task や観点別 gate に必要な Subagent を起動し、結果の採否を Main Agent が統合する。
+7. TDD が適する実装では 1項目ずつ red / green / refactor を進める。
+8. Work Unit 終了時に gate 結果、未実行 gate、source / hardware 状態、次候補を報告する。
 
 未選択の Step、device、backend、GUI、audio、recording、old DS は実装しません。
 実機 command は、device identity、command scope、安全理由、artifact、cleanup の説明と人間の明示承認があるまで実行しません。
+
+## Git / GitHub Flow
+
+この repo は GitHub Flow を採用します。
+
+- `master` / `main` などの default branch は、常に統合済みの安定 branch として扱う。
+- 変更を伴う作業は短命な作業ブランチで行い、PR 経由で default branch に取り込む。
+- 作業ブランチ名は `feat/...`、`fix/...`、`test/...`、`docs/...`、`chore/...` など変更意図に合わせる。
+- default branch への直接 commit は、read-only 調査、ユーザの明示指示、緊急メンテナンスを除き避ける。
+- PR merge は `pr-merge-cleanup` に従い、merge commit を既定とする。squash merge はユーザが明示した場合だけ使う。
+- merge 後は default branch を pull して、local / remote の作業ブランチを削除する。
+- TCR は通常の GitHub Flow 作業ブランチではなく、隔離 worktree 上の実験 workflow として扱う。
 
 ## 実機安全制約
 

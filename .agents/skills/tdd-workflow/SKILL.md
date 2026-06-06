@@ -7,6 +7,14 @@ description: "Kent Beck の Canon TDD を project workflow として進める or
 
 Kent Beck の Canon TDD を、ponkan-python の仕様、テスト、実装、検証に接続する。
 
+## Git Context
+
+通常の TDD は隔離 worktree を要求しない。変更を伴う TDD は、Agentic SDD の Git Context Gate を通した通常 worktree の作業ブランチ上で進める。
+
+- default branch 上で red / green / refactor を始めない。read-only 調査やユーザの明示指示がある場合だけ例外にする。
+- dirty worktree では既存変更を読んで、ユーザ変更を破棄しない。
+- TCR をユーザが明示した場合だけ `tcr-workflow-exp` を使い、隔離 worktree へ切り替える。
+
 ## Workflow
 
 1. 仕様が関係する作業では `spec-format` を使い、振る舞い仕様と TDD Test List を仕様書に置く。
