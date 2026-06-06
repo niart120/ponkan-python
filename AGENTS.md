@@ -86,11 +86,21 @@ spec/
 - 変更範囲に応じて、ruff、ty、pytest を実行します。
 
 ```console
+uv sync --dev
+scripts/install-git-hooks.ps1
 uv run ruff format --check .
 uv run ruff check .
 uv run ty check --no-progress
 uv run pytest tests/unit
 ```
+
+## Hooks / Codex Policy
+
+- Git hooks は `.githooks/` を正本とし、`git config core.hooksPath .githooks` で有効化する。
+- clone 後は `scripts/install-git-hooks.ps1` または `sh scripts/install-git-hooks.sh` を実行する。
+- Codex project-local hooks / rules は `.codex/` に置く。
+- 生 `python` / `pip` / `pytest` / `ruff` / `ty` は使わず、`uv run ...` または `uv add ...` を使う。
+- project `.codex/` layer は trusted project でだけ読み込まれる。hook 変更後は `/hooks` で review/trust する。
 
 実機テスト:
 

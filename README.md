@@ -24,6 +24,7 @@ Python 実行と依存管理は `uv` を使います。
 
 ```console
 uv sync --dev
+scripts/install-git-hooks.ps1
 uv run ruff format --check .
 uv run ruff check .
 uv run ty check --no-progress
@@ -40,6 +41,10 @@ uv run pytest -m requires_n3dsxl tests/e2e
 ## Safety
 
 N3DSXL command は、VID/PID と product string が仕様で許可された device にだけ送ります。未知の FTDI device を N3DSXL として扱わないでください。
+
+Git hooks は `.githooks/` に配置しています。clone 後に `scripts/install-git-hooks.ps1` または `sh scripts/install-git-hooks.sh` を実行すると、`core.hooksPath` が `.githooks` に設定されます。
+
+Codex project-local policy は `.codex/` に配置しています。Codex で有効にするには、この project layer を trust し、`/hooks` で hook を review/trust してください。
 
 ## License and Attribution
 

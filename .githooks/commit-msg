@@ -1,0 +1,32 @@
+#!/bin/sh
+set -eu
+
+message_file=${1:?commit message file is required}
+first_line=$(sed -n '1p' "$message_file")
+
+fail() {
+  printf '%s\n' "commit-msg: $1" >&2
+  printf '%s\n' "expected: <type>(<scope>): <日本語subject>" >&2
+  printf '%s\n' "types: feat fix docs style refactor perf test build ci chore revert" >&2
+  exit 1
+}
+
+case "$first_line" in
+  Merge\ *|Revert\ *)
+    exit 0
+    ;;
+esac
+
+printf '%s\n' "$first_line" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([A-Za-z0-9_.-]+\))?: .+' \
+  || fail "message must follow Conventional Commits"
+
+subject=$(printf '%s\n' "$first_line" | sed -E 's/^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([A-Za-z0-9_.-]+\))?: //')
+
+printf '%s\n' "$subject" | LC_ALL=C grep -q '[^ -~]' \
+  || fail "subject must include Japanese or another non-ASCII character"
+
+case "$subject" in
+  *.|*。)
+    fail "subject must not end with a period"
+    ;;
+esac

@@ -1,0 +1,86 @@
+# Prefer uv-managed Python commands in this repository.
+
+prefix_rule(
+    pattern = ["python"],
+    decision = "forbidden",
+    justification = "Use `uv run python ...` so the project environment is used.",
+    match = ["python script.py", "python -m pytest"],
+    not_match = ["uv run python script.py"],
+)
+
+prefix_rule(
+    pattern = ["python3"],
+    decision = "forbidden",
+    justification = "Use `uv run python ...` so the project environment is used.",
+    match = ["python3 script.py"],
+    not_match = ["uv run python script.py"],
+)
+
+prefix_rule(
+    pattern = ["py"],
+    decision = "forbidden",
+    justification = "Use `uv run python ...` so the project environment is used.",
+    match = ["py -3 script.py"],
+    not_match = ["uv run python script.py"],
+)
+
+prefix_rule(
+    pattern = ["pip"],
+    decision = "forbidden",
+    justification = "Use `uv add`, `uv add --dev`, or `uv sync` instead of pip.",
+    match = ["pip install numpy"],
+    not_match = ["uv add numpy"],
+)
+
+prefix_rule(
+    pattern = ["pip3"],
+    decision = "forbidden",
+    justification = "Use `uv add`, `uv add --dev`, or `uv sync` instead of pip.",
+    match = ["pip3 install numpy"],
+    not_match = ["uv add numpy"],
+)
+
+prefix_rule(
+    pattern = ["pytest"],
+    decision = "forbidden",
+    justification = "Use `uv run pytest ...` so tests run in the locked project environment.",
+    match = ["pytest tests/unit"],
+    not_match = ["uv run pytest tests/unit"],
+)
+
+prefix_rule(
+    pattern = ["ruff"],
+    decision = "forbidden",
+    justification = "Use `uv run ruff ...` so linting uses the locked project version.",
+    match = ["ruff check ."],
+    not_match = ["uv run ruff check ."],
+)
+
+prefix_rule(
+    pattern = ["ty"],
+    decision = "forbidden",
+    justification = "Use `uv run ty ...` so type checking uses the locked project version.",
+    match = ["ty check"],
+    not_match = ["uv run ty check --no-progress"],
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Do not discard worktree changes unless the user explicitly requests that exact destructive operation.",
+    match = ["git reset --hard"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "forbidden",
+    justification = "Do not delete untracked files from Codex command policy; ask for explicit direction and use a scoped command.",
+    match = ["git clean -fd"],
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "--"],
+    decision = "forbidden",
+    justification = "Do not discard file changes with `git checkout --`; ask for explicit direction first.",
+    match = ["git checkout -- pyproject.toml"],
+)

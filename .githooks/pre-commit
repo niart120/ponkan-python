@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+echo "[pre-commit] uv lock --check"
+uv lock --check
+
+echo "[pre-commit] uv run ruff format --check ."
+uv run ruff format --check .
+
+echo "[pre-commit] uv run ruff check ."
+uv run ruff check .
