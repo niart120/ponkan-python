@@ -34,8 +34,8 @@ opencv = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
-    "ruff>=0.12",
-    "ty>=0.0.1a1",
+    "ruff>=0.15.16",
+    "ty>=0.0.44",
 ]
 
 [build-system]
@@ -47,10 +47,65 @@ packages = ["src/py3dscapture"]
 
 [tool.ruff]
 line-length = 100
+required-version = ">=0.15.16"
+src = ["src", "tests"]
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["B", "E", "F", "I", "RUF", "SIM", "UP"]
+select = [
+    "A",
+    "ANN",
+    "ARG",
+    "ASYNC",
+    "B",
+    "BLE",
+    "C4",
+    "DTZ",
+    "E",
+    "F",
+    "FURB",
+    "I",
+    "N",
+    "NPY",
+    "PERF",
+    "PIE",
+    "PLC",
+    "PLE",
+    "PLW",
+    "PT",
+    "PTH",
+    "RET",
+    "RUF",
+    "S",
+    "SIM",
+    "SLOT",
+    "T20",
+    "TC",
+    "TRY",
+    "UP",
+    "W",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/py3dscapture/tools/**/*.py" = ["T201"]
+"tests/**/*.py" = ["S101"]
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["py3dscapture"]
+
+[tool.ty.environment]
+python-version = "3.12"
+root = ["./src"]
+
+[tool.ty.src]
+include = ["src", "tests"]
+
+[tool.ty.terminal]
+error-on-warning = true
+output-format = "concise"
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"

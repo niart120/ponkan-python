@@ -243,8 +243,8 @@ provides-extras = ["image", "opencv"]
 dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
-    { name = "ruff", specifier = ">=0.12" },
-    { name = "ty", specifier = ">=0.0.1a1" },
+    { name = "ruff", specifier = ">=0.15.16" },
+    { name = "ty", specifier = ">=0.0.44" },
 ]
 
 [[package]]

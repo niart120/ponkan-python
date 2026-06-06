@@ -33,7 +33,7 @@
 ```
 uv run ruff format --check .
 uv run ruff check .
-uv run ty check src/py3dscapture --output-format concise --no-progress
+uv run ty check --no-progress
 uv run pytest tests/unit
 ```
 
