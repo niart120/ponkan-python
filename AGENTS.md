@@ -22,6 +22,7 @@ agent skill は `.agents/skills` を正本として管理します。`.github/sk
 
 - `agentic-sdd`: `spec/initial` と作業仕様から次の Work Unit を選び、Plan / Tasks / Implement / Gate を進める
 - `agentic-self-review`: Agentic SDD の Work Unit 完了前に gate 結果、未検証リスク、次候補を圧縮報告する
+- `pr-merge-cleanup`: PR 作成、merge commit 既定の merge、default branch 同期、branch 削除、Agentic SDD gate 結果の PR 反映を行う
 - `spec-format`: 仕様書を `spec/wip/local_{連番}` または `spec/complete/local_{連番}` に作成・更新する
 - `dev-journal`: 実装中の観測・疑問・先送り事項を `spec/dev-journal.md` に記録する
 - `cc3dsfs-source-audit`: 原典 C++ から抽出した定数・command・構造体サイズ・仮説を記録する
