@@ -1,0 +1,4 @@
+interface:
+  display_name: "TCR Lab"
+  short_description: "TCRを安全な実験として扱う"
+  default_prompt: "Use $tcr-lab to plan a safe test && commit || revert experiment."

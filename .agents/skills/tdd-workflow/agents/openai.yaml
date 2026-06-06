@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD Workflow"
+  short_description: "Kent Beck式TDD手順を案内する"
+  default_prompt: "Use $tdd-workflow to drive this change through a TDD test list and one red/green/refactor cycle."

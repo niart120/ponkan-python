@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD One Cycle"
+  short_description: "1項目だけred/green/refactorする"
+  default_prompt: "Use $tdd-one-cycle to implement exactly one TDD Test List item."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Desiderata Review"
+  short_description: "テスト品質のtrade-offを確認する"
+  default_prompt: "Use $test-desiderata-review to review these tests against Kent Beck's Test Desiderata."

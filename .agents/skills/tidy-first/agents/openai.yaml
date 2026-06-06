@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tidy First"
+  short_description: "構造変更と振る舞い変更を分ける"
+  default_prompt: "Use $tidy-first to decide whether this structure change belongs before, after, or outside the behavior change."

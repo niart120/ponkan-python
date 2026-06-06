@@ -24,6 +24,12 @@ agent skill は `.agents/skills` を正本として管理します。`.github/sk
 - `dev-journal`: 実装中の観測・疑問・先送り事項を `spec/dev-journal.md` に記録する
 - `cc3dsfs-source-audit`: 原典 C++ から抽出した定数・command・構造体サイズ・仮説を記録する
 - `n3dsxl-hardware-harness`: 実機 new 3DS XL capture board を使う検証の安全手順を確認する
+- `tdd-workflow`: Canon TDD のテストリストから red/green/refactor までを進行する
+- `tdd-test-list`: 振る舞いベースの TDD Test List を作成・更新する
+- `tdd-one-cycle`: TDD Test List の 1 項目だけを red/green/refactor で実行する
+- `tidy-first`: 振る舞い変更と構造変更を分け、構造改善のタイミングを判断する
+- `test-desiderata-review`: Test Desiderata に基づいてテスト品質の trade-off を確認する
+- `tcr-lab`: TCR を通常 TDD とは別の明示的な実験として扱う
 
 ## プロジェクト構造
 

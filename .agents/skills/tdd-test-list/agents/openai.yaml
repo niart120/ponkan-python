@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD Test List"
+  short_description: "振る舞いベースのテストリストを作る"
+  default_prompt: "Use $tdd-test-list to turn this behavior change into a prioritized TDD Test List."
