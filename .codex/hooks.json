@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "uv run python \"$(git rev-parse --show-toplevel)/.codex/hooks/pre_tool_use_policy.py\"",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$root = git rev-parse --show-toplevel; & (Join-Path $root '.codex/hooks/run-pre-tool-use-policy.ps1')\"",
+            "commandWindows": "powershell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand JABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQAgAD0AIAAnAFMAaQBsAGUAbgB0AGwAeQBDAG8AbgB0AGkAbgB1AGUAJwAKACQAcgBvAG8AdAAgAD0AIABnAGkAdAAgAHIAZQB2AC0AcABhAHIAcwBlACAALQAtAHMAaABvAHcALQB0AG8AcABsAGUAdgBlAGwACgAkAGgAbwBvAGsAIAA9ACAASgBvAGkAbgAtAFAAYQB0AGgAIAAkAHIAbwBvAHQAIAAnAC4AYwBvAGQAZQB4AC8AaABvAG8AawBzAC8AcgB1AG4ALQBwAHIAZQAtAHQAbwBvAGwALQB1AHMAZQAtAHAAbwBsAGkAYwB5AC4AcABzADEAJwAKAHAAbwB3AGUAcgBzAGgAZQBsAGwAIAAtAE4AbwBMAG8AZwBvACAALQBOAG8AUAByAG8AZgBpAGwAZQAgAC0ATgBvAG4ASQBuAHQAZQByAGEAYwB0AGkAdgBlACAALQBFAHgAZQBjAHUAdABpAG8AbgBQAG8AbABpAGMAeQAgAEIAeQBwAGEAcwBzACAALQBGAGkAbABlACAAJABoAG8AbwBrAAoAZQB4AGkAdAAgACQATABBAFMAVABFAFgASQBUAEMATwBEAEUA",
             "timeout": 30,
             "statusMessage": "Checking ponkan-python command policy"
           }
