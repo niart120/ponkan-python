@@ -15,7 +15,7 @@
 | 用語 | 定義 |
 | ---- | ---- |
 | Work Unit | Main Agent が一度に選ぶ最小作業単位。実装 Step 1つ、または Step 内の TDD Test List 1項目。 |
-| Work Unit Spec | `spec/wip/local_008/` から `spec/wip/local_014/` に 1 仕様書ずつ配置した詳細仕様書。 |
+| Work Unit Spec | `spec/complete/local_009/` から `spec/complete/local_014/` に 1 仕様書ずつ配置した詳細仕様書。 |
 | Bring-up Gate | async streaming 前に通す単発 raw capture、raw 保存、decoder、PNG 目視確認の gate。 |
 | MVP Acceptance | continuous async streaming、bounded queue、drop policy、stats、shutdown、performance smoke を含む完了条件。 |
 | Source Audit Gate | `cc3dsfs` 由来の定数、USB command、構造体サイズ、sequence を実装前に原典 path / URL とともに固定する gate。 |
@@ -25,13 +25,13 @@
 
 `spec/initial/cc3dsfs_python_rebuild_spec.md` は MVP 全体像を持ち、`spec/initial/cc3dsfs_python_n3dsxl_implementation_workflow.md` は Step 0-8 の順序を持つ。一方で、Agentic SDD が自律的に次の Work Unit を選ぶには、各 Step の対象ファイル、振る舞い、TDD Test List、source audit、hardware gate、非対象を分けた作業仕様が必要である。
 
-この仕様群では、初期仕様の scope を縮めずに、実装開始時に直接読める詳細仕様へ展開する。各 Work Unit は個別の `local_xxx` ディレクトリに分け、実装完了時に仕様単位で `spec/complete/local_xxx/` へ移せる状態にする。
+この仕様群では、初期仕様の scope を縮めずに、実装開始時に直接読める詳細仕様へ展開する。各 Work Unit は個別の `local_xxx` ディレクトリに分け、実装完了時に仕様単位で `spec/complete/local_xxx/` へ移した。
 
 ### 1.4 期待効果
 
 | 指標 | 現状 | 目標 |
 | ---- | ---- | ---- |
-| Work Unit 選択 | 初期 workflow の Step を都度読み解く | 索引から最初の未完了 Work Unit を選べる |
+| Work Unit 選択 | 初期 workflow の Step を都度読み解く | 索引から local 完了状態と残る hardware pending を判断できる |
 | scope 境界 | MVP 全体仕様から推測する | 各仕様に対象、非対象、依存、gate を明記する |
 | TDD 開始 | Step 単位が大きい | TDD Test List 1項目へ分割できる |
 | source audit | 実装時に個別判断 | command、定数、構造体サイズを使う前の gate として扱う |
@@ -49,7 +49,7 @@
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_008/WORK_UNIT_INDEX.md` | 新規 | Work Unit 仕様群の索引、依存関係、選択規則を定義する。 |
+| `spec/complete/local_008/WORK_UNIT_INDEX.md` | 完了済み | Work Unit 仕様群の索引、依存関係、選択規則を定義する。 |
 | `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` | 完了済み | Step 0 の USB identity、screen size、capture size、既存単体テストを定義する。 |
 | `spec/complete/local_010/N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` | 完了済み | Step 1-2 の device listing、safe open、claim、close を定義する。 |
 | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` | 完了済み | Step 3-4 の FTD3 command pipe と N3DSXL connect sequence を定義する。 |
@@ -74,10 +74,10 @@
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | 索引から Step 0-8 の依存関係を読み取れる | documentation | 3.1 | `rg` で各仕様名と Step を確認する |
-| todo | 各 Work Unit Spec が `振る舞い仕様` と `TDD Test List` を持つ | documentation | 3.1 | Agentic SDD の開始条件 |
-| todo | 実機を必要とする項目が `requires_n3dsxl` と承認境界を持つ | safety | 3.1 | hardware gate の抜け漏れ防止 |
-| todo | cc3dsfs 由来の値を扱う項目が source audit 要否を持つ | safety | 3.1 | 実装前に原典確認へ戻せる |
+| green | 索引から Step 0-8 の依存関係を読み取れる | documentation | 3.1 | `rg` で各仕様名と Step を確認 |
+| green | 各 Work Unit Spec が `振る舞い仕様` と `TDD Test List` を持つ | documentation | 3.1 | `spec/complete/local_009` から `local_014` を確認 |
+| green | 実機を必要とする項目が `requires_n3dsxl` と承認境界を持つ | safety | 3.1 | hardware gate の抜け漏れ防止を確認 |
+| green | cc3dsfs 由来の値を扱う項目が source audit 要否を持つ | safety | 3.1 | source audit 記録または not applicable を確認 |
 
 ### 3.3 設計方針
 
@@ -110,7 +110,7 @@ Main Agent は、この仕様群を使う作業開始時に次を提示する。
 
 ```text
 Agentic SDD bootstrap:
-- Constitution: AGENTS.md, spec/initial/*, spec/wip/local_008/* ... spec/wip/local_014/*
+- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_014/*
 - Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <spec file + TDD item>
@@ -159,15 +159,15 @@ def select_next_work_unit(specs: list[WorkUnitSpec], intent_delta: IntentDelta) 
 
 | テスト対象 | 検証内容 | 入力例 | 期待結果 |
 | ---------- | -------- | ------ | -------- |
-| 仕様構成 | 各仕様に template 由来の主要 section がある | `rg -n "## 3. 振る舞い仕様" spec/wip` | 仕様書ごとに hit する |
-| Work Unit 分割 | Step 0-8 が対応仕様に出現する | `rg -n "Step [0-8]" spec/wip` | 全 Step が確認できる |
-| hardware gate | 実機仕様に marker と承認境界がある | `rg -n "requires_n3dsxl|PONKAN_HARDWARE_APPROVED" spec/wip` | 実機対象仕様に hit する |
+| 仕様構成 | 各仕様に template 由来の主要 section がある | `rg -n "## 3. 振る舞い仕様" spec/complete/local_009 spec/complete/local_010 spec/complete/local_011 spec/complete/local_012 spec/complete/local_013 spec/complete/local_014` | 仕様書ごとに hit する |
+| Work Unit 分割 | Step 0-8 が対応仕様に出現する | `rg -n "Step [0-8]" spec/complete/local_009 spec/complete/local_010 spec/complete/local_011 spec/complete/local_012 spec/complete/local_013 spec/complete/local_014` | 全 Step が確認できる |
+| hardware gate | 実機仕様に marker と承認境界がある | `rg -n "requires_n3dsxl|PONKAN_HARDWARE_APPROVED" spec/complete/local_010 spec/complete/local_011 spec/complete/local_012 spec/complete/local_013 spec/complete/local_014` | 実機対象仕様に hit する |
 
 ### 統合テスト
 
 | シナリオ | 検証内容 | 前提条件 | 期待結果 |
 | -------- | -------- | -------- | -------- |
-| Agentic SDD 開始 | 索引から次候補を選べる | `local_008` から `local_014` が存在する | 完了済み Step 0 を飛ばして Step 1 local task を選べる |
+| Agentic SDD 開始 | 索引から次候補を選べる | `complete/local_008` から `complete/local_014` が存在する | local task は完了、残る項目は hardware-gated と判断できる |
 | Source audit 戻り | command 値が未確認 | Step 3 を選ぶ | `cc3dsfs-source-audit` item を先に選べる |
 | Hardware 承認待ち | 実機 E2E が必要 | Step 2 以降 | command を実行せず承認待ちにできる |
 
@@ -181,7 +181,7 @@ git diff --check
 ドキュメント構造確認:
 
 ```console
-rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/wip
+rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/local_008 spec/complete/local_009 spec/complete/local_010 spec/complete/local_011 spec/complete/local_012 spec/complete/local_013 spec/complete/local_014
 ```
 
 ## 6. 実装チェックリスト
@@ -193,3 +193,31 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/wip
 - [x] 仕様構成確認を実行する。
 - [x] 既存 unit test を実行する。
 - [x] レビュー完了。
+
+## 7. 実装結果
+
+### 7.1 Final Index State
+
+| Work Unit | 状態 | 残る gate |
+| --------- | ---- | -------- |
+| `complete/local_009` | local complete | none |
+| `complete/local_010` | local complete | hardware open/close E2E pending |
+| `complete/local_011` | local complete | hardware command pipe / connect E2E pending |
+| `complete/local_012` | local complete | raw fixture / manual visual pending |
+| `complete/local_013` | local complete | hardware streaming E2E pending |
+| `complete/local_014` | local complete | hardware performance smoke pending |
+
+### 7.2 Gate Results
+
+| Gate | 結果 | Evidence |
+| ---- | ---- | -------- |
+| Spec structure | pass | `rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/local_008 ... spec/complete/local_014`。 |
+| Unit | pass | `uv run pytest tests/unit`: 59 passed。 |
+| E2E / performance skip | pass | `uv run pytest tests/e2e tests/performance`: 6 skipped。 |
+| Static | pass | `uv run ruff format --check .`、`uv run ruff check .`、`uv run ty check --no-progress`。 |
+| Diff | pass | `git diff --check`。 |
+| Hardware | not run | local_008 は index 完了のみ。実機 command は実行しない。 |
+
+### 7.3 Completion Notes
+
+`spec/wip` 配下に未完了仕様は残っていない。local_009 から local_014 は全て local complete で、実機が必要な gate は各 complete 仕様に pending として残す。
