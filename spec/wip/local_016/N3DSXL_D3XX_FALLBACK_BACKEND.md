@@ -160,6 +160,37 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | ローカル probe で `PyD3XX` import と D3XX library load は成功した | fact | `uv run python -c "import PyD3XX; ... FT_GetLibraryVersion()"` が `(0, 16973840)` を返した。device enumeration / open は未実行。 |
 | PyD3XX の `FT_Create` は初期化済み device detail を渡す必要がある | fact | 新規 `FT_Device()` では `FT_OTHER_ERROR`。`FT_GetDeviceInfoDetail(0)` が返した object では index / serial / description open-close が成功した。 |
 | PyD3XX wrapper の `FT_WritePipe` は今回の実機で `FT_OTHER_ERROR` を返す | fact | `D3xxHandle.write_pipe()` が PyD3XX wrapper 経由のとき、connect sequence の最初の 4 byte write で status `32`。同梱 D3XX DLL への ctypes direct `FT_WritePipe` では status `0` / transferred `4`。 |
+| cc3dsfs の D3XX connect は drain 後に一度 close / reconnect する | fact | `3dscapture_ftd3_shared.cpp` の `connect_ftd3`: `drain_data` 後に `preemptive_close_connection` を呼び、同じ serial で `ftd3_reconnect_compat` を再実行してから SPI / firmware / config read に進む。 |
+| ponkan-python の現 D3XX connect は drain 後 reconnect をしていない | fact | `N3DSXLProtocol.connect()` は `create_pipe` / `drain` / `abort` / `create_pipe` の後、同じ `D3xxHandle` で SPI / firmware / config read に進む。D3XX backend の `create_pipe()` は no-op。 |
+| D3XX read/write timeout handling は原典に近づけた | fact | `3dscapture_ftd3_compatibility.cpp` は `FT_GetPipeTimeout` / `FT_SetPipeTimeout` で timeout を一時設定し、read/write 後に復元する。現実装も direct DLL path で同じ保存・設定・復元を行う。 |
+| firmware load 後 200ms wait は原典に近づけた | fact | `3dscapture_ftd3_shared.cpp` の `load_3ds_cc_firmware` は firmware write 後に `FTD3_N3DSXL_CFG_WAIT_MS` を待つ。現実装も `N3DSXL_CFG_WAIT_MS` を待つ。 |
+| Windows D3XX raw capture は command read と別 API を使う | fact | `3dscapture_ftd3_driver_acquisition.cpp` は Windows の capture read で `FT_ReadPipeEx` を使う。現時点の failure は connect 中の config read であり、raw capture API 差分は未検証。 |
+
+### 6.1 D3XX connect failure analysis
+
+2026-06-08 の実機 gate では、対象 device は `0x0403:0x601e product=N3DSXL.2 serial=nxl530228 flags=4` として D3XX listing に復帰した。`tests/e2e/test_n3dsxl_d3xx_backend.py -q` は open-close、native pipe setup、fallback selector が pass し、connect だけが `_read_3ds_config_3d()` の `FT_ReadPipe(0x82, 0x10)` status `32` で失敗した。直後の listing は `flags=4` のままで、handle cleanup は成功している。
+
+確定している切り分け:
+
+| 観点 | 状態 | 判断 |
+| ---- | ---- | ---- |
+| device identity | `0x0403:0x601e`, `N3DSXL.2`, `serial=nxl530228` | 対象 device は安全条件を満たす。 |
+| D3XX visibility | listing / candidate 化は pass | product string / D3XX enumeration 問題ではない。 |
+| handle lifecycle | open-close gate と e2e 後 listing は pass | 単純な close 漏れではない。 |
+| native pipe setup | `FT_AbortPipe(0x82)` / `FT_SetStreamPipe(0x82, 1024)` は pass | pipe setup API 自体は呼べている。 |
+| write path | direct DLL `FT_WritePipe` で最初の write は前進 | PyD3XX wrapper の write failure は direct path で回避済み。 |
+| read path | config read の `FT_ReadPipe(0x82, 0x10)` が status `32` | 残 blocker は config read 直前の device / pipe state 差分。 |
+
+原典との差分と仮説:
+
+| ID | 仮説 | 根拠 | 次に確認すること |
+| -- | ---- | ---- | ---------------- |
+| H1 | drain 後 reconnect 不足が config read failure の主因 | cc3dsfs は `drain_data` 後に `preemptive_close_connection` してから reconnect する。Python D3XX path は同一 handle のまま進む。 | D3XX connect sequence に drain-only open / close / serial reconnect を導入する Work Unit を切る。 |
+| H2 | D3XX command read の pipe state が drain read の影響を受けている | failure は drain 後、SPI / firmware 後の config read に集中する。reconnect で state をリセットしていない点が H1 と連動する。 | H1 実装後も status `32` が残るか確認する。 |
+| H3 | endpoint id と FIFO index の扱い差が config read に影響している | command read は原典も `FT_ReadPipe(handle, BULK_IN=0x82, ...)`。raw capture は Windows で `FT_ReadPipeEx` を使うが、今回の failure は raw capture 前。 | config read では H1 より優先しない。raw capture Work Unit で別途扱う。 |
+| H4 | PyD3XX bundled DLL / driver version 相性がある | `FT_WritePipe` wrapper は status `32`、direct DLL path では write が前進した。 | H1 実装後も failure が残る場合に library / driver version と system DLL path を比較する。 |
+
+次の実装候補は H1 に限定する。追加の探索的実機 probe は増やさず、cc3dsfs の sequence 差分を TDD で protocol / transport に反映してから、既存 e2e gate を再実行する。
 
 参照元:
 
@@ -167,6 +198,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 - https://raw.githubusercontent.com/Lorenzooone/cc3dsfs/main/source/CaptureDeviceSpecific/3DSCapture_FTD3/3dscapture_ftd3_compatibility.cpp
 - https://raw.githubusercontent.com/Lorenzooone/cc3dsfs/main/source/CaptureDeviceSpecific/3DSCapture_FTD3/3dscapture_ftd3_libusb_comms.cpp
 - https://raw.githubusercontent.com/Lorenzooone/cc3dsfs/main/source/CaptureDeviceSpecific/3DSCapture_FTD3/3dscapture_ftd3_shared.cpp
+- https://raw.githubusercontent.com/Lorenzooone/cc3dsfs/main/source/CaptureDeviceSpecific/3DSCapture_FTD3/3dscapture_ftd3_driver_acquisition.cpp
 - https://pypi.org/project/PyD3XX/
 - https://github.com/S-Hector/PyD3XX
 - https://pypi.org/project/ftd3xx/
@@ -196,6 +228,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | D3XX e2e gate file | partial | 再接続後の `uv run pytest tests/e2e/test_n3dsxl_d3xx_backend.py -q`: open-close / native pipe setup / fallback selector は pass、connect は `FT_ReadPipe` status `32`。200ms wait 修正後の再実行は command timeout。 |
 | D3XX listing recovery | blocked | `D3xxBackend().iter_devices()` は 1 件だが `id=0x00000000 flags=1 product=- serial=-`。`flags=1` は `FT_FLAGS_OPENED`。repo 由来 python/uv process は残っていない。PnP は `FTDI FT600 USB 3.0 Bridge Device` / `USB Composite Device` とも `OK`。`pnputil /restart-device` は `Access is denied`。libusb listing では candidate `0x0403:0x601e product=- product_status=unreadable` が見えている。 |
 | D3XX listing after physical replug | pass | `d3xx_device_count 1`; `device index=0 id=0x0403601e vid=0x0403 pid=0x601e product=N3DSXL.2 serial=nxl530228 flags=4`; `d3xx_candidate_count 1`。 |
+| D3XX e2e after timeout handling | partial | 2026-06-08: `uv run pytest tests/e2e/test_n3dsxl_d3xx_backend.py -q` は 3 passed / 1 failed。connect は `_read_3ds_config_3d()` の `FT_ReadPipe(0x82, 0x10)` status `32`。直後の listing は `flags=4` / candidate 1 件で stale-open なし。 |
 | unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 4 passed |
 | unit connect sequence targeted | pass | `uv run pytest tests/unit/test_n3dsxl_connect_sequence.py -q`: 6 passed |
 | lint targeted | pass | `uv run ruff check src\py3dscapture\transport\d3xx_backend.py src\py3dscapture\protocol\n3dsxl.py tests\unit\test_n3dsxl_connect_sequence.py`: All checks passed |
