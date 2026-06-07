@@ -38,7 +38,7 @@ performance smoke は MVP acceptance だが、実機、OS、USB controller、Pyt
 
 ### 1.5 着手条件
 
-- [ ] `spec/wip/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` の functional streaming が実装済み。
+- [x] `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` の functional streaming が実装済み。
 - [ ] `tests/e2e` と `tests/performance` に marker が設定済み。
 - [ ] 人間承認前に実機 command を実行しない hook / 運用が有効である。
 - [ ] 実機 new 3DS XL capture board が接続され、product string が確認できる。
@@ -49,7 +49,7 @@ performance smoke は MVP acceptance だが、実機、OS、USB controller、Pyt
 | ---- | ---- |
 | 配置 | `spec/wip/local_014/N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` |
 | 対応 Step | Step 8: performance smoke test |
-| 前提 Work Unit | `spec/wip/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
+| 前提 Work Unit | `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
 | 次 Work Unit | MVP gate 結果により `spec/complete` 移動、または性能改善 / binding 再検討の新規 Work Unit。 |
 | local task | marker gate、stats serializer、artifact path policy。 |
 | hardware task | 60 秒 no-op consumer performance smoke。 |

@@ -1,11 +1,13 @@
 """Raw capture data model and fixture helpers."""
 
 import json
+from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Protocol
 
 from py3dscapture.errors import DecodeError, TransferOverflow
+from py3dscapture.image.frame import CaptureFrame
 
 
 @dataclass(slots=True)
@@ -73,3 +75,31 @@ def save_raw_capture(
         encoding="utf-8",
     )
     return bin_path, metadata_path
+
+
+class FrameEngine(Protocol):
+    """Small streaming engine surface exposed by CaptureSession."""
+
+    def frames(self, *, max_frames: int | None = None) -> Iterator[CaptureFrame]:
+        """Yield decoded frames."""
+        ...
+
+    def frames_async(self, *, max_frames: int | None = None) -> AsyncIterator[CaptureFrame]:
+        """Yield decoded frames asynchronously."""
+        ...
+
+
+@dataclass(slots=True)
+class CaptureSession:
+    """Public capture session facade."""
+
+    engine: FrameEngine
+
+    def frames(self, *, max_frames: int | None = None) -> Iterator[CaptureFrame]:
+        """Yield decoded frames from the underlying engine."""
+        yield from self.engine.frames(max_frames=max_frames)
+
+    async def frames_async(self, *, max_frames: int | None = None) -> AsyncIterator[CaptureFrame]:
+        """Yield decoded frames asynchronously from the underlying engine."""
+        async for frame in self.engine.frames_async(max_frames=max_frames):
+            yield frame
