@@ -48,13 +48,13 @@ Step 0 として、new 3DS XL capture board の USB identity、interface、endpo
 
 | 項目 | 内容 |
 | ---- | ---- |
-| 配置 | `spec/wip/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` |
+| 配置 | `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` |
 | 対応 Step | Step 0: constants and size tests |
 | 前提 Work Unit | なし |
 | 次 Work Unit | `spec/wip/local_010/N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` |
-| 実装状態 | 現行実装あり。Step 0 の追加実装は原典再 audit や validation helper が必要になった場合だけ扱う。 |
-| 選択条件 | identity / size の regression が壊れた、または後続 Step から transfer length validation helper が戻されたとき。 |
-| 完了証拠 | `tests/unit/test_n3dsxl_sizes.py` と `tests/unit/test_package.py` が通り、後続仕様が magic number を再定義しない。 |
+| 実装状態 | 完了。Step 0 の追加実装は原典再 audit や validation helper が必要になった場合だけ新規 Work Unit として扱う。 |
+| 再選択条件 | identity / size の regression が壊れた、または後続 Step から transfer length validation helper が戻されたとき。 |
+| 完了証拠 | `tests/unit/test_n3dsxl_sizes.py` と `tests/unit/test_package.py` が通り、`capture_sizes()` が `audio_size` を含む size 一式を返す。 |
 
 ## 2. 対象ファイル
 
@@ -88,8 +88,8 @@ Step 0 として、new 3DS XL capture board の USB identity、interface、endpo
 | green | USB interface constants が初期仕様と一致する | regression | 3.1 | `test_n3dsxl_usb_interface_constants_match_spec` |
 | green | 2D capture sizes が初期仕様と一致する | regression | 3.1 | `test_n3dsxl_2d_capture_sizes_match_spec` |
 | green | 3D capture sizes が初期仕様と一致する | regression | 3.1 | `test_n3dsxl_3d_capture_sizes_match_spec` |
-| todo | `capture_sizes()` が `CaptureSizes.audio_size == 35072` を返す | regression | 3.1 | 現行実装で `audio_size` に `AUDIO_SIZE_BYTES` が入っているか確認する |
-| todo | transferred length validation helper を追加する | new behavior | 3.1 | Step 5 の raw capture 実装前に検討する |
+| green | `capture_sizes()` が `CaptureSizes.audio_size == 35072` を返す | regression | 3.1 | `test_n3dsxl_2d_capture_sizes_match_spec` と `test_n3dsxl_3d_capture_sizes_match_spec` |
+| deferred | transferred length validation helper を追加する | new behavior | 3.1 | Step 5 の raw capture spec から戻す TDD item。Step 0 の完了条件には含めない |
 
 ### 3.3 設計方針
 
@@ -101,7 +101,7 @@ source audit 状態:
 
 | 値 | 参照元 | 状態 |
 | -- | ------ | ---- |
-| VID/PID/product string/interface/endpoint | `spec/initial/cc3dsfs_python_rebuild_spec.md`、`include/hw_defs.hpp` | 初期仕様由来。原典再 audit は必要時に実施。 |
+| VID/PID/product string/interface/endpoint | `spec/initial/cc3dsfs_python_rebuild_spec.md`、`include/hw_defs.hpp` | 初期仕様由来。今回変更なしのため原典再 audit は不要。 |
 | video size | `spec/initial/cc3dsfs_python_rebuild_spec.md`、`include/capture_structs.hpp` | 初期仕様由来。 |
 | capture size | `spec/initial/cc3dsfs_python_rebuild_spec.md`、`include/capture_structs.hpp` | 初期仕様由来。実機 raw dump で transferred を確認する。 |
 
@@ -221,4 +221,4 @@ uv run ty check --no-progress
 - [x] capture size と max non-error transferred を計算する。
 - [x] unit test を追加する。
 - [x] 検証 command を実行する。
-- [ ] 原典再 audit が必要になった場合、`cc3dsfs-source-audit` で path / URL を記録する。
+- [x] 原典再 audit は今回の定数変更がないため not required と確認する。

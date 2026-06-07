@@ -50,7 +50,7 @@
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
 | `spec/wip/local_008/WORK_UNIT_INDEX.md` | 新規 | Work Unit 仕様群の索引、依存関係、選択規則を定義する。 |
-| `spec/wip/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` | 新規 | Step 0 の USB identity、screen size、capture size、既存単体テストを定義する。 |
+| `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` | 完了済み | Step 0 の USB identity、screen size、capture size、既存単体テストを定義する。 |
 | `spec/wip/local_010/N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` | 新規 | Step 1-2 の device listing、safe open、claim、close を定義する。 |
 | `spec/wip/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` | 新規 | Step 3-4 の FTD3 command pipe と N3DSXL connect sequence を定義する。 |
 | `spec/wip/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` | 新規 | Step 5-6 の raw frame capture、fixture、decoder、PNG 目視確認を定義する。 |
@@ -85,7 +85,7 @@ Work Unit は次の依存順に扱う。
 
 | 順序 | ディレクトリ | 仕様書 | 対応 Step | 実機要否 | Source Audit | 現在状態 |
 | ---- | ---------- | ------ | --------- | -------- | ------------ | -------- |
-| 0 | `local_009` | `N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` | Step 0 | 不要 | 定数・構造体サイズ | 実装済み、unit test 通過 |
+| 0 | `complete/local_009` | `N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` | Step 0 | 不要 | 定数・構造体サイズ | 完了、unit test 通過 |
 | 1 | `local_010` | `N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` | Step 1-2 | listing/open E2E で必要 | identity filter | 未実装 |
 | 2 | `local_011` | `N3DSXL_FTD3_PIPE_AND_CONNECT.md` | Step 3-4 | command pipe / connect E2E で必要 | command payload / sequence | 未実装 |
 | 3 | `local_012` | `N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` | Step 5-6 | raw capture / PNG 目視で必要 | capture struct / layout | 未実装 |
@@ -167,7 +167,7 @@ def select_next_work_unit(specs: list[WorkUnitSpec], intent_delta: IntentDelta) 
 
 | シナリオ | 検証内容 | 前提条件 | 期待結果 |
 | -------- | -------- | -------- | -------- |
-| Agentic SDD 開始 | 索引から次候補を選べる | `local_008` から `local_014` が存在する | Step 0 検証または Step 1 local task を選べる |
+| Agentic SDD 開始 | 索引から次候補を選べる | `local_008` から `local_014` が存在する | 完了済み Step 0 を飛ばして Step 1 local task を選べる |
 | Source audit 戻り | command 値が未確認 | Step 3 を選ぶ | `cc3dsfs-source-audit` item を先に選べる |
 | Hardware 承認待ち | 実機 E2E が必要 | Step 2 以降 | command を実行せず承認待ちにできる |
 
