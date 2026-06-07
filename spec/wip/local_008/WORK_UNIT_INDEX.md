@@ -55,7 +55,7 @@
 | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` | 完了済み | Step 3-4 の FTD3 command pipe と N3DSXL connect sequence を定義する。 |
 | `spec/complete/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` | 完了済み | Step 5-6 の raw frame capture、fixture、decoder、PNG 目視確認を定義する。 |
 | `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` | 完了済み | Step 7 の async transfer、decode worker、queue、stats、shutdown を定義する。 |
-| `spec/wip/local_014/N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` | 新規 | Step 8 と実機 gate、performance smoke、artifact 記録を定義する。 |
+| `spec/complete/local_014/N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` | 完了済み | Step 8 と実機 gate、performance smoke、artifact 記録を定義する。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -90,7 +90,7 @@ Work Unit は次の依存順に扱う。
 | 2 | `complete/local_011` | `N3DSXL_FTD3_PIPE_AND_CONNECT.md` | Step 3-4 | command pipe / connect E2E で必要 | command payload / sequence | local 完了、hardware pending |
 | 3 | `complete/local_012` | `N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` | Step 5-6 | raw capture / PNG 目視で必要 | capture struct / layout | local 完了、raw fixture / manual visual pending |
 | 4 | `complete/local_013` | `N3DSXL_ASYNC_STREAMING_ENGINE.md` | Step 7 | streaming E2E で必要 | async transfer sequence | local 完了、hardware pending |
-| 5 | `local_014` | `N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` | Step 8 | 必要 | 性能値は初回測定で更新 | 未実装 |
+| 5 | `complete/local_014` | `N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` | Step 8 | 必要 | 性能値は初回測定で更新 | local 完了、hardware / performance pending |
 
 Main Agent は上から順に、次を満たす最小単位を選ぶ。
 
