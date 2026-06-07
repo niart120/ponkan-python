@@ -37,7 +37,7 @@ new 3DS XL capture board は FTDI VID を使うが、FTDI VID だけでは対象
 
 ### 1.5 着手条件
 
-- [x] `spec/wip/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` の identity constants が存在する。
+- [x] `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` の identity constants が存在する。
 - [ ] libusb binding の薄い wrapper 方針を決める。
 - [ ] 実機 E2E を実行する場合、new 3DS XL capture board の接続と人間承認がある。
 
@@ -47,7 +47,7 @@ new 3DS XL capture board は FTDI VID を使うが、FTDI VID だけでは対象
 | ---- | ---- |
 | 配置 | `spec/wip/local_010/N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` |
 | 対応 Step | Step 1: device listing、Step 2: open / claim / close |
-| 前提 Work Unit | `spec/wip/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` |
+| 前提 Work Unit | `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` |
 | 次 Work Unit | `spec/wip/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` |
 | local task | fake backend、device classifier、session cleanup、CLI 表示。 |
 | hardware task | 実機 listing と open/claim/close E2E。 |
