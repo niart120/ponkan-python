@@ -15,6 +15,7 @@ from py3dscapture.protocol.sizes import (
 from py3dscapture.transport.ftd3_pipe import FTD3_COMMAND_TIMEOUT_MS
 
 N3DSXL_CFG_WAIT_MS = 200
+N3DSXL_RAW_FRAME_READ_ATTEMPTS = 8
 
 
 class N3DSXLPipe(Protocol):
@@ -88,13 +89,18 @@ class N3DSXLProtocol:
         if mode_3d:
             raise UnsupportedOperation
         transfer_size = capture_size(mode_3d=False)
-        payload = self.pipe.read_pipe(N3DSXL_BULK_IN_ENDPOINT, transfer_size)
+        expected_video_size = video_size(mode_3d=False)
+        payload = b""
+        for _ in range(N3DSXL_RAW_FRAME_READ_ATTEMPTS):
+            payload = self.pipe.read_pipe(N3DSXL_BULK_IN_ENDPOINT, transfer_size)
+            if len(payload) >= expected_video_size:
+                break
         return RawCapture(
             model="new_3ds_xl",
             mode_3d=False,
             payload=payload,
             transferred=len(payload),
-            video_size=video_size(mode_3d=False),
+            video_size=expected_video_size,
             capture_size=transfer_size,
             timestamp_ns=None,
             sequence=None,

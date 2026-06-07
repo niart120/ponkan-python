@@ -9,6 +9,7 @@ from py3dscapture.protocol.sizes import (
     N3DSXL_BULK_IN_ENDPOINT,
     N3DSXL_BULK_OUT_ENDPOINT,
     capture_size,
+    video_size,
 )
 from py3dscapture.transport.d3xx_backend import D3xxHandle
 from py3dscapture.transport.libusb_backend import UsbDeviceInfo
@@ -47,9 +48,11 @@ class _FakePipe:
         *,
         fail_on_set_stream: bool = False,
         reconnect_after_drain: bool = False,
+        raw_reads: list[bytes] | None = None,
     ) -> None:
         self.fail_on_set_stream = fail_on_set_stream
         self.reconnect_after_drain_enabled = reconnect_after_drain
+        self.raw_reads = raw_reads or []
         self.calls: list[tuple[str, int | None, bytes | int | None]] = []
 
     def create_pipe(self) -> None:
@@ -74,6 +77,8 @@ class _FakePipe:
     def read_pipe(self, pipe: int, length: int, timeout_ms: int = 500) -> bytes:
         _ = timeout_ms
         self.calls.append(("read_pipe", pipe, length))
+        if length == capture_size(False) and self.raw_reads:
+            return self.raw_reads.pop(0)
         return bytes(length)
 
     def write_pipe(self, pipe: int, payload: bytes, timeout_ms: int = 500) -> int:
@@ -121,6 +126,16 @@ class _UnusedD3xxBinding:
         raise AssertionError
 
     def FT_ReadPipe(
+        self,
+        device: object,
+        pipe: object,
+        buffer_length: int,
+        overlapped_timeout_ms: int,
+    ) -> tuple[int, object, int]:
+        _ = device, pipe, buffer_length, overlapped_timeout_ms
+        raise AssertionError
+
+    def FT_ReadPipeEx(
         self,
         device: object,
         pipe: object,
@@ -230,6 +245,19 @@ def test_raw_capture_metadata_includes_backend_identity() -> None:
     capture = protocol.read_raw_frame(mode_3d=False)
 
     assert capture.metadata["backend_kind"] == "d3xx"
+
+
+def test_raw_capture_skips_short_stream_reads() -> None:
+    pipe = _FakePipe(raw_reads=[bytes(video_size(False) - 1), bytes(capture_size(False))])
+    protocol = N3DSXLProtocol(_device(), pipe)
+
+    capture = protocol.read_raw_frame(mode_3d=False)
+
+    assert capture.transferred == capture_size(False)
+    assert pipe.calls == [
+        ("read_pipe", N3DSXL_BULK_IN_ENDPOINT, capture_size(False)),
+        ("read_pipe", N3DSXL_BULK_IN_ENDPOINT, capture_size(False)),
+    ]
 
 
 def test_protocol_accepts_d3xx_handle_identity() -> None:

@@ -1,8 +1,10 @@
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import pytest
 
+from py3dscapture.capture import save_raw_capture
 from py3dscapture.devices.n3dsxl_ftd3 import list_n3dsxl_devices
 from py3dscapture.protocol.n3dsxl import N3DSXLProtocol
 from py3dscapture.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT
@@ -96,3 +98,23 @@ def test_n3dsxl_d3xx_connect_2d_default() -> None:
         protocol.connect(mode_3d=False)
     finally:
         handle.close()
+
+
+def test_n3dsxl_d3xx_raw_capture_fixture(tmp_path: Path) -> None:
+    _require_hardware_approval()
+    backend, candidate = _d3xx_candidate()
+
+    handle = backend.open(candidate)
+    try:
+        protocol = N3DSXLProtocol(handle, cast("N3DSXLPipe", handle))
+        protocol.connect(mode_3d=False)
+        capture = protocol.read_raw_frame(mode_3d=False)
+    finally:
+        handle.close()
+
+    bin_path, metadata_path = save_raw_capture(capture, tmp_path / "raw_2d_d3xx_001.bin")
+    assert bin_path.exists()
+    assert metadata_path.exists()
+    assert capture.metadata["backend_kind"] == "d3xx"
+    assert capture.metadata["product_string"] == "N3DSXL.2"
+    assert capture.transferred >= capture.video_size

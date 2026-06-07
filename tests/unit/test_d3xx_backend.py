@@ -46,6 +46,7 @@ class _FakeD3xxBinding:
         self.aborted: list[tuple[_FakeD3xxInfo, int]] = []
         self.stream_pipes: list[tuple[_FakeD3xxInfo, bool, bool, int, int]] = []
         self.reads: list[tuple[_FakeD3xxInfo, int, int, int]] = []
+        self.stream_reads: list[tuple[_FakeD3xxInfo, int, int, int]] = []
         self.writes: list[tuple[_FakeD3xxInfo, int, bytes, int, int]] = []
 
     def FT_CreateDeviceInfoList(self) -> tuple[int, int]:
@@ -103,6 +104,18 @@ class _FakeD3xxBinding:
             raise TypeError
         self.reads.append((device, pipe.PipeID, buffer_length, overlapped_timeout_ms))
         return 0, _FakeD3xxBuffer(b"abcdef"), 4
+
+    def FT_ReadPipeEx(
+        self,
+        device: object,
+        pipe: object,
+        buffer_length: int,
+        overlapped_timeout_ms: int,
+    ) -> tuple[int, _FakeD3xxBuffer, int]:
+        if not isinstance(device, _FakeD3xxInfo) or not isinstance(pipe, _FakeD3xxPipe):
+            raise TypeError
+        self.stream_reads.append((device, pipe.PipeID, buffer_length, overlapped_timeout_ms))
+        return 0, _FakeD3xxBuffer(b"stream"), 6
 
     def FT_WritePipe(
         self,
@@ -183,8 +196,8 @@ def test_d3xx_pipe_methods_call_native_d3xx_api() -> None:
     device = _FakeD3xxInfo(0x0403601E, "N3DSXL.2", "NXL530228")
 
     handle.abort_pipe(0x82)
-    handle.set_stream_pipe(0x82, 1024)
     read_data = handle.read_pipe(0x82, 8, 500)
+    handle.set_stream_pipe(0x82, 1024)
     written = handle.write_pipe(0x82, b"payload", 500)
 
     assert binding.aborted == [(device, 0x82)]
@@ -193,6 +206,20 @@ def test_d3xx_pipe_methods_call_native_d3xx_api() -> None:
     assert read_data == b"abcd"
     assert binding.writes == [(device, 0x82, b"payload", 7, 500)]
     assert written == 7
+
+
+def test_d3xx_stream_pipe_read_uses_native_stream_read_api() -> None:
+    binding = _FakeD3xxBinding()
+    backend = D3xxBackend(binding)
+    handle = backend.open(backend.iter_device_candidates()[0])
+    device = _FakeD3xxInfo(0x0403601E, "N3DSXL.2", "NXL530228")
+
+    handle.set_stream_pipe(0x82, 555008)
+    read_data = handle.read_pipe(0x82, 555008, 500)
+
+    assert binding.reads == []
+    assert binding.stream_reads == [(device, 0x82, 555008, 500)]
+    assert read_data == b"stream"
 
 
 def test_pyd3xx_binding_missing_reports_optional_dependency(

@@ -68,6 +68,16 @@ class D3xxBinding(Protocol):
         """Read bytes from one D3XX native pipe."""
         ...
 
+    def FT_ReadPipeEx(
+        self,
+        device: object,
+        pipe: object,
+        buffer_length: int,
+        overlapped_timeout_ms: int,
+    ) -> tuple[int, object, int]:
+        """Read bytes from one D3XX native stream pipe."""
+        ...
+
     def FT_WritePipe(
         self,
         device: object,
@@ -152,6 +162,7 @@ class D3xxHandle:
         self.candidate = candidate
         self._d3xx_candidate = d3xx_candidate
         self._closed = False
+        self._stream_pipes: set[int] = set()
 
     def close(self) -> None:
         """Close the D3XX device handle."""
@@ -203,6 +214,7 @@ class D3xxHandle:
                 length,
             ),
         )
+        self._stream_pipes.add(pipe)
 
     def read_pipe(
         self,
@@ -211,6 +223,8 @@ class D3xxHandle:
         timeout_ms: int = D3XX_DEFAULT_TIMEOUT_MS,
     ) -> bytes:
         """Read bytes from one D3XX native pipe."""
+        if pipe in self._stream_pipes:
+            return self._read_stream_pipe(pipe, length, timeout_ms)
         direct = _direct_read_pipe(self._binding, self._device, pipe, length, timeout_ms)
         if direct is not None:
             return direct
@@ -218,6 +232,16 @@ class D3xxHandle:
         result = self._binding.FT_ReadPipe(self._device, pipe_object, length, timeout_ms)
         status, buffer, transferred = _status_buffer_and_transferred("FT_ReadPipe", result)
         _check_status("FT_ReadPipe", status)
+        return bytes(_buffer_value(buffer)[:transferred])
+
+    def _read_stream_pipe(self, pipe: int, length: int, timeout_ms: int) -> bytes:
+        direct = _direct_read_pipe_ex(self._binding, self._device, pipe, length, timeout_ms)
+        if direct is not None:
+            return direct
+        pipe_object = _pipe_from_id(self._binding, pipe)
+        result = self._binding.FT_ReadPipeEx(self._device, pipe_object, length, timeout_ms)
+        status, buffer, transferred = _status_buffer_and_transferred("FT_ReadPipeEx", result)
+        _check_status("FT_ReadPipeEx", status)
         return bytes(_buffer_value(buffer)[:transferred])
 
     def write_pipe(
@@ -456,6 +480,33 @@ def _direct_read_pipe(
             None,
         )
     _check_status("FT_ReadPipe", status)
+    return bytes(buffer.raw[: transferred.value])
+
+
+def _direct_read_pipe_ex(
+    binding: D3xxBinding,
+    device: object,
+    pipe: int,
+    length: int,
+    timeout_ms: int,
+) -> bytes | None:
+    dll = _pyd3xx_dll(binding)
+    if dll is None:
+        return None
+    dll = cast("Any", dll)
+    buffer = ctypes.create_string_buffer(length)
+    transferred = ctypes.c_ulong(0)
+    handle = _device_handle(device)
+    with _pipe_timeout(dll, handle, pipe, timeout_ms):
+        status = dll.FT_ReadPipeEx(
+            handle,
+            ctypes.c_ubyte(pipe),
+            buffer,
+            ctypes.c_ulong(length),
+            ctypes.byref(transferred),
+            None,
+        )
+    _check_status("FT_ReadPipeEx", status)
     return bytes(buffer.raw[: transferred.value])
 
 
