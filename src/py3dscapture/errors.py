@@ -44,3 +44,19 @@ class Ftd3CommandError(CaptureError):
 
 class UnsupportedOperation(CaptureError):  # noqa: N818
     """Raised when an operation is outside the current MVP scope."""
+
+
+class TransferOverflow(CaptureError):  # noqa: N818
+    """Raised when a transfer length is outside the accepted capture bounds."""
+
+
+class DecodeError(CaptureError):
+    """Raised when raw frame data cannot be decoded."""
+
+
+class OptionalDependencyError(CaptureError):
+    """Raised when an optional adapter dependency is missing."""
+
+    def __init__(self, dependency: str, extra: str) -> None:
+        """Create an optional dependency error."""
+        super().__init__(f"Install {dependency} or use the {extra} extra.")
