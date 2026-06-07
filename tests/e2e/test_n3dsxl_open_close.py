@@ -2,7 +2,9 @@ import os
 
 import pytest
 
-from py3dscapture.devices.n3dsxl_ftd3 import N3DSXLDevice, list_n3dsxl_devices
+from py3dscapture.devices.n3dsxl_ftd3 import list_n3dsxl_devices
+from py3dscapture.transport.d3xx_backend import D3xxBackend
+from py3dscapture.transport.ftd3_backend import open_ftd3_transport
 from py3dscapture.transport.libusb_backend import Usb1Backend
 
 
@@ -16,5 +18,5 @@ def test_n3dsxl_open_claim_close_twice() -> None:
     assert listing.candidates, "no N3DSXL candidate found"
 
     for _ in range(2):
-        with N3DSXLDevice.open(listing.candidates[0], backend=backend):
-            pass
+        transport = open_ftd3_transport(listing.candidates[0], backend, D3xxBackend())
+        transport.close()

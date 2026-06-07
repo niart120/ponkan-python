@@ -29,6 +29,9 @@ image = [
 opencv = [
     "opencv-python>=4.10",
 ]
+d3xx = [
+    "pyd3xx>=1.1.4",
+]
 
 [dependency-groups]
 dev = [

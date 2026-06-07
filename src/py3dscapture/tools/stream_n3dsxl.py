@@ -26,6 +26,8 @@ def run_streaming_smoke(
     raw_slots: int,
     output_queue_size: int,
     drop_policy: str,
+    backend_kind: Literal["libusb", "d3xx"] = "libusb",
+    driver_service: str | None = None,
     poll_interval: float = 0.01,
 ) -> PerformanceStats:
     """Run a bounded streaming smoke loop and return performance stats."""
@@ -51,6 +53,8 @@ def run_streaming_smoke(
         engine.stats(),
         product_string=product_string,
         product_string_status=product_string_status,
+        backend_kind=backend_kind,
+        driver_service=driver_service,
         mode_3d=mode_3d,
         duration_seconds=duration,
         raw_slots=raw_slots,

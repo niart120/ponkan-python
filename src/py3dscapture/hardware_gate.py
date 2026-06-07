@@ -45,6 +45,8 @@ class HardwareCommandPlan:
     artifact: str
     cleanup: str
     command: str
+    backend_kind: Literal["libusb", "d3xx"] = "libusb"
+    driver_service: str | None = None
 
     def is_allowed_n3dsxl_device(self) -> bool:
         """Return whether the recorded identity is allowed for N3DSXL commands."""
@@ -71,4 +73,6 @@ class HardwareCommandPlan:
             "artifact": self.artifact,
             "cleanup": self.cleanup,
             "command": self.command,
+            "backend_kind": self.backend_kind,
+            "driver_service": self.driver_service,
         }

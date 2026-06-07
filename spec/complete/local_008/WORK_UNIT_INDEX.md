@@ -90,7 +90,9 @@ Work Unit は次の依存順に扱う。
 | 2 | `complete/local_011` | `N3DSXL_FTD3_PIPE_AND_CONNECT.md` | Step 3-4 | command pipe / connect E2E で必要 | command payload / sequence | local 完了、hardware pending |
 | 3 | `complete/local_012` | `N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` | Step 5-6 | raw capture / PNG 目視で必要 | capture struct / layout | local 完了、raw fixture / manual visual pending |
 | 4 | `complete/local_013` | `N3DSXL_ASYNC_STREAMING_ENGINE.md` | Step 7 | streaming E2E で必要 | async transfer sequence | local 完了、hardware pending |
-| 5 | `complete/local_014` | `N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` | Step 8 | 必要 | 性能値は初回測定で更新 | local 完了、hardware / performance pending |
+| 5 | `complete/local_014` | `N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` | Step 8 | 必要 | 性能値は初回測定で更新 | hardware / performance 完了 |
+| 6 | `complete/local_015` | `N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` | Hardware safety | listing / open で必要 | identity policy | 完了 |
+| 7 | `complete/local_016` | `N3DSXL_D3XX_FALLBACK_BACKEND.md` | Windows D3XX fallback | 必要 | D3XX compatibility path | 完了 |
 
 Main Agent は上から順に、次を満たす最小単位を選ぶ。
 
@@ -110,7 +112,7 @@ Main Agent は、この仕様群を使う作業開始時に次を提示する。
 
 ```text
 Agentic SDD bootstrap:
-- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_014/*
+- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_016/*
 - Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <spec file + TDD item>
@@ -148,7 +150,7 @@ def select_next_work_unit(specs: list[WorkUnitSpec], intent_delta: IntentDelta) 
 - old DS
 - old 3DS の実装
 - Optimize / Nisetro / IS Nitro / IS TWL / Partner CTR
-- FTD3XX / D2XX vendor driver backend
+- D2XX backend and non-N3DSXL vendor driver backend
 - GPU acceleration
 - streaming 中の 3D mode 切替
 ```
@@ -201,19 +203,21 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | Work Unit | 状態 | 残る gate |
 | --------- | ---- | -------- |
 | `complete/local_009` | local complete | none |
-| `complete/local_010` | local complete | hardware open/close E2E pending |
-| `complete/local_011` | local complete | hardware command pipe / connect E2E pending |
-| `complete/local_012` | local complete | raw fixture / manual visual pending |
-| `complete/local_013` | local complete | hardware streaming E2E pending |
-| `complete/local_014` | local complete | hardware performance smoke pending |
+| `complete/local_010` | hardware complete via fallback E2E | none |
+| `complete/local_011` | hardware complete via fallback E2E | none |
+| `complete/local_012` | raw fixture complete via fallback E2E | manual visual pending |
+| `complete/local_013` | hardware streaming E2E complete | none |
+| `complete/local_014` | hardware performance smoke complete | none |
+| `complete/local_015` | hardware policy complete | none |
+| `complete/local_016` | D3XX fallback complete | none |
 
 ### 7.2 Gate Results
 
 | Gate | 結果 | Evidence |
 | ---- | ---- | -------- |
 | Spec structure | pass | `rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/local_008 ... spec/complete/local_014`。 |
-| Unit | pass | `uv run pytest tests/unit`: 59 passed。 |
-| E2E / performance skip | pass | `uv run pytest tests/e2e tests/performance`: 6 skipped。 |
+| Unit | pass | `uv run pytest tests/unit -q`: 81 passed。 |
+| E2E / performance skip | pass | `uv run pytest tests/e2e tests/performance -q`: 11 skipped。 |
 | Static | pass | `uv run ruff format --check .`、`uv run ruff check .`、`uv run ty check --no-progress`。 |
 | Diff | pass | `git diff --check`。 |
 | Hardware | not run | local_008 は index 完了のみ。実機 command は実行しない。 |

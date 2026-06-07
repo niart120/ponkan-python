@@ -100,6 +100,27 @@ def test_callback_does_not_decode_until_processed() -> None:
     assert engine.stats().decoded == 1
 
 
+def test_short_transfer_is_not_decoded() -> None:
+    backend = _FakeAsyncBackend()
+    decoder = _DecoderSpy()
+    engine = StreamingEngine(
+        backend,
+        raw_slots=1,
+        raw_slot_size=video_size(False),
+        decoder=decoder,
+    )
+    backend.bind_slots(engine.buffer_pool.slots)
+    engine.start()
+
+    backend.complete(0, b"x" * (video_size(False) - 1))
+    engine.process_completed(limit=1)
+
+    assert decoder.calls == 0
+    assert engine.stats().decoded == 0
+    assert engine.stats().dropped_raw == 1
+    assert len(backend.submitted) == 2
+
+
 def test_frames_iterator_delivers_decoded_frame() -> None:
     backend = _FakeAsyncBackend()
     engine = StreamingEngine(backend, raw_slots=1, raw_slot_size=video_size(False))

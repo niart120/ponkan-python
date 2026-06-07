@@ -1,8 +1,8 @@
 # N3DSXL Performance And Hardware Gates 仕様書
 
-更新日: 2026-06-07
+更新日: 2026-06-08
 
-追補: `spec/wip/local_015/N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` により、hardware gate の identity は product string と `product_string_status` を記録する。product string が読める場合の不一致拒否は継続し、読めない場合は accepted VID/PID と明示承認を safety boundary とする。
+追補: `spec/complete/local_015/N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` により、hardware gate の identity は product string と `product_string_status` を記録する。product string が読める場合の不一致拒否は継続し、読めない場合は accepted VID/PID と明示承認を safety boundary とする。
 
 ## 1. 概要
 
@@ -43,7 +43,7 @@ performance smoke は MVP acceptance だが、実機、OS、USB controller、Pyt
 - [x] `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` の functional streaming が実装済み。
 - [x] `tests/e2e` と `tests/performance` に marker が設定済み。
 - [x] 人間承認前に実機 command を実行しない hook / 運用が有効である。
-- [ ] 実機 new 3DS XL capture board が接続され、product string または `product_string_status=unreadable` が確認できる。
+- [x] 実機 new 3DS XL capture board が接続され、product string または `product_string_status=unreadable` が確認できる。
 
 ### 1.6 Work Unit メタデータ
 
@@ -67,8 +67,8 @@ performance smoke は MVP acceptance だが、実機、OS、USB controller、Pyt
 | `tests/e2e/test_n3dsxl_ftd3_pipe.py` | 新規/修正 | FTD3 command pipe E2E。 |
 | `tests/e2e/test_n3dsxl_connect.py` | 新規/修正 | connect E2E。 |
 | `tests/e2e/test_n3dsxl_raw_capture.py` | 新規/修正 | raw capture fixture E2E。 |
-| `tests/e2e/test_n3dsxl_streaming.py` | 新規/修正 | functional streaming E2E。 |
-| `tests/performance/test_n3dsxl_streaming_smoke.py` | 新規 | 60 秒 performance smoke。 |
+| `tests/e2e/test_n3dsxl_streaming.py` | 新規/修正 | functional streaming E2E。D3XX fallback backend で実機 gate を実行する。 |
+| `tests/performance/test_n3dsxl_streaming_smoke.py` | 新規/修正 | 60 秒 performance smoke。D3XX fallback backend で実機 gate を実行する。 |
 | `src/py3dscapture/hardware_gate.py` | 新規 | env gate と hardware command plan を提供する。 |
 | `src/py3dscapture/artifacts.py` | 新規 | N3DSXL artifact path と JSON 上書き policy を提供する。 |
 | `src/py3dscapture/streaming/stats.py` | 修正 | performance smoke 用の JSON stats を提供する。 |
@@ -109,7 +109,7 @@ performance smoke は MVP acceptance だが、実機、OS、USB controller、Pyt
 | green | performance smoke は 60 秒 duration を使う | performance | 3.1 | `tests/performance/test_n3dsxl_streaming_smoke.py` |
 | green | shutdown 時間を stats に含める | performance | 3.1 | `PerformanceStats` と smoke assertion |
 | green | usb_errors が 0 であることを performance gate に含める | performance | 3.1 | smoke assertion |
-| deferred | 60 秒 performance smoke を実機で実行し stats JSON を保存する | hardware-gated | 3.1 | 人間承認と実機 device identity 確認待ち |
+| green | 60 秒 performance smoke を実機で実行し stats JSON を保存する | hardware-gated | 3.1 | D3XX backend で完了 |
 
 ### 3.3 設計方針
 
@@ -284,8 +284,8 @@ uv run python -m py3dscapture.tools.stream_n3dsxl --duration 60 --noop-consumer 
 - [x] performance test に `requires_n3dsxl` と `performance` を付ける。
 - [x] stream stats serializer と CLI stats JSON を実装する。
 - [x] artifact 保存先と上書き policy を実装する。
-- [x] functional streaming E2E は人間承認前のため未実行として gate 報告に残す。
-- [x] performance smoke は人間承認前のため未実行として gate 報告に残す。
+- [x] functional streaming E2E を実機 D3XX backend で実行し gate 報告に残す。
+- [x] performance smoke を実機 D3XX backend で実行し gate 報告に残す。
 - [x] 未達指標は初回実機測定後に stats と原因仮説として残す方針を明記する。
 
 ## 7. 実装結果
@@ -295,11 +295,11 @@ uv run python -m py3dscapture.tools.stream_n3dsxl --duration 60 --noop-consumer 
 | Gate | 結果 | Evidence |
 | ---- | ---- | -------- |
 | TDD red | pass | `uv run pytest tests/unit/test_hardware_gate.py tests/unit/test_streaming_performance_stats.py tests/unit/test_n3dsxl_artifacts.py` が未実装 import で失敗することを確認。 |
-| Unit / marker skip | pass | `uv run pytest tests/unit tests/performance`: 59 passed, 1 skipped。 |
+| Unit / marker skip | pass | `uv run pytest tests/unit -q`: 81 passed。`uv run pytest tests/e2e tests/performance -q`: 11 skipped。 |
 | Performance collection | pass | `uv run pytest tests/performance`: `PONKAN_RUN_N3DSXL` 未設定により 1 skipped。 |
 | Static | pass | `uv run ruff format --check .`、`uv run ruff check .`、`uv run ty check --no-progress`。 |
 | Source audit | not applicable | 新規 cc3dsfs 由来 command / 構造体サイズは追加していない。 |
-| Hardware | not run | 人間承認、device identity、実機接続確認が未実施。 |
+| Hardware | pass | 2026-06-08 に D3XX backend で functional E2E と 60 秒 performance smoke を実行した。 |
 
 ### 7.2 Hardware Approval Plan
 
@@ -312,9 +312,18 @@ uv run python -m py3dscapture.tools.stream_n3dsxl --duration 60 --noop-consumer 
 | cleanup | pending transfer cancel、drain、interface release、handle close。 |
 | command | `PONKAN_RUN_N3DSXL=1`、`PONKAN_RUN_PERFORMANCE=1`、`PONKAN_HARDWARE_APPROVED=1` を同じ command 内に置いて `uv run pytest -m "requires_n3dsxl and performance" tests/performance` を実行する。 |
 
-### 7.3 Deferred
+### 7.3 Hardware Gate Result
+
+| Gate | 結果 | Evidence |
+| ---- | ---- | -------- |
+| device identity | pass | `0x0403:0x601e product=N3DSXL.2 serial=nxl530228`。 |
+| functional streaming E2E | pass | `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests/e2e/test_n3dsxl_streaming.py -q`: 1 passed。 |
+| hardware E2E suite | pass | `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests/e2e -q`: 10 passed, 11 warnings。 |
+| performance smoke | pass | `PONKAN_RUN_N3DSXL=1`、`PONKAN_RUN_PERFORMANCE=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest -m "requires_n3dsxl and performance" tests/performance -q`: 1 passed。 |
+| performance stats | pass | `backend_kind=d3xx`, `product_string=N3DSXL.2`, `delivered_fps=59.8`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1`, `shutdown_seconds=0.009768699994310737`。 |
+
+### 7.4 Deferred
 
 | 項目 | 理由 | 次の扱い |
 | ---- | ---- | -------- |
-| functional streaming E2E | 実機 new 3DS XL capture board と人間承認が必要。 | 承認後に `tests/e2e/test_n3dsxl_streaming.py` を実行する。 |
-| performance smoke | 実機 new 3DS XL capture board と人間承認が必要。 | 承認後に 60 秒 stats JSON を保存し、fps/drop/usb_errors/shutdown を報告する。 |
+| なし | 実機 functional / performance gate は D3XX backend で完了した。 | 新しい未達が出た場合は別 Work Unit で扱う。 |

@@ -1,9 +1,10 @@
 """N3DSXL protocol orchestration."""
 
+from time import sleep
 from typing import Protocol
 
 from py3dscapture.capture import RawCapture
-from py3dscapture.devices.n3dsxl_ftd3 import N3DSXLDevice
+from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate
 from py3dscapture.errors import UnsupportedDevice, UnsupportedOperation
 from py3dscapture.protocol.sizes import (
     N3DSXL_BULK_IN_ENDPOINT,
@@ -14,10 +15,13 @@ from py3dscapture.protocol.sizes import (
 from py3dscapture.transport.ftd3_pipe import FTD3_COMMAND_TIMEOUT_MS
 
 N3DSXL_CFG_WAIT_MS = 200
+N3DSXL_RAW_FRAME_READ_ATTEMPTS = 8
 
 
 class N3DSXLPipe(Protocol):
     """FTD3 operations used by the N3DSXL protocol layer."""
+
+    backend_kind: str
 
     def create_pipe(self) -> None:
         """Create the FTD3 command pipe."""
@@ -44,13 +48,23 @@ class N3DSXLPipe(Protocol):
         """Write to one FTD3 pipe."""
         ...
 
+    def reconnect_after_drain(self) -> None:
+        """Reconnect after the initial drain when the backend requires it."""
+        ...
+
+
+class N3DSXLSessionIdentity(Protocol):
+    """Opened session identity needed for raw metadata."""
+
+    candidate: DeviceCandidate
+
 
 class N3DSXLProtocol:
     """N3DSXL connect sequence over an accepted device and FTD3 pipe."""
 
-    def __init__(self, device: N3DSXLDevice, pipe: N3DSXLPipe) -> None:
+    def __init__(self, device: N3DSXLSessionIdentity, pipe: N3DSXLPipe) -> None:
         """Create protocol orchestration for one safe device session."""
-        if not isinstance(device, N3DSXLDevice):
+        if not isinstance(device.candidate, DeviceCandidate):
             raise UnsupportedDevice
         self.device = device
         self.pipe = pipe
@@ -62,6 +76,7 @@ class N3DSXLProtocol:
 
         self.pipe.create_pipe()
         self._drain_data()
+        self.pipe.reconnect_after_drain()
         self.pipe.abort_pipe(N3DSXL_BULK_IN_ENDPOINT)
         self.pipe.create_pipe()
         self._spi_3ds_cc_stuff()
@@ -74,19 +89,25 @@ class N3DSXLProtocol:
         if mode_3d:
             raise UnsupportedOperation
         transfer_size = capture_size(mode_3d=False)
-        payload = self.pipe.read_pipe(N3DSXL_BULK_IN_ENDPOINT, transfer_size)
+        expected_video_size = video_size(mode_3d=False)
+        payload = b""
+        for _ in range(N3DSXL_RAW_FRAME_READ_ATTEMPTS):
+            payload = self.pipe.read_pipe(N3DSXL_BULK_IN_ENDPOINT, transfer_size)
+            if len(payload) >= expected_video_size:
+                break
         return RawCapture(
             model="new_3ds_xl",
             mode_3d=False,
             payload=payload,
             transferred=len(payload),
-            video_size=video_size(mode_3d=False),
+            video_size=expected_video_size,
             capture_size=transfer_size,
             timestamp_ns=None,
             sequence=None,
             metadata={
                 "product_string": self.device.candidate.product_string,
                 "product_string_status": self.device.candidate.product_string_status,
+                "backend_kind": self.pipe.backend_kind,
                 "vid": f"0x{self.device.candidate.info.vendor_id:04x}",
                 "pid": f"0x{self.device.candidate.info.product_id:04x}",
             },
@@ -114,6 +135,7 @@ class N3DSXLProtocol:
             N3DSXL_BULK_OUT_ENDPOINT,
             bytes([0x42 + firmware_to_use, 0x00, 0x00, 0x00]),
         )
+        sleep(N3DSXL_CFG_WAIT_MS / 1000)
         self._set_spi_access(enabled=False)
 
     def _read_3ds_config_3d(self) -> None:

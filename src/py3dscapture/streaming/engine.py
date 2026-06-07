@@ -145,7 +145,11 @@ class StreamingEngine:
             if result.status != 0:
                 self._stats.usb_errors += 1
                 return
-            raw_video = bytes(result.view[: video_size(mode_3d=False)])
+            expected_video_size = video_size(mode_3d=False)
+            if result.transferred < expected_video_size:
+                self._stats.dropped_raw += 1
+                return
+            raw_video = bytes(result.view[:expected_video_size])
             frame = self._decoder(raw_video)
             frame.sequence = result.sequence
             frame.timestamp_ns = result.completed_ns

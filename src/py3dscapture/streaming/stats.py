@@ -35,6 +35,8 @@ class PerformanceStats:
     model: Literal["new_3ds_xl"]
     product_string: str | None
     product_string_status: Literal["accepted", "unreadable"]
+    backend_kind: Literal["libusb", "d3xx"]
+    driver_service: str | None
     mode_3d: bool
     duration_seconds: float
     raw_slots: int
@@ -66,6 +68,8 @@ class PerformanceStats:
         output_queue_size: int,
         drop_policy: str,
         shutdown_seconds: float,
+        backend_kind: Literal["libusb", "d3xx"] = "libusb",
+        driver_service: str | None = None,
     ) -> "PerformanceStats":
         """Build a performance report from streaming counters."""
         delivered_fps = stats.delivered / duration_seconds if duration_seconds > 0 else 0.0
@@ -73,6 +77,8 @@ class PerformanceStats:
             model="new_3ds_xl",
             product_string=product_string,
             product_string_status=product_string_status,
+            backend_kind=backend_kind,
+            driver_service=driver_service,
             mode_3d=mode_3d,
             duration_seconds=duration_seconds,
             raw_slots=raw_slots,
