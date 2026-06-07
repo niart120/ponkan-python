@@ -3,6 +3,7 @@
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Literal
 
 from py3dscapture.protocol.sizes import (
     ACCEPTED_N3DSXL_PRODUCT_IDS,
@@ -35,7 +36,8 @@ def _env_flag(name: str, env: Mapping[str, str] | None) -> bool:
 class HardwareCommandPlan:
     """Human-reviewable plan for one hardware command boundary."""
 
-    product_string: str
+    product_string: str | None
+    product_string_status: Literal["accepted", "unreadable"]
     vid: int
     pid: int
     command_scope: str
@@ -46,16 +48,22 @@ class HardwareCommandPlan:
 
     def is_allowed_n3dsxl_device(self) -> bool:
         """Return whether the recorded identity is allowed for N3DSXL commands."""
+        product_string_allowed = (
+            self.product_string in ACCEPTED_N3DSXL_PRODUCT_STRINGS
+            if self.product_string is not None
+            else self.product_string_status == "unreadable"
+        )
         return (
             self.vid == N3DSXL_VENDOR_ID
             and self.pid in ACCEPTED_N3DSXL_PRODUCT_IDS
-            and self.product_string in ACCEPTED_N3DSXL_PRODUCT_STRINGS
+            and product_string_allowed
         )
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self) -> dict[str, str | None]:
         """Return a JSON-serializable command plan."""
         return {
             "product_string": self.product_string,
+            "product_string_status": self.product_string_status,
             "vid": f"0x{self.vid:04x}",
             "pid": f"0x{self.pid:04x}",
             "command_scope": self.command_scope,

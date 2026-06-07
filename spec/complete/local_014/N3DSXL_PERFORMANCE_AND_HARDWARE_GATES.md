@@ -2,6 +2,8 @@
 
 更新日: 2026-06-07
 
+追補: `spec/wip/local_015/N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` により、hardware gate の identity は product string と `product_string_status` を記録する。product string が読める場合の不一致拒否は継続し、読めない場合は accepted VID/PID と明示承認を safety boundary とする。
+
 ## 1. 概要
 
 ### 1.1 目的
@@ -41,7 +43,7 @@ performance smoke は MVP acceptance だが、実機、OS、USB controller、Pyt
 - [x] `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` の functional streaming が実装済み。
 - [x] `tests/e2e` と `tests/performance` に marker が設定済み。
 - [x] 人間承認前に実機 command を実行しない hook / 運用が有効である。
-- [ ] 実機 new 3DS XL capture board が接続され、product string が確認できる。
+- [ ] 実機 new 3DS XL capture board が接続され、product string または `product_string_status=unreadable` が確認できる。
 
 ### 1.6 Work Unit メタデータ
 
@@ -87,7 +89,7 @@ performance smoke は MVP acceptance だが、実機、OS、USB controller、Pyt
 | hardware test を skip する | `PONKAN_RUN_N3DSXL` 未設定 | `requires_n3dsxl` test を skip する | CI 安全 |
 | performance test を skip する | `PONKAN_RUN_PERFORMANCE` 未設定 | `performance` test を skip する | CI 安全 |
 | command 承認を要求する | 実機 command 実行前 | `PONKAN_HARDWARE_APPROVED=1` が必要 | `.codex` hook と運用 |
-| device identity を確認する | hardware gate 開始 | VID/PID/product string を報告する | product string 必須 |
+| device identity を確認する | hardware gate 開始 | VID/PID/product string/product string status を報告する | readable unsupported product string は拒否 |
 | open/close E2E を行う | approved hardware | 複数回 open/claim/close 成功 | cleanup |
 | raw artifact を保存する | raw capture E2E | `.bin` と `.json` を保存する | 上書き不可が既定 |
 | streaming E2E を行う | approved hardware | 10 秒程度の streaming で stats が出る | Step 7 gate |

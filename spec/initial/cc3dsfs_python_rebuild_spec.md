@@ -570,10 +570,10 @@ Python 版は以下で device 候補を絞る。
 ```text
 VID == 0x0403
 PID in {0x601e, 0x601f, 0x602a, 0x602b, 0x602c, 0x602d, 0x602f}
-USB product string in {"N3DSXL", "N3DSXL.2"}
+USB product string is unreadable, or in {"N3DSXL", "N3DSXL.2"}
 ```
 
-product string を確認できない場合、誤って別の FTDI device を開く危険がある。MVP では product string を確認できない device は対象外にする。
+product string が読める場合、`N3DSXL` / `N3DSXL.2` でない device は対象外にする。product string を確認できない場合は、accepted VID/PID、`product_string_status=unreadable` の記録、実機 marker、人間の明示承認を safety boundary として扱う。
 
 ## 8.2 libusb setup
 

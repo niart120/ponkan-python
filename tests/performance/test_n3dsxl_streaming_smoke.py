@@ -22,6 +22,7 @@ def test_n3dsxl_streaming_60_second_performance_smoke(tmp_path: Path) -> None:
         duration=60.0,
         noop_consumer=True,
         product_string=os.environ.get("PONKAN_N3DSXL_PRODUCT_STRING", "N3DSXL"),
+        product_string_status="accepted",
         mode_3d=False,
         raw_slots=4,
         output_queue_size=2,

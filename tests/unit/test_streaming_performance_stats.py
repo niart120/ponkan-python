@@ -18,6 +18,7 @@ def test_performance_stats_include_smoke_gate_fields() -> None:
     stats = PerformanceStats.from_stream_stats(
         counters,
         product_string="N3DSXL",
+        product_string_status="accepted",
         mode_3d=False,
         duration_seconds=3.0,
         raw_slots=4,
@@ -29,6 +30,7 @@ def test_performance_stats_include_smoke_gate_fields() -> None:
     assert stats.to_dict() == {
         "model": "new_3ds_xl",
         "product_string": "N3DSXL",
+        "product_string_status": "accepted",
         "mode_3d": False,
         "duration_seconds": 3.0,
         "raw_slots": 4,
@@ -52,7 +54,8 @@ def test_performance_stats_include_smoke_gate_fields() -> None:
 def test_performance_stats_zero_duration_reports_zero_fps() -> None:
     stats = PerformanceStats.from_stream_stats(
         StreamStats(delivered=1),
-        product_string="N3DSXL",
+        product_string=None,
+        product_string_status="unreadable",
         mode_3d=False,
         duration_seconds=0.0,
         raw_slots=4,

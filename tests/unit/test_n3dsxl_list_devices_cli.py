@@ -36,6 +36,7 @@ class _FakeBackend:
     def iter_devices(self) -> list[UsbDeviceInfo]:
         return [
             UsbDeviceInfo(1, 2, 0x0403, 0x601F, "N3DSXL", "abc"),
+            UsbDeviceInfo(1, 4, 0x0403, 0x601E, None, "nxl"),
             UsbDeviceInfo(1, 3, 0x0403, 0x601F, "FT232H", "def"),
         ]
 
@@ -47,8 +48,9 @@ class _FakeBackend:
 def test_list_devices_classifies_without_opening() -> None:
     listing = list_n3dsxl_devices(_FakeBackend())
 
-    assert len(listing.candidates) == 1
+    assert len(listing.candidates) == 2
     assert len(listing.rejected) == 1
+    assert listing.candidates[1].product_string_status == "unreadable"
     assert listing.rejected[0].reason == "unsupported_product_string"
 
 
@@ -58,5 +60,6 @@ def test_format_device_listing_shows_candidate_and_rejected_reason() -> None:
     output = format_device_listing(listing)
 
     assert "N3DSXL" in output
+    assert "product=- product_status=unreadable" in output
     assert "0x0403:0x601f" in output
     assert "unsupported_product_string" in output

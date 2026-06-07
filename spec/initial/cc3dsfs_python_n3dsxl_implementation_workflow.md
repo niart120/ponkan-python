@@ -333,7 +333,8 @@ Constitution は AGENTS.md と spec/initial/*。
 今回の Work Unit は <Step名またはTDD item> だけ。
 未選択の Step を実装しない。
 old 3DS、old DS、Optimize、Nisetro、IS/Partner系、GUI、audio playback、video encoding は実装しない。
-product string が N3DSXL / N3DSXL.2 でない device に N3DSXL command を送らない。
+product string が読める場合、N3DSXL / N3DSXL.2 でない device に N3DSXL command を送らない。
+product string が読めない場合、accepted VID/PID と `product_string_status=unreadable` を記録し、実機 marker と明示承認を safety boundary とする。
 callback 内で decode、Pillow 変換、blocking 処理を行わない。
 必要に応じて Subagent を起動してよい。
 Subagent の結果は Main Agent が統合し、採否を gate 報告に残す。

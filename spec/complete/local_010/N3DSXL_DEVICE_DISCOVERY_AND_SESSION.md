@@ -2,13 +2,15 @@
 
 更新日: 2026-06-07
 
+追補: `spec/wip/local_015/N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` により、accepted VID/PID で product string が読めない device は `product_string_status=unreadable` の candidate として扱う。readable unsupported product string を拒否する点は本仕様から継続する。
+
 ## 1. 概要
 
 ### 1.1 目的
 
 Step 1-2 として、libusb backend から new 3DS XL capture board を安全に列挙し、対象 device を open / claim / close できる session layer を実装する。
 
-未知の FTDI device へ N3DSXL command を送らないため、この Work Unit は product string の確認を必須 gate とする。
+未知の FTDI device へ N3DSXL command を送らないため、この Work Unit は当初 product string の確認を必須 gate とした。現在は local_015 により、unreadable product string を accepted VID/PID と明示承認で扱う policy に更新されている。
 
 ### 1.2 用語定義
 

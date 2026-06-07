@@ -23,6 +23,7 @@ def test_hardware_env_flags_require_exact_one() -> None:
 def test_hardware_command_plan_records_safety_boundary() -> None:
     plan = HardwareCommandPlan(
         product_string="N3DSXL",
+        product_string_status="accepted",
         vid=0x0403,
         pid=0x601E,
         command_scope="performance",
@@ -35,6 +36,7 @@ def test_hardware_command_plan_records_safety_boundary() -> None:
     assert plan.is_allowed_n3dsxl_device()
     assert plan.to_dict() == {
         "product_string": "N3DSXL",
+        "product_string_status": "accepted",
         "vid": "0x0403",
         "pid": "0x601e",
         "command_scope": "performance",
@@ -48,6 +50,7 @@ def test_hardware_command_plan_records_safety_boundary() -> None:
 def test_hardware_command_plan_rejects_non_n3dsxl_identity() -> None:
     plan = HardwareCommandPlan(
         product_string="OLD3DS",
+        product_string_status="accepted",
         vid=0x0403,
         pid=0x601E,
         command_scope="performance",
@@ -58,3 +61,19 @@ def test_hardware_command_plan_rejects_non_n3dsxl_identity() -> None:
     )
 
     assert not plan.is_allowed_n3dsxl_device()
+
+
+def test_hardware_command_plan_allows_unreadable_product_string_with_accepted_vid_pid() -> None:
+    plan = HardwareCommandPlan(
+        product_string=None,
+        product_string_status="unreadable",
+        vid=0x0403,
+        pid=0x601E,
+        command_scope="open-close",
+        safety_reason="accepted VID/PID and explicit hardware approval",
+        artifact="artifacts/n3dsxl/run/open_close.json",
+        cleanup="release, close",
+        command="uv run pytest tests/e2e/test_n3dsxl_open_close.py",
+    )
+
+    assert plan.is_allowed_n3dsxl_device()

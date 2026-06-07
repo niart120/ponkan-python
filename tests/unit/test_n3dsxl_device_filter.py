@@ -23,6 +23,7 @@ def test_accepted_vid_pid_product_string_becomes_candidate() -> None:
 
     assert isinstance(classified, DeviceCandidate)
     assert classified.product_string == "N3DSXL"
+    assert classified.product_string_status == "accepted"
     assert classified.model == "new_3ds_xl"
 
 
@@ -31,6 +32,7 @@ def test_n3dsxl_dot_2_product_string_becomes_candidate() -> None:
 
     assert isinstance(classified, DeviceCandidate)
     assert classified.product_string == "N3DSXL.2"
+    assert classified.product_string_status == "accepted"
 
 
 def test_accepted_pid_with_wrong_product_string_is_rejected() -> None:
@@ -40,11 +42,12 @@ def test_accepted_pid_with_wrong_product_string_is_rejected() -> None:
     assert classified.reason == "unsupported_product_string"
 
 
-def test_unreadable_product_string_is_rejected() -> None:
+def test_unreadable_product_string_becomes_candidate() -> None:
     classified = classify_n3dsxl_device(device_info(product_string=None))
 
-    assert isinstance(classified, RejectedDevice)
-    assert classified.reason == "product_string_unreadable"
+    assert isinstance(classified, DeviceCandidate)
+    assert classified.product_string is None
+    assert classified.product_string_status == "unreadable"
 
 
 def test_non_ftdi_device_is_ignored() -> None:

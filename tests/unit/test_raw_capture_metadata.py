@@ -26,7 +26,12 @@ def _raw_capture(
         capture_size=capture,
         timestamp_ns=123,
         sequence=7,
-        metadata={"product_string": "N3DSXL", "vid": "0x0403", "pid": "0x601f"},
+        metadata={
+            "product_string": "N3DSXL",
+            "product_string_status": "accepted",
+            "vid": "0x0403",
+            "pid": "0x601f",
+        },
     )
 
 
@@ -35,6 +40,7 @@ def test_raw_capture_metadata_contains_required_keys() -> None:
 
     assert metadata["model"] == "new_3ds_xl"
     assert metadata["product_string"] == "N3DSXL"
+    assert metadata["product_string_status"] == "accepted"
     assert metadata["vid"] == "0x0403"
     assert metadata["pid"] == "0x601f"
     assert metadata["mode_3d"] is False

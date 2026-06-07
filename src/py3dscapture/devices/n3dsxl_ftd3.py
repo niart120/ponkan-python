@@ -16,6 +16,7 @@ from py3dscapture.protocol.sizes import (
 from py3dscapture.transport.libusb_backend import LibusbBackend, UsbDeviceInfo, UsbHandle
 
 AcceptedProductString = Literal["N3DSXL", "N3DSXL.2"]
+ProductStringStatus = Literal["accepted", "unreadable"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,7 +24,8 @@ class DeviceCandidate:
     """A USB device accepted as a new 3DS XL capture board."""
 
     info: UsbDeviceInfo
-    product_string: AcceptedProductString
+    product_string: AcceptedProductString | None
+    product_string_status: ProductStringStatus
     model: Literal["new_3ds_xl"] = "new_3ds_xl"
 
 
@@ -50,12 +52,17 @@ def classify_n3dsxl_device(info: UsbDeviceInfo) -> DeviceCandidate | RejectedDev
     if info.product_id not in ACCEPTED_N3DSXL_PRODUCT_IDS:
         return RejectedDevice(info=info, reason="unsupported_product_id")
     if info.product_string is None:
-        return RejectedDevice(info=info, reason="product_string_unreadable")
+        return DeviceCandidate(
+            info=info,
+            product_string=None,
+            product_string_status="unreadable",
+        )
     if info.product_string not in ACCEPTED_N3DSXL_PRODUCT_STRINGS:
         return RejectedDevice(info=info, reason="unsupported_product_string")
     return DeviceCandidate(
         info=info,
         product_string=cast("AcceptedProductString", info.product_string),
+        product_string_status="accepted",
     )
 
 
