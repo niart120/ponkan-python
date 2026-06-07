@@ -2,12 +2,14 @@
 
 from typing import Protocol
 
+from py3dscapture.capture import RawCapture
 from py3dscapture.devices.n3dsxl_ftd3 import N3DSXLDevice
 from py3dscapture.errors import UnsupportedDevice, UnsupportedOperation
 from py3dscapture.protocol.sizes import (
     N3DSXL_BULK_IN_ENDPOINT,
     N3DSXL_BULK_OUT_ENDPOINT,
     capture_size,
+    video_size,
 )
 from py3dscapture.transport.ftd3_pipe import FTD3_COMMAND_TIMEOUT_MS
 
@@ -66,6 +68,28 @@ class N3DSXLProtocol:
         self._load_3ds_cc_firmware(firmware_id=1)
         self._read_3ds_config_3d()
         self._set_2d_stream_pipe()
+
+    def read_raw_frame(self, *, mode_3d: bool = False) -> RawCapture:
+        """Read one raw frame after connect."""
+        if mode_3d:
+            raise UnsupportedOperation
+        transfer_size = capture_size(mode_3d=False)
+        payload = self.pipe.read_pipe(N3DSXL_BULK_IN_ENDPOINT, transfer_size)
+        return RawCapture(
+            model="new_3ds_xl",
+            mode_3d=False,
+            payload=payload,
+            transferred=len(payload),
+            video_size=video_size(mode_3d=False),
+            capture_size=transfer_size,
+            timestamp_ns=None,
+            sequence=None,
+            metadata={
+                "product_string": self.device.candidate.product_string,
+                "vid": f"0x{self.device.candidate.info.vendor_id:04x}",
+                "pid": f"0x{self.device.candidate.info.product_id:04x}",
+            },
+        )
 
     def _drain_data(self) -> None:
         self._set_spi_access(enabled=True)

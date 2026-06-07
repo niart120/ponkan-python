@@ -38,14 +38,14 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 ### 1.5 着手条件
 
 - [x] `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` の 2D connect が実装済み。
-- [ ] capture struct size と payload slicing の source audit 状態が確認済み。
+- [x] capture struct size と payload slicing の source audit 状態が確認済み。
 - [ ] raw capture を実行する場合、人間承認と artifact 保存先が決まっている。
 
 ### 1.6 Work Unit メタデータ
 
 | 項目 | 内容 |
 | ---- | ---- |
-| 配置 | `spec/wip/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` |
+| 配置 | `spec/complete/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` |
 | 対応 Step | Step 5: single raw frame capture、Step 6: decoder and PNG |
 | 前提 Work Unit | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` |
 | 次 Work Unit | `spec/wip/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
@@ -89,16 +89,16 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | RawCapture metadata に必須 key が含まれる | new behavior | 3.1 | unit |
-| todo | transferred が video_size 未満なら error になる | regression | 3.1 | unit |
-| todo | transferred が capture_size 超過なら error になる | regression | 3.1 | unit |
-| todo | video region は payload 先頭 video_size bytes だけを返す | new behavior | 3.1 | unit |
-| todo | 2D synthetic raw を top/bottom shape に分割できる | new behavior | 3.1 | unit |
-| todo | `to_ndarray(colorspace="BGR")` が channel order を変換する | new behavior | 3.1 | unit |
-| todo | Pillow 未導入時の `to_pillow()` error が分かりやすい | regression | 3.1 | optional dependency |
-| todo | `raw_to_png` が candidate PNG を複数出力する | new behavior | 3.1 | CLI |
-| todo | 実機 raw_2d_001.bin と raw_2d_001.json を保存できる | hardware | 3.1 | `requires_n3dsxl` |
-| todo | manual visual check で decoder_version を metadata に残す | manual_visual | 3.1 | 人間確認 |
+| green | RawCapture metadata に必須 key が含まれる | new behavior | 3.1 | unit |
+| green | transferred が video_size 未満なら error になる | regression | 3.1 | unit |
+| green | transferred が capture_size 超過なら error になる | regression | 3.1 | unit |
+| green | video region は payload 先頭 video_size bytes だけを返す | new behavior | 3.1 | unit |
+| green | 2D synthetic raw を top/bottom shape に分割できる | new behavior | 3.1 | unit |
+| green | `to_ndarray(colorspace="BGR")` が channel order を変換する | new behavior | 3.1 | unit |
+| green | Pillow 未導入時の `to_pillow()` error が分かりやすい | regression | 3.1 | optional dependency |
+| green | `raw_to_png` が candidate PNG を複数出力する | new behavior | 3.1 | CLI |
+| deferred | 実機 raw_2d_001.bin と raw_2d_001.json を保存できる | hardware | 3.1 | `requires_n3dsxl`。人間承認待ち |
+| deferred | manual visual check で decoder_version を metadata に残す | manual_visual | 3.1 | 人間確認待ち |
 
 ### 3.3 設計方針
 
@@ -108,10 +108,10 @@ Source Audit:
 
 | 項目 | 参照元候補 | 状態 |
 | ---- | ---------- | ---- |
-| `FTD3_3DSCaptureReceived` / `_3D` struct | `include/capture_structs.hpp` | audit required |
-| `N3DSXL_SAMPLES_IN` | `include/hw_defs.hpp` | Step 0 初期仕様由来、再 audit 推奨 |
-| raw video layout | `capture_structs.hpp` と実機 raw dump | 仮説。manual visual で確定 |
-| decoder transform | 実機 PNG 目視 | 未確定 |
+| `FTD3_3DSCaptureReceived` / `_3D` struct | `include/capture_structs.hpp` | video、audio、unused、error buffer 構造を確認 |
+| `N3DSXL_SAMPLES_IN` | `include/hw_defs.hpp` | `1096 * 16` を確認。Step 0 size 計算と一致 |
+| raw video layout | `capture_structs.hpp` と `hw_defs.hpp` | 2D raw video size `240 * 720 * 3` を確認。最終 transform は manual visual で確定 |
+| decoder transform | 実機 PNG 目視 | 未確定。candidate 出力と `manual_visual_status=pending` を実装 |
 
 Hardware:
 
@@ -243,6 +243,17 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 | raw fixture complete | `.bin` と `.json` の path、transferred、video_size、capture_size、product string を報告 |
 | decoder approved | candidate PNG と manual visual result、承認済み `decoder_version` を metadata に残す |
 
+実装結果:
+
+| 項目 | Evidence |
+| ---- | -------- |
+| source-audit complete | `include/capture_structs.hpp` と `include/hw_defs.hpp` を確認し、metadata / size validation / decoder candidate に反映 |
+| local complete | `uv run pytest tests\unit\test_raw_capture_metadata.py tests\unit\test_layout_3ds_decoder.py -q` が 12 passed |
+| unit regression | `uv run pytest tests\unit -q` が 39 passed |
+| static | `uv run ruff format --check .`、`uv run ruff check src tests`、`uv run ty check --no-progress` が pass |
+| raw fixture pending | `uv run pytest tests\e2e -q` は `PONKAN_RUN_N3DSXL` 未設定で 4 skipped。実機 raw capture は未実行 |
+| manual visual pending | candidate PNG 出力 CLI は local test 済み。実機 PNG の目視承認と `decoder_version` 固定は未実行 |
+
 ## 5. テスト方針
 
 ### ユニットテスト
@@ -289,12 +300,12 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 
 ## 6. 実装チェックリスト
 
-- [ ] capture struct と raw layout の source audit を記録する。
-- [ ] RawCapture metadata unit test を書く。
-- [ ] transfer length validation を実装する。
-- [ ] 2D decoder の synthetic unit test を書く。
-- [ ] `CaptureFrame` と colorspace adapter を実装する。
-- [ ] `capture_raw` CLI を実装する。
-- [ ] `raw_to_png` CLI と decoder candidate 出力を実装する。
-- [ ] 実機 raw fixture 保存 gate を人間承認後に実行する。
-- [ ] manual visual の結果を metadata と gate 報告に残す。
+- [x] capture struct と raw layout の source audit を記録する。
+- [x] RawCapture metadata unit test を書く。
+- [x] transfer length validation を実装する。
+- [x] 2D decoder の synthetic unit test を書く。
+- [x] `CaptureFrame` と colorspace adapter を実装する。
+- [x] `capture_raw` CLI を実装する。
+- [x] `raw_to_png` CLI と decoder candidate 出力を実装する。
+- [x] 実機 raw fixture 保存 gate は人間承認まで未実行として報告する。
+- [x] manual visual の結果は pending として metadata と gate 報告に残す。

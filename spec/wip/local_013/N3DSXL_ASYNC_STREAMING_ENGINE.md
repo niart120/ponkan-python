@@ -41,7 +41,7 @@ callback 内で decode、Pillow 変換、blocking queue put、同期 libusb API 
 
 ### 1.5 着手条件
 
-- [ ] `spec/wip/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` の 2D decoder と CaptureFrame が実装済み。
+- [x] `spec/complete/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` の 2D decoder と CaptureFrame が実装済み。
 - [x] `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` の 2D connect が実装済み。
 - [ ] libusb binding が async transfer、callback、cancel、event handling を扱えることを確認済み。
 - [ ] 実機 streaming E2E を実行する場合、人間承認がある。
@@ -52,7 +52,7 @@ callback 内で decode、Pillow 変換、blocking queue put、同期 libusb API 
 | ---- | ---- |
 | 配置 | `spec/wip/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
 | 対応 Step | Step 7: async streaming engine |
-| 前提 Work Unit | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md`、`spec/wip/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` |
+| 前提 Work Unit | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md`、`spec/complete/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` |
 | 次 Work Unit | `spec/wip/local_014/N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` |
 | local task | buffer pool、drop policy、fake async backend、callback contract、sync/async iterator。 |
 | sidecar task | libusb async acquisition と cancellation の source audit。 |
