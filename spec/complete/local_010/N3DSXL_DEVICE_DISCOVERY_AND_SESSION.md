@@ -2,7 +2,7 @@
 
 更新日: 2026-06-07
 
-追補: `spec/wip/local_015/N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` により、accepted VID/PID で product string が読めない device は `product_string_status=unreadable` の candidate として扱う。readable unsupported product string を拒否する点は本仕様から継続する。
+追補: `spec/complete/local_015/N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` により、accepted VID/PID で product string が読めない device は `product_string_status=unreadable` の candidate として扱う。readable unsupported product string を拒否する点は本仕様から継続する。
 
 ## 1. 概要
 

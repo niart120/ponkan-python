@@ -4,7 +4,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Protocol, cast
+from typing import Any, Protocol, cast
 
 from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, classify_n3dsxl_device
 from py3dscapture.errors import CaptureError, OptionalDependencyError
@@ -18,6 +18,9 @@ PYD3XX_MODULE_NAMES = ("PyD3XX", "pyd3xx")
 
 class D3xxBinding(Protocol):
     """Subset of the PyD3XX module needed for device enumeration."""
+
+    FT_Pipe: Any
+    FT_Buffer: Any
 
     def FT_CreateDeviceInfoList(self) -> tuple[int, int]:
         """Return D3XX status and number of devices."""
@@ -33,6 +36,42 @@ class D3xxBinding(Protocol):
 
     def FT_Close(self, device: object) -> int:
         """Close an opened D3XX device object."""
+        ...
+
+    def FT_AbortPipe(self, device: object, pipe: object) -> int:
+        """Abort one D3XX native pipe."""
+        ...
+
+    def FT_SetStreamPipe(
+        self,
+        device: object,
+        all_write_pipes: bool,
+        all_read_pipes: bool,
+        pipe: object,
+        stream_size: int,
+    ) -> int:
+        """Configure streaming for one D3XX native pipe."""
+        ...
+
+    def FT_ReadPipe(
+        self,
+        device: object,
+        pipe: object,
+        buffer_length: int,
+        overlapped_timeout_ms: int,
+    ) -> tuple[int, object, int]:
+        """Read bytes from one D3XX native pipe."""
+        ...
+
+    def FT_WritePipe(
+        self,
+        device: object,
+        pipe: object,
+        buffer: object,
+        buffer_length: int,
+        overlapped_timeout_ms: int,
+    ) -> tuple[int, int]:
+        """Write bytes to one D3XX native pipe."""
         ...
 
 
@@ -102,6 +141,50 @@ class D3xxHandle:
             _check_status("FT_Close", self._binding.FT_Close(self._device))
         finally:
             self._closed = True
+
+    def abort_pipe(self, pipe: int) -> None:
+        """Abort one D3XX native pipe."""
+        pipe_object = _pipe_from_id(self._binding, pipe)
+        _check_status("FT_AbortPipe", self._binding.FT_AbortPipe(self._device, pipe_object))
+
+    def set_stream_pipe(self, pipe: int, length: int) -> None:
+        """Configure one D3XX native stream pipe."""
+        pipe_object = _pipe_from_id(self._binding, pipe)
+        _check_status(
+            "FT_SetStreamPipe",
+            self._binding.FT_SetStreamPipe(
+                self._device,
+                False,
+                False,
+                pipe_object,
+                length,
+            ),
+        )
+
+    def read_pipe(self, pipe: int, length: int, timeout_ms: int) -> bytes:
+        """Read bytes from one D3XX native pipe."""
+        pipe_object = _pipe_from_id(self._binding, pipe)
+        result = self._binding.FT_ReadPipe(self._device, pipe_object, length, timeout_ms)
+        status, buffer, transferred = _status_buffer_and_transferred("FT_ReadPipe", result)
+        _check_status("FT_ReadPipe", status)
+        return bytes(_buffer_value(buffer)[:transferred])
+
+    def write_pipe(self, pipe: int, payload: bytes, timeout_ms: int) -> int:
+        """Write bytes to one D3XX native pipe."""
+        pipe_object = _pipe_from_id(self._binding, pipe)
+        buffer = _buffer_from_bytes(self._binding, payload)
+        status, transferred = _status_and_transferred(
+            "FT_WritePipe",
+            self._binding.FT_WritePipe(
+                self._device,
+                pipe_object,
+                buffer,
+                len(payload),
+                timeout_ms,
+            ),
+        )
+        _check_status("FT_WritePipe", status)
+        return transferred
 
 
 def load_pyd3xx_binding() -> D3xxBinding:
@@ -193,6 +276,50 @@ def _check_status(function: str, status: object) -> None:
     value = _int_from_object(f"{function}.status", status)
     if value != FT_OK:
         raise D3xxBackendError(function, value)
+
+
+def _status_buffer_and_transferred(function: str, result: object) -> tuple[int, object, int]:
+    if not isinstance(result, tuple) or len(result) < 3:
+        raise D3xxBackendError(function)
+    return (
+        _int_from_object(f"{function}.status", result[0]),
+        result[1],
+        _int_from_object(f"{function}.transferred", result[2]),
+    )
+
+
+def _status_and_transferred(function: str, result: object) -> tuple[int, int]:
+    if not isinstance(result, tuple) or len(result) < 2:
+        raise D3xxBackendError(function)
+    return (
+        _int_from_object(f"{function}.status", result[0]),
+        _int_from_object(f"{function}.transferred", result[1]),
+    )
+
+
+def _pipe_from_id(binding: D3xxBinding, pipe: int) -> object:
+    pipe_type = binding.FT_Pipe
+    pipe_object = pipe_type()
+    pipe_object.PipeID = pipe
+    pipe_object._PipeID = pipe
+    return pipe_object
+
+
+def _buffer_from_bytes(binding: D3xxBinding, payload: bytes) -> object:
+    buffer_type = binding.FT_Buffer
+    return buffer_type.from_bytes(payload)
+
+
+def _buffer_value(buffer: object) -> bytearray:
+    value_method = cast("Any", buffer).Value
+    if not callable(value_method):
+        raise D3xxBackendError("FT_Buffer.Value")
+    value = value_method()
+    if isinstance(value, bytearray):
+        return value
+    if isinstance(value, bytes):
+        return bytearray(value)
+    raise D3xxBackendError("FT_Buffer.Value")
 
 
 def _field(target: object, name: str) -> object:

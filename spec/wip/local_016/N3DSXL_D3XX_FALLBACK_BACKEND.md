@@ -73,10 +73,10 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 | todo | libusb unsupported/not-found のとき D3XX fallback が選ばれる | unit | 3.1 | fallback selection |
 | todo | libusb success のとき D3XX fallback を試さない | unit | 3.1 | regression |
 | green | D3XX open-close が cleanup を保証する | unit | 3.1 | fake handle |
-| todo | D3XX pipe API が read/write/set/abort を native call へ写像する | unit | 3.1 | no command payload |
+| green | D3XX pipe API が read/write/set/abort を native call へ写像する | unit | 3.1 | no command payload |
 | todo | metadata / command plan に backend identity が入る | unit | 3.1 | artifact traceability |
 | green | 実機 D3XX open-close が成功する | hardware | 3.1 | `requires_n3dsxl` 相当の承認付き probe |
-| deferred | 実機 D3XX create/abort or native pipe setup が成功する | hardware | 3.1 | command scope 要承認 |
+| green | 実機 D3XX create/abort or native pipe setup が成功する | hardware | 3.1 | `FT_AbortPipe(0x82)` / `FT_SetStreamPipe(0x82, 1024)` |
 | deferred | 実機 D3XX raw capture が `.bin` / `.json` を保存する | hardware | 3.1 | local_014 continuation |
 
 ### 3.3 設計方針
@@ -175,7 +175,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 - [x] D3XX Python binding 候補を調査し、採用条件を固定する。
 - [ ] `Ftd3Transport` Protocol と libusb adapter を導入する。
 - [x] D3XX enumeration / open-close adapter を fake binding で TDD 実装する。
-- [ ] D3XX pipe adapter を fake binding で TDD 実装する。
+- [x] D3XX pipe adapter を fake binding で TDD 実装する。
 - [ ] fallback selector を追加する。
 - [ ] metadata / hardware gate に backend identity を追加する。
 - [x] 実機 D3XX listing / open-close gate を承認後に実行する。
@@ -188,11 +188,12 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | D3XX import probe | pass | `uv run python -c "import PyD3XX; ... FT_GetLibraryVersion()"`: `(0, 16973840)` |
 | D3XX listing probe | pass | `d3xx_device_count 1`; `0x0403:0x601e product=N3DSXL.2 serial=nxl530228 flags=4` |
 | D3XX open-close probe | pass | `D3xxBackend.open status ok`; `D3xxHandle.close status ok` |
-| unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 3 passed |
-| unit | pass | `uv run pytest tests/unit`: 66 passed |
+| D3XX native pipe setup probe | pass | `D3xxHandle.abort_pipe 0x82 status ok`; `D3xxHandle.set_stream_pipe 0x82 length=1024 status ok` |
+| unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 4 passed |
+| unit | pass | `uv run pytest tests/unit`: 67 passed |
 | format | pass | `uv run ruff format --check .`: 55 files already formatted |
 | lint | pass | `uv run ruff check .`: All checks passed |
 | type | pass | `uv run ty check --no-progress`: All checks passed |
 | lock | pass | `uv lock --check`: resolved lock is current |
 | e2e skip | pass | `uv run pytest tests/e2e`: 5 skipped by `PONKAN_RUN_N3DSXL` gate |
-| hardware D3XX pipe/raw | not run | Pipe I/O、N3DSXL command、raw capture はまだ実行していない。 |
+| hardware D3XX read/write/raw | not run | `FT_ReadPipe` / `FT_WritePipe`、N3DSXL command、raw capture はまだ実行していない。 |

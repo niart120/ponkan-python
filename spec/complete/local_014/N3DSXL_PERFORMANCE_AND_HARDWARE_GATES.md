@@ -2,7 +2,7 @@
 
 更新日: 2026-06-07
 
-追補: `spec/wip/local_015/N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` により、hardware gate の identity は product string と `product_string_status` を記録する。product string が読める場合の不一致拒否は継続し、読めない場合は accepted VID/PID と明示承認を safety boundary とする。
+追補: `spec/complete/local_015/N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` により、hardware gate の identity は product string と `product_string_status` を記録する。product string が読める場合の不一致拒否は継続し、読めない場合は accepted VID/PID と明示承認を safety boundary とする。
 
 ## 1. 概要
 

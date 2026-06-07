@@ -135,7 +135,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 - [x] unit test を追加・更新する。
 - [x] local gate を実行する。
 - [x] 実機 listing gate を人間承認後に実行する。
-- [ ] 実機 open-close gate を driver 状態調整後に再実行する。
+- [x] 実機 open-close blocker を driver/backend mismatch として切り分け、`local_016` の D3XX backend gate で再開する。
 
 ## 7. Gate 結果
 
@@ -148,5 +148,6 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | e2e skip | pass | `uv run pytest tests/e2e`: 5 skipped |
 | hardware listing | pass | `candidate bus=7 address=2 0x0403:0x601e product=- product_status=unreadable serial=-` |
 | hardware open-close | blocked | `libusb_open` が `LIBUSB_ERROR_NOT_FOUND [-5]`。PnP service は `FTDIBUS3`。 |
+| hardware D3XX open-close | pass | `local_016`: `0x0403:0x601e product=N3DSXL.2 serial=nxl530228`; `D3xxBackend.open status ok`; `D3xxHandle.close status ok`。 |
 
-hardware open-close の blocker は product string policy ではなく、Windows driver と libusb open path の不一致である。次の作業では WinUSB/libusbK driver へ切り替えて再検証するか、FTDI D3XX driver を使う backend を別 Work Unit として検討する。
+hardware open-close の blocker は product string policy ではなく、Windows driver と libusb open path の不一致である。driver を WinUSB/libusbK へ切り替えず、`local_016` の FTDI D3XX backend で open-close と native pipe setup を通したため、本仕様の product string policy と実機再開条件は完了扱いにする。
