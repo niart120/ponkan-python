@@ -153,7 +153,9 @@ def test_d3xx_open_uses_initialized_detail_and_close_is_idempotent() -> None:
     handle.close()
 
     assert binding.detail_indexes == [0]
-    assert binding.created == [(0, 0x10, _FakeD3xxInfo(0x0403601E, "N3DSXL.2", "NXL530228"))]
+    assert binding.created == [
+        ("NXL530228", 0x01, _FakeD3xxInfo(0x0403601E, "N3DSXL.2", "NXL530228"))
+    ]
     assert binding.closed == [_FakeD3xxInfo(0x0403601E, "N3DSXL.2", "NXL530228")]
 
 

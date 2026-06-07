@@ -158,6 +158,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | 旧 `ftd3xx` package は初期採用しない | fact | PyPI `ftd3xx 1.0` は 2023-04-06 release、system D3XX driver / `ftd3xx.dll` 前提で、更新頻度と同梱性が `PyD3XX` より弱い。 |
 | ローカル probe で `PyD3XX` import と D3XX library load は成功した | fact | `uv run python -c "import PyD3XX; ... FT_GetLibraryVersion()"` が `(0, 16973840)` を返した。device enumeration / open は未実行。 |
 | PyD3XX の `FT_Create` は初期化済み device detail を渡す必要がある | fact | 新規 `FT_Device()` では `FT_OTHER_ERROR`。`FT_GetDeviceInfoDetail(0)` が返した object では index / serial / description open-close が成功した。 |
+| PyD3XX wrapper の `FT_WritePipe` は今回の実機で `FT_OTHER_ERROR` を返す | fact | `D3xxHandle.write_pipe()` が PyD3XX wrapper 経由のとき、connect sequence の最初の 4 byte write で status `32`。同梱 D3XX DLL への ctypes direct `FT_WritePipe` では status `0` / transferred `4`。 |
 
 参照元:
 
@@ -190,9 +191,10 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | D3XX open-close probe | pass | `D3xxBackend.open status ok`; `D3xxHandle.close status ok` |
 | D3XX native pipe setup probe | pass | `D3xxHandle.abort_pipe 0x82 status ok`; `D3xxHandle.set_stream_pipe 0x82 length=1024 status ok` |
 | D3XX fallback selector probe | pass | libusb candidate `0x0403:0x601e product=- product_status=unreadable`; `selected_backend d3xx`; `transport_close status ok` |
+| D3XX connect probe | blocked | direct DLL `FT_WritePipe` により write は前進したが、`_read_3ds_config_3d()` の `FT_ReadPipe(0x82, 0x10)` が status `32`。`FT_SetPipeTimeout` 併用 probe は timeout し、その後 D3XX listing が 0 件になった。libusb listing では device は継続して見えている。 |
 | unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 4 passed |
 | unit fallback selector | pass | `uv run pytest tests/unit/test_ftd3_backend_selector.py -q`: 2 passed |
-| unit | pass | `uv run pytest tests/unit`: 70 passed |
+| unit | pass | `uv run pytest tests/unit`: 71 passed |
 | format | pass | `uv run ruff format --check .`: 57 files already formatted |
 | lint | pass | `uv run ruff check .`: All checks passed |
 | type | pass | `uv run ty check --no-progress`: All checks passed |

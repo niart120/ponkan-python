@@ -3,7 +3,7 @@
 from typing import Protocol
 
 from py3dscapture.capture import RawCapture
-from py3dscapture.devices.n3dsxl_ftd3 import N3DSXLDevice
+from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate
 from py3dscapture.errors import UnsupportedDevice, UnsupportedOperation
 from py3dscapture.protocol.sizes import (
     N3DSXL_BULK_IN_ENDPOINT,
@@ -47,12 +47,18 @@ class N3DSXLPipe(Protocol):
         ...
 
 
+class N3DSXLSessionIdentity(Protocol):
+    """Opened session identity needed for raw metadata."""
+
+    candidate: DeviceCandidate
+
+
 class N3DSXLProtocol:
     """N3DSXL connect sequence over an accepted device and FTD3 pipe."""
 
-    def __init__(self, device: N3DSXLDevice, pipe: N3DSXLPipe) -> None:
+    def __init__(self, device: N3DSXLSessionIdentity, pipe: N3DSXLPipe) -> None:
         """Create protocol orchestration for one safe device session."""
-        if not isinstance(device, N3DSXLDevice):
+        if not isinstance(device.candidate, DeviceCandidate):
             raise UnsupportedDevice
         self.device = device
         self.pipe = pipe

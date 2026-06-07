@@ -1,3 +1,4 @@
+# ruff: noqa: N802
 import pytest
 
 from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, N3DSXLDevice
@@ -8,6 +9,7 @@ from py3dscapture.protocol.sizes import (
     N3DSXL_BULK_OUT_ENDPOINT,
     capture_size,
 )
+from py3dscapture.transport.d3xx_backend import D3xxHandle
 from py3dscapture.transport.libusb_backend import UsbDeviceInfo
 
 
@@ -73,6 +75,62 @@ class _FakePipe:
         return len(payload)
 
 
+class _UnusedD3xxBinding:
+    FT_Pipe = object
+    FT_Buffer = object
+
+    def FT_CreateDeviceInfoList(self) -> tuple[int, int]:
+        raise AssertionError
+
+    def FT_GetDeviceInfoDetail(self, index: int) -> tuple[int, object]:
+        _ = index
+        raise AssertionError
+
+    def FT_Create(self, identifier: object, open_flag: int, device: object) -> int:
+        _ = identifier, open_flag, device
+        raise AssertionError
+
+    def FT_Close(self, device: object) -> int:
+        _ = device
+        return 0
+
+    def FT_AbortPipe(self, device: object, pipe: object) -> int:
+        _ = device, pipe
+        raise AssertionError
+
+    def FT_SetStreamPipe(
+        self,
+        device: object,
+        all_write_pipes: bool,
+        all_read_pipes: bool,
+        pipe: object,
+        stream_size: int,
+    ) -> int:
+        _ = device, all_write_pipes, all_read_pipes, pipe, stream_size
+        raise AssertionError
+
+    def FT_ReadPipe(
+        self,
+        device: object,
+        pipe: object,
+        buffer_length: int,
+        overlapped_timeout_ms: int,
+    ) -> tuple[int, object, int]:
+        _ = device, pipe, buffer_length, overlapped_timeout_ms
+        raise AssertionError
+
+    def FT_WritePipe(
+        self,
+        device: object,
+        pipe: object,
+        buffer: object,
+        buffer_length: int,
+        overlapped_timeout_ms: int,
+    ) -> tuple[int, int]:
+        _ = device, pipe, buffer, buffer_length, overlapped_timeout_ms
+        raise AssertionError
+
+
 def _device() -> N3DSXLDevice:
     info = UsbDeviceInfo(1, 2, 0x0403, 0x601F, "N3DSXL", "abc")
     candidate = DeviceCandidate(
@@ -81,6 +139,10 @@ def _device() -> N3DSXLDevice:
         product_string_status="accepted",
     )
     return N3DSXLDevice(candidate=candidate, handle=_UnusedHandle(), claimed_interfaces=(0, 1))
+
+
+def _candidate() -> DeviceCandidate:
+    return _device().candidate
 
 
 def test_connect_rejects_3d_mode_for_mvp() -> None:
@@ -125,3 +187,16 @@ def test_raw_capture_metadata_includes_backend_identity() -> None:
     capture = protocol.read_raw_frame(mode_3d=False)
 
     assert capture.metadata["backend_kind"] == "d3xx"
+
+
+def test_protocol_accepts_d3xx_handle_identity() -> None:
+    handle = D3xxHandle(
+        binding=_UnusedD3xxBinding(),
+        device=object(),
+        candidate=_candidate(),
+    )
+
+    protocol = N3DSXLProtocol(handle, _FakePipe())
+    capture = protocol.read_raw_frame(mode_3d=False)
+
+    assert capture.metadata["product_string"] == "N3DSXL"

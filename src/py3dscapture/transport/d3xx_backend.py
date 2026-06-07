@@ -1,9 +1,11 @@
 # ruff: noqa: N802
 """Optional FTDI D3XX backend boundary."""
 
+import ctypes
 from collections.abc import Mapping
 from dataclasses import dataclass
 from importlib import import_module
+from types import ModuleType
 from typing import Any, Protocol, cast
 
 from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, classify_n3dsxl_device
@@ -12,7 +14,9 @@ from py3dscapture.protocol.sizes import N3DSXL_VENDOR_ID
 from py3dscapture.transport.libusb_backend import UsbDeviceInfo
 
 FT_OK = 0
+D3XX_OPEN_BY_SERIAL_NUMBER = 0x01
 D3XX_OPEN_BY_INDEX = 0x10
+D3XX_DEFAULT_TIMEOUT_MS = 500
 PYD3XX_MODULE_NAMES = ("PyD3XX", "pyd3xx")
 
 
@@ -129,10 +133,11 @@ class D3xxHandle:
 
     backend_kind = "d3xx"
 
-    def __init__(self, binding: D3xxBinding, device: object) -> None:
+    def __init__(self, binding: D3xxBinding, device: object, candidate: DeviceCandidate) -> None:
         """Create a handle from an opened PyD3XX device detail object."""
         self._binding = binding
         self._device = device
+        self.candidate = candidate
         self._closed = False
 
     def close(self) -> None:
@@ -149,6 +154,9 @@ class D3xxHandle:
         pipe_object = _pipe_from_id(self._binding, pipe)
         _check_status("FT_AbortPipe", self._binding.FT_AbortPipe(self._device, pipe_object))
 
+    def create_pipe(self) -> None:
+        """Keep protocol compatibility; D3XX native backend has no command-pipe create."""
+
     def set_stream_pipe(self, pipe: int, length: int) -> None:
         """Configure one D3XX native stream pipe."""
         pipe_object = _pipe_from_id(self._binding, pipe)
@@ -163,16 +171,32 @@ class D3xxHandle:
             ),
         )
 
-    def read_pipe(self, pipe: int, length: int, timeout_ms: int) -> bytes:
+    def read_pipe(
+        self,
+        pipe: int,
+        length: int,
+        timeout_ms: int = D3XX_DEFAULT_TIMEOUT_MS,
+    ) -> bytes:
         """Read bytes from one D3XX native pipe."""
+        direct = _direct_read_pipe(self._binding, self._device, pipe, length)
+        if direct is not None:
+            return direct
         pipe_object = _pipe_from_id(self._binding, pipe)
         result = self._binding.FT_ReadPipe(self._device, pipe_object, length, timeout_ms)
         status, buffer, transferred = _status_buffer_and_transferred("FT_ReadPipe", result)
         _check_status("FT_ReadPipe", status)
         return bytes(_buffer_value(buffer)[:transferred])
 
-    def write_pipe(self, pipe: int, payload: bytes, timeout_ms: int) -> int:
+    def write_pipe(
+        self,
+        pipe: int,
+        payload: bytes,
+        timeout_ms: int = D3XX_DEFAULT_TIMEOUT_MS,
+    ) -> int:
         """Write bytes to one D3XX native pipe."""
+        direct = _direct_write_pipe(self._binding, self._device, pipe, payload)
+        if direct is not None:
+            return direct
         pipe_object = _pipe_from_id(self._binding, pipe)
         buffer = _buffer_from_bytes(self._binding, payload)
         status, transferred = _status_and_transferred(
@@ -245,9 +269,13 @@ class D3xxBackend:
         )
         _check_status(
             "FT_Create",
-            self._binding.FT_Create(candidate.index, D3XX_OPEN_BY_INDEX, detail),
+            self._binding.FT_Create(
+                _open_identifier(candidate),
+                _open_flag(candidate),
+                detail,
+            ),
         )
-        return D3xxHandle(binding=self._binding, device=detail)
+        return D3xxHandle(binding=self._binding, device=detail, candidate=candidate.candidate)
 
 
 def _device_info_from_detail(*, index: int, detail: object) -> D3xxDeviceInfo:
@@ -263,6 +291,19 @@ def _device_info_from_detail(*, index: int, detail: object) -> D3xxDeviceInfo:
     )
     flags = _optional_int(_field(detail, "Flags"))
     return D3xxDeviceInfo(index=index, usb_info=usb_info, flags=flags, device_id=device_id)
+
+
+def _open_identifier(candidate: D3xxDeviceCandidate) -> object:
+    serial_number = candidate.candidate.info.serial_number
+    if serial_number is not None:
+        return serial_number
+    return candidate.index
+
+
+def _open_flag(candidate: D3xxDeviceCandidate) -> int:
+    if candidate.candidate.info.serial_number is not None:
+        return D3XX_OPEN_BY_SERIAL_NUMBER
+    return D3XX_OPEN_BY_INDEX
 
 
 def _status_and_value(function: str, result: object) -> tuple[int, object]:
@@ -322,6 +363,71 @@ def _buffer_value(buffer: object) -> bytearray:
     if isinstance(value, bytes):
         return bytearray(value)
     raise D3xxBackendError("FT_Buffer.Value")
+
+
+def _direct_write_pipe(
+    binding: D3xxBinding,
+    device: object,
+    pipe: int,
+    payload: bytes,
+) -> int | None:
+    dll = _pyd3xx_dll(binding)
+    if dll is None:
+        return None
+    dll = cast("Any", dll)
+    buffer = ctypes.create_string_buffer(payload, len(payload))
+    transferred = ctypes.c_ulong(0)
+    status = dll.FT_WritePipe(
+        _device_handle(device),
+        ctypes.c_ubyte(pipe),
+        buffer,
+        ctypes.c_ulong(len(payload)),
+        ctypes.byref(transferred),
+        None,
+    )
+    _check_status("FT_WritePipe", status)
+    return int(transferred.value)
+
+
+def _direct_read_pipe(
+    binding: D3xxBinding,
+    device: object,
+    pipe: int,
+    length: int,
+) -> bytes | None:
+    dll = _pyd3xx_dll(binding)
+    if dll is None:
+        return None
+    dll = cast("Any", dll)
+    buffer = ctypes.create_string_buffer(length)
+    transferred = ctypes.c_ulong(0)
+    status = dll.FT_ReadPipe(
+        _device_handle(device),
+        ctypes.c_ubyte(pipe),
+        buffer,
+        ctypes.c_ulong(length),
+        ctypes.byref(transferred),
+        None,
+    )
+    _check_status("FT_ReadPipe", status)
+    return bytes(buffer.raw[: transferred.value])
+
+
+def _pyd3xx_dll(binding: D3xxBinding) -> object | None:
+    if not isinstance(binding, ModuleType):
+        return None
+    try:
+        implementation = import_module("PyD3XX.PyD3XX")
+    except ImportError:
+        return None
+    return getattr(implementation, "_DLL", None)
+
+
+def _device_handle(device: object) -> object:
+    try:
+        return cast("Any", device)._Handle
+    except AttributeError as exc:
+        raise D3xxBackendError.missing_field("_Handle") from exc
 
 
 def _field(target: object, name: str) -> object:
