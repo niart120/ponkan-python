@@ -4,7 +4,7 @@ import argparse
 import json
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from py3dscapture.artifacts import write_json_artifact
 from py3dscapture.streaming.engine import StreamingEngine
@@ -20,7 +20,8 @@ def run_streaming_smoke(
     *,
     duration: float,
     noop_consumer: bool,
-    product_string: str,
+    product_string: str | None,
+    product_string_status: Literal["accepted", "unreadable"],
     mode_3d: bool,
     raw_slots: int,
     output_queue_size: int,
@@ -49,6 +50,7 @@ def run_streaming_smoke(
     return PerformanceStats.from_stream_stats(
         engine.stats(),
         product_string=product_string,
+        product_string_status=product_string_status,
         mode_3d=mode_3d,
         duration_seconds=duration,
         raw_slots=raw_slots,
@@ -66,7 +68,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--stats-json", type=Path)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--noop-consumer", action="store_true")
-    parser.add_argument("--product-string", default="unknown")
+    parser.add_argument("--product-string")
+    parser.add_argument(
+        "--product-string-status",
+        choices=("accepted", "unreadable"),
+    )
     parser.add_argument("--raw-slots", type=int, default=4)
     parser.add_argument("--output-queue-size", type=int, default=2)
     parser.add_argument(
@@ -77,6 +83,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     drop_policy = cast("DropPolicy", args.drop_policy)
+    product_string_status = args.product_string_status or (
+        "accepted" if args.product_string is not None else "unreadable"
+    )
     engine = StreamingEngine(
         LibusbAsyncBackend(),
         raw_slots=args.raw_slots,
@@ -88,6 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         duration=args.duration,
         noop_consumer=args.noop_consumer,
         product_string=args.product_string,
+        product_string_status=cast("Literal['accepted', 'unreadable']", product_string_status),
         mode_3d=False,
         raw_slots=args.raw_slots,
         output_queue_size=args.output_queue_size,

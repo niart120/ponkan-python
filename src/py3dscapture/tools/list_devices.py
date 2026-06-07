@@ -16,7 +16,9 @@ def format_device_listing(listing: DeviceListing) -> str:
             "candidate "
             f"{_format_location(info.bus_number, info.address)} "
             f"{_format_vid_pid(info.vendor_id, info.product_id)} "
-            f"product={candidate.product_string} serial={info.serial_number or '-'}"
+            f"product={candidate.product_string or '-'} "
+            f"product_status={candidate.product_string_status} "
+            f"serial={info.serial_number or '-'}"
         )
     for rejected in listing.rejected:
         info = rejected.info

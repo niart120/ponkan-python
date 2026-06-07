@@ -57,7 +57,11 @@ def _session(handle: _FakeHandle | None = None) -> N3DSXLDevice:
         product_string="N3DSXL",
         serial_number="abc",
     )
-    candidate = DeviceCandidate(info=info, product_string="N3DSXL")
+    candidate = DeviceCandidate(
+        info=info,
+        product_string="N3DSXL",
+        product_string_status="accepted",
+    )
     return N3DSXLDevice(
         candidate=candidate,
         handle=handle or _FakeHandle(),

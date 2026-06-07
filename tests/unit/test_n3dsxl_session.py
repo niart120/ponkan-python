@@ -68,7 +68,11 @@ def device_info() -> UsbDeviceInfo:
 
 
 def candidate() -> DeviceCandidate:
-    return DeviceCandidate(info=device_info(), product_string="N3DSXL")
+    return DeviceCandidate(
+        info=device_info(),
+        product_string="N3DSXL",
+        product_string_status="accepted",
+    )
 
 
 def test_open_sets_configuration_and_claims_command_then_bulk_interfaces() -> None:

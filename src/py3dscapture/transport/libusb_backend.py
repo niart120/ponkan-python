@@ -1,6 +1,7 @@
 """Thin libusb backend boundary used by device-specific code."""
 
 from collections.abc import Iterable
+from contextlib import suppress
 from dataclasses import dataclass
 from importlib import import_module
 from typing import TYPE_CHECKING, Protocol, cast
@@ -156,9 +157,68 @@ def _usb1_device_info(device: object) -> UsbDeviceInfo:
         address=_optional_int(device, "getDeviceAddress"),
         vendor_id=_int_from_object(_call_method(device, "getVendorID")),
         product_id=_int_from_object(_call_method(device, "getProductID")),
-        product_string=_optional_str(device, "getProduct"),
+        product_string=_usb1_product_string(device),
         serial_number=_optional_str(device, "getSerialNumber"),
     )
+
+
+def _usb1_product_string(device: object) -> str | None:
+    product = _usb1_product_string_from_handle(device)
+    if product is not None:
+        return product
+    return _optional_str(device, "getProduct")
+
+
+def _usb1_product_string_from_handle(device: object) -> str | None:
+    try:
+        descriptor = _int_from_object(_call_method(device, "getProductDescriptor"))
+    except (AttributeError, TypeError, ValueError):
+        return None
+    if descriptor == 0:
+        return None
+
+    try:
+        handle = _call_method(device, "open")
+    except Exception:  # noqa: BLE001
+        return None
+    try:
+        product = _optional_str(handle, "getProduct")
+        if product is not None:
+            return product
+        for language_id in _usb1_language_ids(handle):
+            product = _optional_string_descriptor(handle, descriptor, language_id)
+            if product is not None:
+                return product
+    finally:
+        with suppress(Exception):
+            _call_method(handle, "close")
+    return None
+
+
+def _usb1_language_ids(handle: object) -> tuple[int, ...]:
+    try:
+        values = _call_method(handle, "getSupportedLanguageList")
+    except Exception:  # noqa: BLE001
+        return (0x0409,)
+    try:
+        language_ids = tuple(_int_from_object(value) for value in cast("Iterable[object]", values))
+    except (TypeError, ValueError):
+        return (0x0409,)
+    return language_ids or (0x0409,)
+
+
+def _optional_string_descriptor(
+    handle: object,
+    descriptor: int,
+    language_id: int,
+) -> str | None:
+    try:
+        value = _call_method(handle, "getStringDescriptor", descriptor, language_id)
+    except Exception:  # noqa: BLE001
+        return None
+    if value == "":
+        return None
+    return str(value)
 
 
 def _matches_usb1_device(candidate: object, expected: UsbDeviceInfo) -> bool:

@@ -86,6 +86,7 @@ class N3DSXLProtocol:
             sequence=None,
             metadata={
                 "product_string": self.device.candidate.product_string,
+                "product_string_status": self.device.candidate.product_string_status,
                 "vid": f"0x{self.device.candidate.info.vendor_id:04x}",
                 "pid": f"0x{self.device.candidate.info.product_id:04x}",
             },

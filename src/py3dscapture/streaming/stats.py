@@ -33,7 +33,8 @@ class PerformanceStats:
     """JSON-serializable performance smoke report."""
 
     model: Literal["new_3ds_xl"]
-    product_string: str
+    product_string: str | None
+    product_string_status: Literal["accepted", "unreadable"]
     mode_3d: bool
     duration_seconds: float
     raw_slots: int
@@ -57,7 +58,8 @@ class PerformanceStats:
         cls,
         stats: StreamStats,
         *,
-        product_string: str,
+        product_string: str | None,
+        product_string_status: Literal["accepted", "unreadable"],
         mode_3d: bool,
         duration_seconds: float,
         raw_slots: int,
@@ -70,6 +72,7 @@ class PerformanceStats:
         return cls(
             model="new_3ds_xl",
             product_string=product_string,
+            product_string_status=product_string_status,
             mode_3d=mode_3d,
             duration_seconds=duration_seconds,
             raw_slots=raw_slots,

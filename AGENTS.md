@@ -87,8 +87,9 @@ spec/
 
 ## 実機安全制約
 
-- product string が `N3DSXL` / `N3DSXL.2` でない device に N3DSXL command を送らない。
 - VID/PID が仕様で許可された値に一致しない device に N3DSXL command を送らない。
+- product string が読める場合、`N3DSXL` / `N3DSXL.2` でない device に N3DSXL command を送らない。
+- product string が読めない場合、許可済み VID/PID、`product_string_status=unreadable` の記録、実機 marker、明示承認を安全境界として扱う。
 - 実機テストには `@pytest.mark.requires_n3dsxl` を付ける。
 - performance test には `@pytest.mark.performance` も付ける。
 - CI で実機テストを実行しない。

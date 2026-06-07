@@ -73,7 +73,11 @@ class _FakePipe:
 
 def _device() -> N3DSXLDevice:
     info = UsbDeviceInfo(1, 2, 0x0403, 0x601F, "N3DSXL", "abc")
-    candidate = DeviceCandidate(info=info, product_string="N3DSXL")
+    candidate = DeviceCandidate(
+        info=info,
+        product_string="N3DSXL",
+        product_string_status="accepted",
+    )
     return N3DSXLDevice(candidate=candidate, handle=_UnusedHandle(), claimed_interfaces=(0, 1))
 
 
