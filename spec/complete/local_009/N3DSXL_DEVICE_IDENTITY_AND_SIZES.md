@@ -51,7 +51,7 @@ Step 0 として、new 3DS XL capture board の USB identity、interface、endpo
 | 配置 | `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` |
 | 対応 Step | Step 0: constants and size tests |
 | 前提 Work Unit | なし |
-| 次 Work Unit | `spec/wip/local_010/N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` |
+| 次 Work Unit | `spec/complete/local_010/N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` |
 | 実装状態 | 完了。Step 0 の追加実装は原典再 audit や validation helper が必要になった場合だけ新規 Work Unit として扱う。 |
 | 再選択条件 | identity / size の regression が壊れた、または後続 Step から transfer length validation helper が戻されたとき。 |
 | 完了証拠 | `tests/unit/test_n3dsxl_sizes.py` と `tests/unit/test_package.py` が通り、`capture_sizes()` が `audio_size` を含む size 一式を返す。 |

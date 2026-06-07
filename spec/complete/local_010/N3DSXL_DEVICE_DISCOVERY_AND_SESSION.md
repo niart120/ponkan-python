@@ -38,14 +38,14 @@ new 3DS XL capture board は FTDI VID を使うが、FTDI VID だけでは対象
 ### 1.5 着手条件
 
 - [x] `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` の identity constants が存在する。
-- [ ] libusb binding の薄い wrapper 方針を決める。
+- [x] libusb binding の薄い wrapper 方針を決める。
 - [ ] 実機 E2E を実行する場合、new 3DS XL capture board の接続と人間承認がある。
 
 ### 1.6 Work Unit メタデータ
 
 | 項目 | 内容 |
 | ---- | ---- |
-| 配置 | `spec/wip/local_010/N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` |
+| 配置 | `spec/complete/local_010/N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` |
 | 対応 Step | Step 1: device listing、Step 2: open / claim / close |
 | 前提 Work Unit | `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` |
 | 次 Work Unit | `spec/wip/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` |
@@ -64,6 +64,7 @@ new 3DS XL capture board は FTDI VID を使うが、FTDI VID だけでは対象
 | `src/py3dscapture/tools/list_devices.py` | 新規 | device listing CLI を提供する。 |
 | `tests/unit/test_n3dsxl_device_filter.py` | 新規 | fake device で filtering を検証する。 |
 | `tests/unit/test_n3dsxl_session.py` | 新規 | fake backend で open/claim/close cleanup を検証する。 |
+| `tests/unit/test_n3dsxl_list_devices_cli.py` | 新規 | fake backend で listing と rejected reason 表示を検証する。 |
 | `tests/e2e/test_n3dsxl_open_close.py` | 新規 | 実機 open/claim/close を検証する。 |
 
 ## 3. 振る舞い仕様と設計方針
@@ -85,15 +86,15 @@ new 3DS XL capture board は FTDI VID を使うが、FTDI VID だけでは対象
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | accepted VID/PID/product string の fake device だけ candidate になる | new behavior | 3.1 | `tests/unit/test_n3dsxl_device_filter.py` |
-| todo | product string が `N3DSXL.2` でも candidate になる | new behavior | 3.1 | variant |
-| todo | accepted PID でも product string 不一致なら rejected になる | safety | 3.1 | 誤 device 防止 |
-| todo | product string unreadable なら rejected になる | safety | 3.1 | 安全側 |
-| todo | open は configuration 1 と interface 0/1 claim を順に呼ぶ | new behavior | 3.1 | fake backend |
-| todo | interface 1 claim 失敗時に interface 0 release と handle close が呼ばれる | regression | 3.1 | cleanup |
-| todo | close は冪等で複数回呼んでも安全 | regression | 3.1 | cleanup |
-| todo | list_devices CLI が candidate と rejected reason を表示する | new behavior | 3.1 | stdout snapshot は過度に固定しない |
-| todo | 実機 open -> claim -> close が複数回成功する | hardware | 3.1 | `requires_n3dsxl` |
+| green | accepted VID/PID/product string の fake device だけ candidate になる | new behavior | 3.1 | `tests/unit/test_n3dsxl_device_filter.py` |
+| green | product string が `N3DSXL.2` でも candidate になる | new behavior | 3.1 | variant |
+| green | accepted PID でも product string 不一致なら rejected になる | safety | 3.1 | 誤 device 防止 |
+| green | product string unreadable なら rejected になる | safety | 3.1 | 安全側 |
+| green | open は configuration 1 と interface 0/1 claim を順に呼ぶ | new behavior | 3.1 | fake backend |
+| green | interface 1 claim 失敗時に interface 0 release と handle close が呼ばれる | regression | 3.1 | cleanup |
+| green | close は冪等で複数回呼んでも安全 | regression | 3.1 | cleanup |
+| green | list_devices CLI が candidate と rejected reason を表示する | new behavior | 3.1 | stdout snapshot は過度に固定しない |
+| deferred | 実機 open -> claim -> close が複数回成功する | hardware | 3.1 | `requires_n3dsxl`。人間承認待ち |
 
 ### 3.3 設計方針
 
@@ -119,7 +120,7 @@ Source Audit:
 | 項目 | 状態 | 必要 action |
 | ---- | ---- | ----------- |
 | VID/PID/product string/interface/endpoint | `local_009` で初期仕様由来として固定 | 変更時のみ source audit |
-| libusb setup order | 初期仕様 8.2 由来 | 実装前に `cc3dsfs-source-audit` で該当 source path を記録する |
+| libusb setup order | `cc3dsfs` 原典 `source/CaptureDeviceSpecific/3DSCapture_FTD3/3dscapture_ftd3_libusb_comms.cpp` で確認 | detach kernel driver、configuration 1、command interface 0 claim、bulk interface 1 claim の順序を local 実装へ反映。control IN probe と create command は `local_011` へ送る |
 | control IN probe | Step 4 へ送る | この Work Unit では command を送らない |
 
 Hardware:
@@ -233,6 +234,16 @@ failure cleanup:
 | hardware pending | 実機 command scope と承認待ち理由を gate 報告に残す |
 | hardware complete | `requires_n3dsxl` の open/close E2E 結果、VID/PID/product string、cleanup 結果を残す |
 
+実装結果:
+
+| 項目 | Evidence |
+| ---- | -------- |
+| local complete | `uv run pytest tests\unit\test_n3dsxl_device_filter.py tests\unit\test_n3dsxl_session.py tests\unit\test_n3dsxl_list_devices_cli.py -q` が 11 passed |
+| unit regression | `uv run pytest tests\unit -q` が 16 passed |
+| static | `uv run ruff check src tests` と `uv run ty check --no-progress` が pass |
+| hardware pending | `uv run pytest tests\e2e\test_n3dsxl_open_close.py -q` は `PONKAN_RUN_N3DSXL` 未設定で skip。実機 command は未実行 |
+| source audit | `3dscapture_ftd3_libusb_comms.cpp` の libusb setup と `3dscapture_ftd3_shared.cpp` の accepted product string を確認 |
+
 ## 5. テスト方針
 
 ### ユニットテスト
@@ -271,11 +282,11 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 
 ## 6. 実装チェックリスト
 
-- [ ] fake backend と device info 型を作る。
-- [ ] N3DSXL classifier を TDD で実装する。
-- [ ] `list_devices` CLI を追加する。
-- [ ] session open / close の fake backend test を追加する。
-- [ ] `N3DSXLDevice.open()` と `close()` を実装する。
-- [ ] 実機 E2E test に `requires_n3dsxl` marker を付ける。
-- [ ] local unit gate を実行する。
-- [ ] 実機 gate は人間承認まで未実行として報告する。
+- [x] fake backend と device info 型を作る。
+- [x] N3DSXL classifier を TDD で実装する。
+- [x] `list_devices` CLI を追加する。
+- [x] session open / close の fake backend test を追加する。
+- [x] `N3DSXLDevice.open()` と `close()` を実装する。
+- [x] 実機 E2E test に `requires_n3dsxl` marker を付ける。
+- [x] local unit gate を実行する。
+- [x] 実機 gate は人間承認まで未実行として報告する。
