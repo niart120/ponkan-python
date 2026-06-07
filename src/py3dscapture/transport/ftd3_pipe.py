@@ -69,6 +69,8 @@ def build_prepare_write_payload(pipe: int, length: int, *, command_id: int = 0) 
 class Ftd3Pipe:
     """FTD3 command wrapper over an accepted N3DSXL session."""
 
+    backend_kind = "libusb"
+
     def __init__(self, session: N3DSXLDevice, *, first_command_id: int = 0) -> None:
         """Create a pipe wrapper for one safe N3DSXL session."""
         if not isinstance(session, N3DSXLDevice):

@@ -19,6 +19,8 @@ N3DSXL_CFG_WAIT_MS = 200
 class N3DSXLPipe(Protocol):
     """FTD3 operations used by the N3DSXL protocol layer."""
 
+    backend_kind: str
+
     def create_pipe(self) -> None:
         """Create the FTD3 command pipe."""
         ...
@@ -87,6 +89,7 @@ class N3DSXLProtocol:
             metadata={
                 "product_string": self.device.candidate.product_string,
                 "product_string_status": self.device.candidate.product_string_status,
+                "backend_kind": self.pipe.backend_kind,
                 "vid": f"0x{self.device.candidate.info.vendor_id:04x}",
                 "pid": f"0x{self.device.candidate.info.product_id:04x}",
             },

@@ -71,6 +71,8 @@ def test_stream_cli_writes_performance_stats_json(
         "model": "new_3ds_xl",
         "product_string": "N3DSXL",
         "product_string_status": "accepted",
+        "backend_kind": "libusb",
+        "driver_service": None,
         "mode_3d": False,
         "duration_seconds": 0.0,
         "raw_slots": 4,

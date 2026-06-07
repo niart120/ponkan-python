@@ -74,7 +74,7 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 | green | libusb success のとき D3XX fallback を試さない | unit | 3.1 | regression |
 | green | D3XX open-close が cleanup を保証する | unit | 3.1 | fake handle |
 | green | D3XX pipe API が read/write/set/abort を native call へ写像する | unit | 3.1 | no command payload |
-| todo | metadata / command plan に backend identity が入る | unit | 3.1 | artifact traceability |
+| green | metadata / command plan に backend identity が入る | unit | 3.1 | artifact traceability |
 | green | 実機 D3XX open-close が成功する | hardware | 3.1 | `requires_n3dsxl` 相当の承認付き probe |
 | green | 実機 D3XX create/abort or native pipe setup が成功する | hardware | 3.1 | `FT_AbortPipe(0x82)` / `FT_SetStreamPipe(0x82, 1024)` |
 | deferred | 実機 D3XX raw capture が `.bin` / `.json` を保存する | hardware | 3.1 | local_014 continuation |
@@ -177,7 +177,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 - [x] D3XX enumeration / open-close adapter を fake binding で TDD 実装する。
 - [x] D3XX pipe adapter を fake binding で TDD 実装する。
 - [x] fallback selector を追加する。
-- [ ] metadata / hardware gate に backend identity を追加する。
+- [x] metadata / hardware gate に backend identity を追加する。
 - [x] 実機 D3XX listing / open-close gate を承認後に実行する。
 - [ ] raw capture / streaming gate を D3XX backend で再開する。
 
@@ -192,7 +192,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | D3XX fallback selector probe | pass | libusb candidate `0x0403:0x601e product=- product_status=unreadable`; `selected_backend d3xx`; `transport_close status ok` |
 | unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 4 passed |
 | unit fallback selector | pass | `uv run pytest tests/unit/test_ftd3_backend_selector.py -q`: 2 passed |
-| unit | pass | `uv run pytest tests/unit`: 69 passed |
+| unit | pass | `uv run pytest tests/unit`: 70 passed |
 | format | pass | `uv run ruff format --check .`: 57 files already formatted |
 | lint | pass | `uv run ruff check .`: All checks passed |
 | type | pass | `uv run ty check --no-progress`: All checks passed |

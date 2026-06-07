@@ -37,6 +37,8 @@ class _UnusedHandle:
 
 
 class _FakePipe:
+    backend_kind = "d3xx"
+
     def __init__(self, *, fail_on_set_stream: bool = False) -> None:
         self.fail_on_set_stream = fail_on_set_stream
         self.calls: list[tuple[str, int | None, bytes | int | None]] = []
@@ -115,3 +117,11 @@ def test_connect_failure_preserves_ftd3_context() -> None:
 
     assert exc_info.value.context.command_name == "set_stream_pipe"
     assert exc_info.value.context.requested_length == capture_size(False)
+
+
+def test_raw_capture_metadata_includes_backend_identity() -> None:
+    protocol = N3DSXLProtocol(_device(), _FakePipe())
+
+    capture = protocol.read_raw_frame(mode_3d=False)
+
+    assert capture.metadata["backend_kind"] == "d3xx"

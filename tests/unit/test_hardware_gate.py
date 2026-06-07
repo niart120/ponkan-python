@@ -31,6 +31,8 @@ def test_hardware_command_plan_records_safety_boundary() -> None:
         artifact="artifacts/n3dsxl/20260607T120000/stream_stats.json",
         cleanup="cancel, drain, release, close",
         command='uv run pytest -m "requires_n3dsxl and performance" tests/performance',
+        backend_kind="d3xx",
+        driver_service="FTDIBUS3",
     )
 
     assert plan.is_allowed_n3dsxl_device()
@@ -44,6 +46,8 @@ def test_hardware_command_plan_records_safety_boundary() -> None:
         "artifact": "artifacts/n3dsxl/20260607T120000/stream_stats.json",
         "cleanup": "cancel, drain, release, close",
         "command": 'uv run pytest -m "requires_n3dsxl and performance" tests/performance',
+        "backend_kind": "d3xx",
+        "driver_service": "FTDIBUS3",
     }
 
 

@@ -25,12 +25,16 @@ def test_performance_stats_include_smoke_gate_fields() -> None:
         output_queue_size=2,
         drop_policy="drop_oldest",
         shutdown_seconds=0.25,
+        backend_kind="d3xx",
+        driver_service="FTDIBUS3",
     )
 
     assert stats.to_dict() == {
         "model": "new_3ds_xl",
         "product_string": "N3DSXL",
         "product_string_status": "accepted",
+        "backend_kind": "d3xx",
+        "driver_service": "FTDIBUS3",
         "mode_3d": False,
         "duration_seconds": 3.0,
         "raw_slots": 4,
@@ -62,6 +66,8 @@ def test_performance_stats_zero_duration_reports_zero_fps() -> None:
         output_queue_size=2,
         drop_policy="drop_oldest",
         shutdown_seconds=0.0,
+        backend_kind="libusb",
+        driver_service=None,
     )
 
     assert stats.delivered_fps == 0.0
