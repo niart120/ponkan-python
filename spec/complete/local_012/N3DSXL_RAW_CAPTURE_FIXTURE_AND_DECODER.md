@@ -48,7 +48,7 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | 配置 | `spec/complete/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` |
 | 対応 Step | Step 5: single raw frame capture、Step 6: decoder and PNG |
 | 前提 Work Unit | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` |
-| 次 Work Unit | `spec/wip/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
+| 次 Work Unit | `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
 | local task | RawCapture metadata、transfer validation、synthetic decoder、Pillow/colorspace adapter。 |
 | hardware task | raw_2d fixture capture、candidate PNG、manual visual approval。 |
 | 選択条件 | 2D connect が完了し、streaming 前の raw artifact / decoder evidence が未確定のとき。 |

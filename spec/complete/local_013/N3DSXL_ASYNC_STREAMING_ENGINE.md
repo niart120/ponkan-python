@@ -43,14 +43,14 @@ callback 内で decode、Pillow 変換、blocking queue put、同期 libusb API 
 
 - [x] `spec/complete/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` の 2D decoder と CaptureFrame が実装済み。
 - [x] `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` の 2D connect が実装済み。
-- [ ] libusb binding が async transfer、callback、cancel、event handling を扱えることを確認済み。
+- [x] libusb binding が async transfer、callback、cancel、event handling を扱えることを確認済み。
 - [ ] 実機 streaming E2E を実行する場合、人間承認がある。
 
 ### 1.6 Work Unit メタデータ
 
 | 項目 | 内容 |
 | ---- | ---- |
-| 配置 | `spec/wip/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
+| 配置 | `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
 | 対応 Step | Step 7: async streaming engine |
 | 前提 Work Unit | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md`、`spec/complete/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` |
 | 次 Work Unit | `spec/wip/local_014/N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` |
@@ -97,19 +97,19 @@ callback 内で decode、Pillow 変換、blocking queue put、同期 libusb API 
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | RawFrameSlot は capture_size 分の buffer を持つ | new behavior | 3.1 | unit |
-| todo | BufferPool は raw_slots 個を事前確保する | new behavior | 3.1 | unit |
-| todo | checkout 済み slot は二重 checkout できない | regression | 3.1 | unit |
-| todo | `drop_oldest` は満杯 queue の最古 frame を捨てる | new behavior | 3.1 | unit |
-| todo | `drop_newest` は新規 frame を捨てる | new behavior | 3.1 | unit |
-| todo | `block` は callback thread では使われない | safety | 3.1 | design guard |
-| todo | fake async backend で start 時に raw_slots 個 submit される | new behavior | 3.1 | unit |
-| todo | fake callback は decode worker へ RawFrameResult を渡す | new behavior | 3.1 | unit |
-| todo | stop は cancel -> drain -> release の順序を守る | regression | 3.1 | unit |
-| todo | callback 内で decoder が呼ばれない | safety | 3.1 | fake spy |
-| todo | `frames()` が CaptureFrame iterator として動く | new behavior | 3.1 | fake engine |
-| todo | `frames_async()` が async iterator として動く | new behavior | 3.1 | fake engine |
-| todo | 実機で 10 秒 streaming でき、stats が出る | hardware | 3.1 | `requires_n3dsxl` |
+| green | RawFrameSlot は capture_size 分の buffer を持つ | new behavior | 3.1 | unit |
+| green | BufferPool は raw_slots 個を事前確保する | new behavior | 3.1 | unit |
+| green | checkout 済み slot は二重 checkout できない | regression | 3.1 | unit |
+| green | `drop_oldest` は満杯 queue の最古 frame を捨てる | new behavior | 3.1 | unit |
+| green | `drop_newest` は新規 frame を捨てる | new behavior | 3.1 | unit |
+| green | `block` は callback thread では使われない | safety | 3.1 | design guard |
+| green | fake async backend で start 時に raw_slots 個 submit される | new behavior | 3.1 | unit |
+| green | fake callback は decode worker へ RawFrameResult を渡す | new behavior | 3.1 | unit |
+| green | stop は cancel -> drain -> release の順序を守る | regression | 3.1 | unit |
+| green | callback 内で decoder が呼ばれない | safety | 3.1 | fake spy |
+| green | `frames()` が CaptureFrame iterator として動く | new behavior | 3.1 | fake engine |
+| green | `frames_async()` が async iterator として動く | new behavior | 3.1 | fake engine |
+| deferred | 実機で 10 秒 streaming でき、stats が出る | hardware | 3.1 | `requires_n3dsxl`。人間承認待ち |
 
 ### 3.3 設計方針
 
@@ -141,10 +141,10 @@ Source Audit:
 
 | 項目 | 参照元候補 | 状態 |
 | ---- | ---------- | ---- |
-| async acquisition structure | `3dscapture_ftd3_libusb_acquisition.cpp` | audit required |
-| in-flight buffer の考え方 | 同上 | audit required |
-| cancel / shutdown sequence | 同上 | audit required |
-| libusb async API | libusb async I/O API | primary doc 確認が必要 |
+| async acquisition structure | `3dscapture_ftd3_libusb_acquisition.cpp` | concurrent buffers、async callback、completion handoff を確認 |
+| in-flight buffer の考え方 | 同上 | `FTD3_CONCURRENT_BUFFERS` 分の buffer を in-use 管理して再 submit する方針を確認 |
+| cancel / shutdown sequence | 同上 | error/stop 時に cancel callbacks、全 buffer free 待ち、event thread unregister へ進む方針を確認 |
+| libusb async API | libusb async I/O API | submit が non-blocking、completion callback で結果を扱う API であることを確認 |
 
 Hardware:
 
@@ -269,6 +269,18 @@ def put_frame_with_policy(
 | hardware pending | streaming command scope、duration、stats artifact、cleanup を示して承認待ち |
 | hardware complete | 10 秒 streaming E2E の delivered count、drop count、usb_errors、shutdown result を報告 |
 
+実装結果:
+
+| 項目 | Evidence |
+| ---- | -------- |
+| source-audit complete | `3dscapture_ftd3_libusb_acquisition.cpp` と libusb async I/O API を確認し、fake async backend と callback contract test に反映 |
+| local complete | `uv run pytest tests\unit\test_streaming_buffers.py tests\unit\test_streaming_policies.py tests\unit\test_streaming_engine_fake_async.py -q` が 11 passed |
+| unit regression | `uv run pytest tests\unit -q` が 50 passed |
+| static | `uv run ruff format --check .`、`uv run ruff check src tests`、`uv run ty check --no-progress` が pass |
+| hardware pending | `uv run pytest tests\e2e -q` は `PONKAN_RUN_N3DSXL` 未設定で 5 skipped。実機 streaming は未実行 |
+| callback safety | fake backend test で callback 後 `process_completed()` まで decoder が呼ばれないことを確認 |
+| shutdown | fake backend test で `cancel_all -> drain -> release` の順序を確認 |
+
 ## 5. テスト方針
 
 ### ユニットテスト
@@ -317,12 +329,12 @@ uv run python -m py3dscapture.tools.stream_n3dsxl --duration 10 --stats
 
 ## 6. 実装チェックリスト
 
-- [ ] libusb async acquisition の source audit を記録する。
-- [ ] buffer pool の unit test を書く。
-- [ ] drop policy の unit test を書く。
-- [ ] fake async backend で start/callback/stop の unit test を書く。
-- [ ] `transport/libusb_async.py` を実装する。
-- [ ] `streaming/*` を実装する。
-- [ ] public `frames()` / `frames_async()` を実装する。
-- [ ] `stream_n3dsxl` CLI を実装する。
-- [ ] 実機 streaming E2E は人間承認まで未実行として報告する。
+- [x] libusb async acquisition の source audit を記録する。
+- [x] buffer pool の unit test を書く。
+- [x] drop policy の unit test を書く。
+- [x] fake async backend で start/callback/stop の unit test を書く。
+- [x] `transport/libusb_async.py` を実装する。
+- [x] `streaming/*` を実装する。
+- [x] public `frames()` / `frames_async()` を実装する。
+- [x] `stream_n3dsxl` CLI を実装する。
+- [x] 実機 streaming E2E は人間承認まで未実行として報告する。
