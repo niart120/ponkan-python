@@ -86,6 +86,9 @@ class Ftd3Pipe:
             payload=build_create_pipe_payload(command_id=self._take_command_id()),
         )
 
+    def reconnect_after_drain(self) -> None:
+        """Keep protocol compatibility; libusb path keeps the current session."""
+
     def abort_pipe(self, pipe: int) -> None:
         """Send cc3dsfs' abort, abort, destroy sequence for one pipe."""
         self._send_command(

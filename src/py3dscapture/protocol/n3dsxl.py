@@ -47,6 +47,10 @@ class N3DSXLPipe(Protocol):
         """Write to one FTD3 pipe."""
         ...
 
+    def reconnect_after_drain(self) -> None:
+        """Reconnect after the initial drain when the backend requires it."""
+        ...
+
 
 class N3DSXLSessionIdentity(Protocol):
     """Opened session identity needed for raw metadata."""
@@ -71,6 +75,7 @@ class N3DSXLProtocol:
 
         self.pipe.create_pipe()
         self._drain_data()
+        self.pipe.reconnect_after_drain()
         self.pipe.abort_pipe(N3DSXL_BULK_IN_ENDPOINT)
         self.pipe.create_pipe()
         self._spi_3ds_cc_stuff()

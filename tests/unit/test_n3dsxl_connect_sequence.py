@@ -42,8 +42,14 @@ class _UnusedHandle:
 class _FakePipe:
     backend_kind = "d3xx"
 
-    def __init__(self, *, fail_on_set_stream: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        fail_on_set_stream: bool = False,
+        reconnect_after_drain: bool = False,
+    ) -> None:
         self.fail_on_set_stream = fail_on_set_stream
+        self.reconnect_after_drain_enabled = reconnect_after_drain
         self.calls: list[tuple[str, int | None, bytes | int | None]] = []
 
     def create_pipe(self) -> None:
@@ -74,6 +80,10 @@ class _FakePipe:
         _ = timeout_ms
         self.calls.append(("write_pipe", pipe, payload))
         return len(payload)
+
+    def reconnect_after_drain(self) -> None:
+        if self.reconnect_after_drain_enabled:
+            self.calls.append(("reconnect_after_drain", None, None))
 
 
 class _UnusedD3xxBinding:
@@ -169,6 +179,20 @@ def test_connect_sequence_reaches_2d_stream_setup() -> None:
         ("set_stream_pipe", N3DSXL_BULK_IN_ENDPOINT, capture_size(False)),
         ("abort_pipe", N3DSXL_BULK_IN_ENDPOINT, None),
         ("set_stream_pipe", N3DSXL_BULK_IN_ENDPOINT, capture_size(False)),
+    ]
+
+
+def test_connect_reconnects_d3xx_handle_after_drain_when_supported() -> None:
+    pipe = _FakePipe(reconnect_after_drain=True)
+    protocol = N3DSXLProtocol(_device(), pipe)
+
+    protocol.connect(mode_3d=False)
+
+    assert pipe.calls[:4] == [
+        ("create_pipe", None, None),
+        ("write_pipe", N3DSXL_BULK_OUT_ENDPOINT, b"\x40\x80\x00\x00"),
+        ("read_pipe", N3DSXL_BULK_IN_ENDPOINT, 0x100000),
+        ("reconnect_after_drain", None, None),
     ]
 
 

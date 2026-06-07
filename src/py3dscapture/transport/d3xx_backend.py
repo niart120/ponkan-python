@@ -139,11 +139,18 @@ class D3xxHandle:
 
     backend_kind: Literal["d3xx"] = "d3xx"
 
-    def __init__(self, binding: D3xxBinding, device: object, candidate: DeviceCandidate) -> None:
+    def __init__(
+        self,
+        binding: D3xxBinding,
+        device: object,
+        candidate: DeviceCandidate,
+        d3xx_candidate: D3xxDeviceCandidate | None = None,
+    ) -> None:
         """Create a handle from an opened PyD3XX device detail object."""
         self._binding = binding
         self._device = device
         self.candidate = candidate
+        self._d3xx_candidate = d3xx_candidate
         self._closed = False
 
     def close(self) -> None:
@@ -162,6 +169,26 @@ class D3xxHandle:
 
     def create_pipe(self) -> None:
         """Keep protocol compatibility; D3XX native backend has no command-pipe create."""
+
+    def reconnect_after_drain(self) -> None:
+        """Close and reopen after the initial drain, matching cc3dsfs' D3XX path."""
+        if self._d3xx_candidate is None:
+            raise D3xxBackendError.invalid_candidate()
+        self.close()
+        _, detail = _status_and_value(
+            "FT_GetDeviceInfoDetail",
+            self._binding.FT_GetDeviceInfoDetail(self._d3xx_candidate.index),
+        )
+        _check_status(
+            "FT_Create",
+            self._binding.FT_Create(
+                _open_identifier(self._d3xx_candidate),
+                _open_flag(self._d3xx_candidate),
+                detail,
+            ),
+        )
+        self._device = detail
+        self._closed = False
 
     def set_stream_pipe(self, pipe: int, length: int) -> None:
         """Configure one D3XX native stream pipe."""
@@ -283,7 +310,12 @@ class D3xxBackend:
                 detail,
             ),
         )
-        return D3xxHandle(binding=self._binding, device=detail, candidate=candidate.candidate)
+        return D3xxHandle(
+            binding=self._binding,
+            device=detail,
+            candidate=candidate.candidate,
+            d3xx_candidate=candidate,
+        )
 
 
 def _device_info_from_detail(*, index: int, detail: object) -> D3xxDeviceInfo:

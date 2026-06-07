@@ -159,6 +159,23 @@ def test_d3xx_open_uses_initialized_detail_and_close_is_idempotent() -> None:
     assert binding.closed == [_FakeD3xxInfo(0x0403601E, "N3DSXL.2", "NXL530228")]
 
 
+def test_d3xx_reconnect_after_drain_closes_and_reopens_same_candidate() -> None:
+    binding = _FakeD3xxBinding()
+    backend = D3xxBackend(binding)
+    candidate = backend.iter_device_candidates()[0]
+    handle = backend.open(candidate)
+    binding.detail_indexes.clear()
+    binding.created.clear()
+    binding.closed.clear()
+
+    handle.reconnect_after_drain()
+
+    device = _FakeD3xxInfo(0x0403601E, "N3DSXL.2", "NXL530228")
+    assert binding.closed == [device]
+    assert binding.detail_indexes == [0]
+    assert binding.created == [("NXL530228", 0x01, device)]
+
+
 def test_d3xx_pipe_methods_call_native_d3xx_api() -> None:
     binding = _FakeD3xxBinding()
     backend = D3xxBackend(binding)
