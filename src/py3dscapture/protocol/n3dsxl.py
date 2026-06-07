@@ -1,5 +1,6 @@
 """N3DSXL protocol orchestration."""
 
+from time import sleep
 from typing import Protocol
 
 from py3dscapture.capture import RawCapture
@@ -123,6 +124,7 @@ class N3DSXLProtocol:
             N3DSXL_BULK_OUT_ENDPOINT,
             bytes([0x42 + firmware_to_use, 0x00, 0x00, 0x00]),
         )
+        sleep(N3DSXL_CFG_WAIT_MS / 1000)
         self._set_spi_access(enabled=False)
 
     def _read_3ds_config_3d(self) -> None:

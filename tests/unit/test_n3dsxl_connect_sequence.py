@@ -1,9 +1,10 @@
 # ruff: noqa: N802
 import pytest
 
+import py3dscapture.protocol.n3dsxl as n3dsxl_module
 from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, N3DSXLDevice
 from py3dscapture.errors import Ftd3CommandContext, Ftd3CommandError, UnsupportedOperation
-from py3dscapture.protocol.n3dsxl import N3DSXLProtocol
+from py3dscapture.protocol.n3dsxl import N3DSXL_CFG_WAIT_MS, N3DSXLProtocol
 from py3dscapture.protocol.sizes import (
     N3DSXL_BULK_IN_ENDPOINT,
     N3DSXL_BULK_OUT_ENDPOINT,
@@ -169,6 +170,24 @@ def test_connect_sequence_reaches_2d_stream_setup() -> None:
         ("abort_pipe", N3DSXL_BULK_IN_ENDPOINT, None),
         ("set_stream_pipe", N3DSXL_BULK_IN_ENDPOINT, capture_size(False)),
     ]
+
+
+def test_connect_waits_after_firmware_load(monkeypatch: pytest.MonkeyPatch) -> None:
+    sleeps: list[float] = []
+    monkeypatch.setattr(n3dsxl_module, "sleep", sleeps.append)
+    pipe = _FakePipe()
+    protocol = N3DSXLProtocol(_device(), pipe)
+
+    protocol.connect(mode_3d=False)
+
+    firmware_write_index = pipe.calls.index(
+        ("write_pipe", N3DSXL_BULK_OUT_ENDPOINT, b"\x43\x00\x00\x00")
+    )
+    config_read_index = pipe.calls.index(
+        ("write_pipe", N3DSXL_BULK_OUT_ENDPOINT, b"\x98\x05\x9f\x00")
+    )
+    assert sleeps == [N3DSXL_CFG_WAIT_MS / 1000]
+    assert firmware_write_index < config_read_index
 
 
 def test_connect_failure_preserves_ftd3_context() -> None:

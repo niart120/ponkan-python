@@ -2,7 +2,8 @@
 """Optional FTDI D3XX backend boundary."""
 
 import ctypes
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from importlib import import_module
 from types import ModuleType
@@ -183,7 +184,7 @@ class D3xxHandle:
         timeout_ms: int = D3XX_DEFAULT_TIMEOUT_MS,
     ) -> bytes:
         """Read bytes from one D3XX native pipe."""
-        direct = _direct_read_pipe(self._binding, self._device, pipe, length)
+        direct = _direct_read_pipe(self._binding, self._device, pipe, length, timeout_ms)
         if direct is not None:
             return direct
         pipe_object = _pipe_from_id(self._binding, pipe)
@@ -199,7 +200,7 @@ class D3xxHandle:
         timeout_ms: int = D3XX_DEFAULT_TIMEOUT_MS,
     ) -> int:
         """Write bytes to one D3XX native pipe."""
-        direct = _direct_write_pipe(self._binding, self._device, pipe, payload)
+        direct = _direct_write_pipe(self._binding, self._device, pipe, payload, timeout_ms)
         if direct is not None:
             return direct
         pipe_object = _pipe_from_id(self._binding, pipe)
@@ -377,6 +378,7 @@ def _direct_write_pipe(
     device: object,
     pipe: int,
     payload: bytes,
+    timeout_ms: int,
 ) -> int | None:
     dll = _pyd3xx_dll(binding)
     if dll is None:
@@ -384,14 +386,16 @@ def _direct_write_pipe(
     dll = cast("Any", dll)
     buffer = ctypes.create_string_buffer(payload, len(payload))
     transferred = ctypes.c_ulong(0)
-    status = dll.FT_WritePipe(
-        _device_handle(device),
-        ctypes.c_ubyte(pipe),
-        buffer,
-        ctypes.c_ulong(len(payload)),
-        ctypes.byref(transferred),
-        None,
-    )
+    handle = _device_handle(device)
+    with _pipe_timeout(dll, handle, pipe, timeout_ms):
+        status = dll.FT_WritePipe(
+            handle,
+            ctypes.c_ubyte(pipe),
+            buffer,
+            ctypes.c_ulong(len(payload)),
+            ctypes.byref(transferred),
+            None,
+        )
     _check_status("FT_WritePipe", status)
     return int(transferred.value)
 
@@ -401,6 +405,7 @@ def _direct_read_pipe(
     device: object,
     pipe: int,
     length: int,
+    timeout_ms: int,
 ) -> bytes | None:
     dll = _pyd3xx_dll(binding)
     if dll is None:
@@ -408,16 +413,33 @@ def _direct_read_pipe(
     dll = cast("Any", dll)
     buffer = ctypes.create_string_buffer(length)
     transferred = ctypes.c_ulong(0)
-    status = dll.FT_ReadPipe(
-        _device_handle(device),
-        ctypes.c_ubyte(pipe),
-        buffer,
-        ctypes.c_ulong(length),
-        ctypes.byref(transferred),
-        None,
-    )
+    handle = _device_handle(device)
+    with _pipe_timeout(dll, handle, pipe, timeout_ms):
+        status = dll.FT_ReadPipe(
+            handle,
+            ctypes.c_ubyte(pipe),
+            buffer,
+            ctypes.c_ulong(length),
+            ctypes.byref(transferred),
+            None,
+        )
     _check_status("FT_ReadPipe", status)
     return bytes(buffer.raw[: transferred.value])
+
+
+@contextmanager
+def _pipe_timeout(dll: object, handle: object, pipe: int, timeout_ms: int) -> Iterator[None]:
+    dll = cast("Any", dll)
+    old_timeout_ms = ctypes.c_ulong(0)
+    status = dll.FT_GetPipeTimeout(handle, ctypes.c_ubyte(pipe), ctypes.byref(old_timeout_ms))
+    _check_status("FT_GetPipeTimeout", status)
+    status = dll.FT_SetPipeTimeout(handle, ctypes.c_ubyte(pipe), ctypes.c_ulong(timeout_ms))
+    _check_status("FT_SetPipeTimeout", status)
+    try:
+        yield
+    finally:
+        status = dll.FT_SetPipeTimeout(handle, ctypes.c_ubyte(pipe), old_timeout_ms)
+        _check_status("FT_SetPipeTimeout", status)
 
 
 def _pyd3xx_dll(binding: D3xxBinding) -> object | None:

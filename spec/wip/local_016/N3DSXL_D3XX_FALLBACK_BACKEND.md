@@ -175,7 +175,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 ## 7. 実装チェックリスト
 
 - [x] D3XX Python binding 候補を調査し、採用条件を固定する。
-- [ ] `Ftd3Transport` Protocol と libusb adapter を導入する。
+- [x] `Ftd3Transport` Protocol と libusb adapter を導入する。
 - [x] D3XX enumeration / open-close adapter を fake binding で TDD 実装する。
 - [x] D3XX pipe adapter を fake binding で TDD 実装する。
 - [x] fallback selector を追加する。
@@ -192,13 +192,16 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | D3XX open-close probe | pass | `D3xxBackend.open status ok`; `D3xxHandle.close status ok` |
 | D3XX native pipe setup probe | pass | `D3xxHandle.abort_pipe 0x82 status ok`; `D3xxHandle.set_stream_pipe 0x82 length=1024 status ok` |
 | D3XX fallback selector probe | pass | libusb candidate `0x0403:0x601e product=- product_status=unreadable`; `selected_backend d3xx`; `transport_close status ok` |
-| D3XX connect probe | blocked | direct DLL `FT_WritePipe` により write は前進したが、`_read_3ds_config_3d()` の `FT_ReadPipe(0x82, 0x10)` が status `32`。`FT_SetPipeTimeout` 併用 probe は timeout し、その後 D3XX listing が 0 件になった。libusb listing では device は継続して見えている。 |
-| D3XX e2e gate file | pass | `uv run pytest tests/e2e/test_n3dsxl_d3xx_backend.py -q`: 4 skipped by `PONKAN_RUN_N3DSXL` gate |
+| D3XX connect probe | blocked | direct DLL `FT_WritePipe` により write は前進したが、`_read_3ds_config_3d()` の `FT_ReadPipe(0x82, 0x10)` が status `32`。再接続後、cc3dsfs と同じ firmware load 後 200ms wait を追加して再試行したところ、同期 read が 60s timeout まで戻らず stale-open になった。 |
+| D3XX e2e gate file | partial | 再接続後の `uv run pytest tests/e2e/test_n3dsxl_d3xx_backend.py -q`: open-close / native pipe setup / fallback selector は pass、connect は `FT_ReadPipe` status `32`。200ms wait 修正後の再実行は command timeout。 |
 | D3XX listing recovery | blocked | `D3xxBackend().iter_devices()` は 1 件だが `id=0x00000000 flags=1 product=- serial=-`。`flags=1` は `FT_FLAGS_OPENED`。repo 由来 python/uv process は残っていない。PnP は `FTDI FT600 USB 3.0 Bridge Device` / `USB Composite Device` とも `OK`。`pnputil /restart-device` は `Access is denied`。libusb listing では candidate `0x0403:0x601e product=- product_status=unreadable` が見えている。 |
+| D3XX listing after physical replug | pass | `d3xx_device_count 1`; `device index=0 id=0x0403601e vid=0x0403 pid=0x601e product=N3DSXL.2 serial=nxl530228 flags=4`; `d3xx_candidate_count 1`。 |
 | unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 4 passed |
+| unit connect sequence targeted | pass | `uv run pytest tests/unit/test_n3dsxl_connect_sequence.py -q`: 6 passed |
+| lint targeted | pass | `uv run ruff check src\py3dscapture\transport\d3xx_backend.py src\py3dscapture\protocol\n3dsxl.py tests\unit\test_n3dsxl_connect_sequence.py`: All checks passed |
 | unit fallback selector | pass | `uv run pytest tests/unit/test_ftd3_backend_selector.py -q`: 2 passed |
-| unit | pass | `uv run pytest tests/unit`: 71 passed |
-| format | pass | `uv run ruff format --check .`: 57 files already formatted |
+| unit | pass | `uv run pytest tests/unit -q`: 72 passed |
+| format | pass | `uv run ruff format --check .`: 58 files already formatted |
 | lint | pass | `uv run ruff check .`: All checks passed |
 | type | pass | `uv run ty check --no-progress`: All checks passed |
 | lock | pass | `uv lock --check`: resolved lock is current |
