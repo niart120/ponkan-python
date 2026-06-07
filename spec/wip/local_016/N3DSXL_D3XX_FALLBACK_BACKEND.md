@@ -194,7 +194,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | D3XX fallback selector probe | pass | libusb candidate `0x0403:0x601e product=- product_status=unreadable`; `selected_backend d3xx`; `transport_close status ok` |
 | D3XX connect probe | blocked | direct DLL `FT_WritePipe` により write は前進したが、`_read_3ds_config_3d()` の `FT_ReadPipe(0x82, 0x10)` が status `32`。`FT_SetPipeTimeout` 併用 probe は timeout し、その後 D3XX listing が 0 件になった。libusb listing では device は継続して見えている。 |
 | D3XX e2e gate file | pass | `uv run pytest tests/e2e/test_n3dsxl_d3xx_backend.py -q`: 4 skipped by `PONKAN_RUN_N3DSXL` gate |
-| D3XX listing recovery | blocked | `D3xxBackend().iter_device_candidates()` が 0 件。`uv run python -m py3dscapture.tools.list_devices` では libusb candidate `0x0403:0x601e product=- product_status=unreadable` が見えている。 |
+| D3XX listing recovery | blocked | `D3xxBackend().iter_devices()` は 1 件だが `id=0x00000000 flags=1 product=- serial=-`。`flags=1` は `FT_FLAGS_OPENED`。repo 由来 python/uv process は残っていない。PnP は `FTDI FT600 USB 3.0 Bridge Device` / `USB Composite Device` とも `OK`。`pnputil /restart-device` は `Access is denied`。libusb listing では candidate `0x0403:0x601e product=- product_status=unreadable` が見えている。 |
 | unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 4 passed |
 | unit fallback selector | pass | `uv run pytest tests/unit/test_ftd3_backend_selector.py -q`: 2 passed |
 | unit | pass | `uv run pytest tests/unit`: 71 passed |

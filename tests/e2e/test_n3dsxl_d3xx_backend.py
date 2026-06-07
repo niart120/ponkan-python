@@ -6,7 +6,7 @@ import pytest
 from py3dscapture.devices.n3dsxl_ftd3 import list_n3dsxl_devices
 from py3dscapture.protocol.n3dsxl import N3DSXLProtocol
 from py3dscapture.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT
-from py3dscapture.transport.d3xx_backend import D3xxBackend, D3xxDeviceCandidate
+from py3dscapture.transport.d3xx_backend import D3xxBackend, D3xxDeviceCandidate, D3xxDeviceInfo
 from py3dscapture.transport.ftd3_backend import open_ftd3_transport
 from py3dscapture.transport.libusb_backend import Usb1Backend
 
@@ -24,9 +24,29 @@ def _require_hardware_approval() -> None:
 
 def _d3xx_candidate() -> tuple[D3xxBackend, D3xxDeviceCandidate]:
     backend = D3xxBackend()
+    devices = backend.iter_devices()
     candidates = backend.iter_device_candidates()
-    assert candidates, "no D3XX N3DSXL candidate found"
+    assert candidates, "no D3XX N3DSXL candidate found; " + _format_d3xx_devices(devices)
     return backend, candidates[0]
+
+
+def _format_d3xx_devices(devices: tuple[D3xxDeviceInfo, ...]) -> str:
+    if not devices:
+        return "d3xx_device_count=0"
+    parts = [f"d3xx_device_count={len(devices)}"]
+    for device in devices:
+        usb_info = device.usb_info
+        parts.append(
+            "device "
+            f"index={device.index} "
+            f"id=0x{device.device_id:08x} "
+            f"vid=0x{usb_info.vendor_id:04x} "
+            f"pid=0x{usb_info.product_id:04x} "
+            f"product={usb_info.product_string or '-'} "
+            f"serial={usb_info.serial_number or '-'} "
+            f"flags={device.flags}"
+        )
+    return "; ".join(parts)
 
 
 def test_n3dsxl_d3xx_open_close() -> None:
