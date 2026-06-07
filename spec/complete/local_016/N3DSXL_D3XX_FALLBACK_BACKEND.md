@@ -43,6 +43,7 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
 | `src/py3dscapture/transport/d3xx_backend.py` | 新規 | D3XX device enumeration、open/close、pipe read/write primitive を提供する。 |
+| `src/py3dscapture/transport/d3xx_streaming.py` | 新規 | D3XX の同期 stream read を `StreamingEngine` の async transfer boundary に接続する。 |
 | `src/py3dscapture/transport/ftd3_backend.py` | 新規 | libusb / D3XX の共通 FTD3 transport Protocol と adapter を定義する。 |
 | `src/py3dscapture/devices/n3dsxl_ftd3.py` | 修正 | backend selection と D3XX candidate を扱える session layer にする。 |
 | `src/py3dscapture/transport/ftd3_pipe.py` | 修正 | D3XX backend では D3XX native pipe API を使い、libusb command wrapper と分岐する。 |
@@ -50,7 +51,8 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 | `src/py3dscapture/hardware_gate.py` | 修正 | `backend_kind` と Windows driver/service を command plan に記録する。 |
 | `tests/unit/` | 修正/新規 | binding を fake 化した D3XX backend と fallback selection を unit test する。 |
 | `tests/e2e/test_n3dsxl_d3xx_backend.py` | 新規 | D3XX backend の open-close / native pipe setup / fallback selector / connect gate を追加する。 |
-| `tests/e2e/` | 修正 | raw capture gate を D3XX backend へ追加または parameterize する。 |
+| `tests/e2e/` | 修正 | raw capture / streaming gate を D3XX backend へ追加または fallback 化する。 |
+| `tests/performance/test_n3dsxl_streaming_smoke.py` | 修正 | 60 秒 performance smoke を D3XX backend で実行できるようにする。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -63,6 +65,7 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 | libusb driver mismatch | libusb open/listing が `LIBUSB_ERROR_NOT_FOUND` / `LIBUSB_ERROR_NOT_SUPPORTED` 相当 | D3XX backend を試す | cc3dsfs compatibility path に合わせる |
 | D3XX open-close | `FTDIBUS3` bound device | D3XX handle を open し close できる | N3DSXL vendor command は送らない |
 | D3XX pipe I/O | open 済み D3XX session | `FT_WritePipe` / `FT_ReadPipe` / `FT_SetStreamPipe` / `FT_AbortPipe` を使う | libusb FTD3 command wrapper は使わない |
+| D3XX streaming | connect 済み D3XX session | `StreamingEngine` が D3XX stream read から decoded frame と stats を得る | 短い raw transfer は decode せず drop として扱う |
 | metadata を記録する | capture / stats / hardware plan | `backend_kind=d3xx`、VID/PID、product status、driver/service を含める | 後から backend 差を追える |
 | binding 不在 | D3XX DLL / Python binding がない | 明示的に unavailable として skip / fallback failure を報告 | import error を握り潰さない |
 
@@ -78,7 +81,9 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 | green | metadata / command plan に backend identity が入る | unit | 3.1 | artifact traceability |
 | green | 実機 D3XX open-close が成功する | hardware | 3.1 | `requires_n3dsxl` 相当の承認付き probe |
 | green | 実機 D3XX create/abort or native pipe setup が成功する | hardware | 3.1 | `FT_AbortPipe(0x82)` / `FT_SetStreamPipe(0x82, 1024)` |
-| deferred | 実機 D3XX raw capture が `.bin` / `.json` を保存する | hardware | 3.1 | local_014 continuation |
+| green | 実機 D3XX raw capture が `.bin` / `.json` を保存する | hardware | 3.1 | local_014 continuation |
+| green | 実機 D3XX streaming smoke が decoded frame と stats を得る | hardware | 3.1 | `tests/e2e/test_n3dsxl_streaming.py` |
+| green | 実機 D3XX performance smoke が 60 秒 stats を保存する | hardware/performance | 3.1 | local_014 continuation |
 
 ### 3.3 設計方針
 
@@ -166,6 +171,8 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | firmware load 後 200ms wait は原典に近づけた | fact | `3dscapture_ftd3_shared.cpp` の `load_3ds_cc_firmware` は firmware write 後に `FTD3_N3DSXL_CFG_WAIT_MS` を待つ。現実装も `N3DSXL_CFG_WAIT_MS` を待つ。 |
 | Windows D3XX raw capture は command read と別 API を使う | fact | `3dscapture_ftd3_driver_acquisition.cpp` は Windows の capture read で `FT_ReadPipeEx` を使う。現実装も stream pipe 設定後の read に `FT_ReadPipeEx` を使う。 |
 | D3XX raw capture の初回 read は短い frame になり得る | fact | 実機 probe で connect 直後の raw stream read が `413578` bytes、次 read 以降が `520588` bytes。原典の `data_output_update` は `video_size` 未満の read を出力せず次 frame を待つ。現実装も raw capture で最大 8 回まで短い read を捨てる。 |
+| D3XX streaming は functional gate では 1 worker の順次 read で開始する | implementation fact | `D3xxAsyncBackend` は blocking `D3xxHandle.read_pipe()` を worker thread で実行し、callback では transfer metadata だけを通知する。callback 内 decode / blocking queue put はしない。 |
+| D3XX streaming performance は初回目標を満たした | hardware fact | 2026-06-08 の 60 秒 smoke は `backend_kind=d3xx`、`delivered_fps=59.8`、`usb_errors=0`、`dropped_raw=1`、`shutdown_seconds=0.009768699994310737`。 |
 
 ### 6.1 D3XX connect failure analysis
 
@@ -215,7 +222,7 @@ H1 は検証済み。raw capture gate では H3 の raw capture API 差分も検
 - [x] metadata / hardware gate に backend identity を追加する。
 - [x] 実機 D3XX listing / open-close gate を承認後に実行する。
 - [x] raw capture gate を D3XX backend で再開する。
-- [ ] streaming gate を D3XX backend で再開する。
+- [x] streaming gate を D3XX backend で再開する。
 
 ## 8. Gate 結果
 
@@ -234,11 +241,14 @@ H1 は検証済み。raw capture gate では H3 の raw capture API 差分も検
 | D3XX e2e after drain reconnect | pass | 2026-06-08: `uv run pytest tests/e2e/test_n3dsxl_d3xx_backend.py -q`: 4 passed。直後の listing は `flags=4` / candidate 1 件で stale-open なし。 |
 | D3XX raw read probe | partial -> pass | `FT_ReadPipeEx` への切替前後で初回 read は video size 未満になり得たが、連続 read では 2 回目以降 `520588` bytes。raw capture は短い read を最大 8 回捨てる。 |
 | D3XX raw capture e2e | pass | 2026-06-08: `uv run pytest tests/e2e/test_n3dsxl_d3xx_backend.py -q`: 5 passed。raw fixture `.bin` / `.json` は pytest `tmp_path` に保存。直後の listing は `flags=4` / candidate 1 件で stale-open なし。 |
+| D3XX streaming e2e | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests/e2e/test_n3dsxl_streaming.py -q`: 1 passed。 |
+| hardware e2e suite | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests/e2e -q`: 10 passed, 11 warnings。 |
+| D3XX performance smoke | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_RUN_PERFORMANCE=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest -m "requires_n3dsxl and performance" tests/performance -q`: 1 passed。stats は `delivered_fps=59.8`, `usb_errors=0`, `dropped_raw=1`, `shutdown_seconds=0.009768699994310737`。 |
 | unit targeted | pass | `uv run pytest tests/unit/test_n3dsxl_connect_sequence.py tests/unit/test_d3xx_backend.py -q`: 14 passed |
 | unit connect sequence targeted | pass | `uv run pytest tests/unit/test_n3dsxl_connect_sequence.py -q`: 7 passed |
 | lint targeted | pass | `uv run ruff check src\py3dscapture\protocol\n3dsxl.py src\py3dscapture\transport\d3xx_backend.py src\py3dscapture\transport\ftd3_pipe.py tests\unit\test_n3dsxl_connect_sequence.py tests\unit\test_d3xx_backend.py`: All checks passed |
 | unit fallback selector | pass | `uv run pytest tests/unit/test_ftd3_backend_selector.py -q`: 2 passed |
-| unit | pass | `uv run pytest tests/unit -q`: 76 passed |
+| unit | pass | `uv run pytest tests/unit -q`: 81 passed |
 | format | pass | `uv run ruff format --check .`: 58 files already formatted |
 | lint | pass | `uv run ruff check .`: All checks passed |
 | type | pass | `uv run ty check --no-progress`: All checks passed |

@@ -54,7 +54,13 @@ class _FakeD3xxCandidate:
 class _FakeD3xxHandle:
     backend_kind: BackendKind = "d3xx"
 
+    def __init__(self) -> None:
+        self.candidate = candidate()
+
     def close(self) -> None:
+        pass
+
+    def create_pipe(self) -> None:
         pass
 
     def abort_pipe(self, pipe: int) -> None:
@@ -70,6 +76,9 @@ class _FakeD3xxHandle:
     def write_pipe(self, pipe: int, payload: bytes, timeout_ms: int) -> int:
         _ = pipe, timeout_ms
         return len(payload)
+
+    def reconnect_after_drain(self) -> None:
+        pass
 
 
 class _FakeD3xxBackend:

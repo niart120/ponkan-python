@@ -2,9 +2,10 @@ import os
 
 import pytest
 
-from py3dscapture.devices.n3dsxl_ftd3 import N3DSXLDevice, list_n3dsxl_devices
+from py3dscapture.devices.n3dsxl_ftd3 import list_n3dsxl_devices
 from py3dscapture.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT
-from py3dscapture.transport.ftd3_pipe import Ftd3Pipe
+from py3dscapture.transport.d3xx_backend import D3xxBackend
+from py3dscapture.transport.ftd3_backend import open_ftd3_transport
 from py3dscapture.transport.libusb_backend import Usb1Backend
 
 
@@ -17,7 +18,9 @@ def test_n3dsxl_ftd3_create_abort() -> None:
     listing = list_n3dsxl_devices(backend)
     assert listing.candidates, "no N3DSXL candidate found"
 
-    with N3DSXLDevice.open(listing.candidates[0], backend=backend) as device:
-        pipe = Ftd3Pipe(device)
-        pipe.create_pipe()
-        pipe.abort_pipe(N3DSXL_BULK_IN_ENDPOINT)
+    transport = open_ftd3_transport(listing.candidates[0], backend, D3xxBackend())
+    try:
+        transport.create_pipe()
+        transport.abort_pipe(N3DSXL_BULK_IN_ENDPOINT)
+    finally:
+        transport.close()
