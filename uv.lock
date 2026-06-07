@@ -215,6 +215,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+d3xx = [
+    { name = "pyd3xx" },
+]
 image = [
     { name = "pillow" },
 ]
@@ -237,8 +240,9 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0" },
     { name = "opencv-python", marker = "extra == 'opencv'", specifier = ">=4.10" },
     { name = "pillow", marker = "extra == 'image'", specifier = ">=10.0" },
+    { name = "pyd3xx", marker = "extra == 'd3xx'", specifier = ">=1.1.4" },
 ]
-provides-extras = ["image", "opencv"]
+provides-extras = ["image", "opencv", "d3xx"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -247,6 +251,15 @@ dev = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "ruff", specifier = ">=0.15.16" },
     { name = "ty", specifier = ">=0.0.44" },
+]
+
+[[package]]
+name = "pyd3xx"
+version = "1.1.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5b/97/666e521b30ba8fe23428d8dece9526df8b63a748bdc38e83793f6fcce8aa/pyd3xx-1.1.4.tar.gz", hash = "sha256:226e83b1a097bb2c0f075f7f8e9e1cf896508daeb1dffe3511cb63c8acedef9f", size = 2628724, upload-time = "2026-05-29T16:30:04.646Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c6/78/07c894baab4bd5b3a54af9b6be5c4428047e52897520bb1e1291f470e6e2/pyd3xx-1.1.4-py3-none-any.whl", hash = "sha256:31dbc429db809cee3796e0611b28eb458fd0cbdf8588110ca379f18593cf27e3", size = 2698882, upload-time = "2026-05-29T16:30:02.534Z" },
 ]
 
 [[package]]

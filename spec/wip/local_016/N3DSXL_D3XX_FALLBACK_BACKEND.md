@@ -36,7 +36,7 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 - [x] `local_015` により accepted VID/PID + unreadable product string を candidate として扱える。
 - [x] 実機 listing で `0x0403:0x601e product_status=unreadable` が確認済み。
 - [x] 実機 open-close が `LIBUSB_ERROR_NOT_FOUND [-5]` / `FTDIBUS3` で blocked であることを記録済み。
-- [ ] Python から利用する D3XX binding 候補を source audit し、最小 probe で import / DLL load 可否を確認する。
+- [x] Python から利用する D3XX binding 候補を source audit し、最小 probe で import / DLL load 可否を確認する。
 
 ## 2. 対象ファイル
 
@@ -69,13 +69,13 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | D3XX binding fake から device candidate を列挙できる | unit | 3.1 | no hardware |
+| green | D3XX binding fake から device candidate を列挙できる | unit | 3.1 | no hardware |
 | todo | libusb unsupported/not-found のとき D3XX fallback が選ばれる | unit | 3.1 | fallback selection |
 | todo | libusb success のとき D3XX fallback を試さない | unit | 3.1 | regression |
-| todo | D3XX open-close が cleanup を保証する | unit | 3.1 | fake handle |
+| green | D3XX open-close が cleanup を保証する | unit | 3.1 | fake handle |
 | todo | D3XX pipe API が read/write/set/abort を native call へ写像する | unit | 3.1 | no command payload |
 | todo | metadata / command plan に backend identity が入る | unit | 3.1 | artifact traceability |
-| deferred | 実機 D3XX open-close が成功する | hardware | 3.1 | `requires_n3dsxl` |
+| green | 実機 D3XX open-close が成功する | hardware | 3.1 | `requires_n3dsxl` 相当の承認付き probe |
 | deferred | 実機 D3XX create/abort or native pipe setup が成功する | hardware | 3.1 | command scope 要承認 |
 | deferred | 実機 D3XX raw capture が `.bin` / `.json` を保存する | hardware | 3.1 | local_014 continuation |
 
@@ -153,7 +153,11 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | Windows 以外では FTD3XX backend を無効化する | fact | `CMakeLists.txt` の `NOT Windows` branch。 |
 | compatibility layer は libusb 後に D3XX driver listing を試す | fact | `3dscapture_ftd3_compatibility.cpp` の `ftd3_list_devices_compat`。 |
 | libusb `LIBUSB_ERROR_NOT_FOUND` は FTD3XX driver bound 時の failure として扱われる | fact | `3dscapture_ftd3_libusb_comms.cpp` の `ftd3_libusb_list_devices` comment。 |
-| D3XX backend の Python binding は未確定 | hypothesis | `ftd3xx` / `PyD3XX` など候補はあるが、この repo では未検証。 |
+| D3XX backend の Python binding は未確定だった | resolved hypothesis | `ftd3xx` / `PyD3XX` を比較し、初期採用を `PyD3XX` に固定した。 |
+| Python binding は `PyD3XX` を optional dependency として採用する | fact | PyPI `PyD3XX 1.1.4` は Python `>=3.10`、FT60x/D3XX wrapper、Windows/Linux/macOS support、D3XX dynamic library 同梱を掲げる。 |
+| 旧 `ftd3xx` package は初期採用しない | fact | PyPI `ftd3xx 1.0` は 2023-04-06 release、system D3XX driver / `ftd3xx.dll` 前提で、更新頻度と同梱性が `PyD3XX` より弱い。 |
+| ローカル probe で `PyD3XX` import と D3XX library load は成功した | fact | `uv run python -c "import PyD3XX; ... FT_GetLibraryVersion()"` が `(0, 16973840)` を返した。device enumeration / open は未実行。 |
+| PyD3XX の `FT_Create` は初期化済み device detail を渡す必要がある | fact | 新規 `FT_Device()` では `FT_OTHER_ERROR`。`FT_GetDeviceInfoDetail(0)` が返した object では index / serial / description open-close が成功した。 |
 
 参照元:
 
@@ -161,13 +165,34 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 - https://raw.githubusercontent.com/Lorenzooone/cc3dsfs/main/source/CaptureDeviceSpecific/3DSCapture_FTD3/3dscapture_ftd3_compatibility.cpp
 - https://raw.githubusercontent.com/Lorenzooone/cc3dsfs/main/source/CaptureDeviceSpecific/3DSCapture_FTD3/3dscapture_ftd3_libusb_comms.cpp
 - https://raw.githubusercontent.com/Lorenzooone/cc3dsfs/main/source/CaptureDeviceSpecific/3DSCapture_FTD3/3dscapture_ftd3_shared.cpp
+- https://pypi.org/project/PyD3XX/
+- https://github.com/S-Hector/PyD3XX
+- https://pypi.org/project/ftd3xx/
+- https://ftdichip.com/wp-content/uploads/2020/08/AN_379-D3xx-Programmers-Guide.pdf
 
 ## 7. 実装チェックリスト
 
-- [ ] D3XX Python binding 候補を調査し、採用条件を固定する。
+- [x] D3XX Python binding 候補を調査し、採用条件を固定する。
 - [ ] `Ftd3Transport` Protocol と libusb adapter を導入する。
-- [ ] D3XX adapter を fake binding で TDD 実装する。
+- [x] D3XX enumeration / open-close adapter を fake binding で TDD 実装する。
+- [ ] D3XX pipe adapter を fake binding で TDD 実装する。
 - [ ] fallback selector を追加する。
 - [ ] metadata / hardware gate に backend identity を追加する。
-- [ ] 実機 D3XX listing / open-close gate を承認後に実行する。
+- [x] 実機 D3XX listing / open-close gate を承認後に実行する。
 - [ ] raw capture / streaming gate を D3XX backend で再開する。
+
+## 8. Gate 結果
+
+| Gate | 結果 | 証拠 |
+| ---- | ---- | ---- |
+| D3XX import probe | pass | `uv run python -c "import PyD3XX; ... FT_GetLibraryVersion()"`: `(0, 16973840)` |
+| D3XX listing probe | pass | `d3xx_device_count 1`; `0x0403:0x601e product=N3DSXL.2 serial=nxl530228 flags=4` |
+| D3XX open-close probe | pass | `D3xxBackend.open status ok`; `D3xxHandle.close status ok` |
+| unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 3 passed |
+| unit | pass | `uv run pytest tests/unit`: 66 passed |
+| format | pass | `uv run ruff format --check .`: 55 files already formatted |
+| lint | pass | `uv run ruff check .`: All checks passed |
+| type | pass | `uv run ty check --no-progress`: All checks passed |
+| lock | pass | `uv lock --check`: resolved lock is current |
+| e2e skip | pass | `uv run pytest tests/e2e`: 5 skipped by `PONKAN_RUN_N3DSXL` gate |
+| hardware D3XX pipe/raw | not run | Pipe I/O、N3DSXL command、raw capture はまだ実行していない。 |
