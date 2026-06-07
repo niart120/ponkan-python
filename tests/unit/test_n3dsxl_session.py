@@ -30,6 +30,16 @@ class _FakeHandle:
     def close(self) -> None:
         self.calls.append(("close", None))
 
+    def bulk_write(self, endpoint: int, payload: bytes, timeout_ms: int) -> int:
+        _ = timeout_ms
+        self.calls.append(("bulk_write", endpoint))
+        return len(payload)
+
+    def bulk_read(self, endpoint: int, length: int, timeout_ms: int) -> bytes:
+        _ = timeout_ms
+        self.calls.append(("bulk_read", endpoint))
+        return bytes(length)
+
 
 class _FakeBackend:
     def __init__(self, handle_factory: Callable[[], _FakeHandle] | None = None) -> None:

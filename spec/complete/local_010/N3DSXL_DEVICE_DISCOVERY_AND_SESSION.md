@@ -48,7 +48,7 @@ new 3DS XL capture board は FTDI VID を使うが、FTDI VID だけでは対象
 | 配置 | `spec/complete/local_010/N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` |
 | 対応 Step | Step 1: device listing、Step 2: open / claim / close |
 | 前提 Work Unit | `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` |
-| 次 Work Unit | `spec/wip/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` |
+| 次 Work Unit | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` |
 | local task | fake backend、device classifier、session cleanup、CLI 表示。 |
 | hardware task | 実機 listing と open/claim/close E2E。 |
 | 選択条件 | Step 0 が通過し、N3DSXL command を送る前の device guard / session ownership が未実装のとき。 |

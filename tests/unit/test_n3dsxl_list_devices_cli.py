@@ -23,6 +23,14 @@ class _UnusedHandle:
     def close(self) -> None:
         raise AssertionError
 
+    def bulk_write(self, endpoint: int, payload: bytes, timeout_ms: int) -> int:
+        _ = endpoint, payload, timeout_ms
+        raise AssertionError
+
+    def bulk_read(self, endpoint: int, length: int, timeout_ms: int) -> bytes:
+        _ = endpoint, length, timeout_ms
+        raise AssertionError
+
 
 class _FakeBackend:
     def iter_devices(self) -> list[UsbDeviceInfo]:

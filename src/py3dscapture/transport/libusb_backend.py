@@ -46,6 +46,14 @@ class UsbHandle(Protocol):
         """Close the device handle."""
         ...
 
+    def bulk_write(self, endpoint: int, payload: bytes, timeout_ms: int) -> int:
+        """Write bytes to a bulk endpoint and return transferred bytes."""
+        ...
+
+    def bulk_read(self, endpoint: int, length: int, timeout_ms: int) -> bytes:
+        """Read bytes from a bulk endpoint."""
+        ...
+
 
 class LibusbBackend(Protocol):
     """Device enumeration and opening primitive."""
@@ -128,6 +136,18 @@ class _Usb1Handle:
         finally:
             _call_method(self._context, "close")
             self._closed = True
+
+    def bulk_write(self, endpoint: int, payload: bytes, timeout_ms: int) -> int:
+        transferred = _call_method(self._handle, "bulkWrite", endpoint, payload, timeout_ms)
+        return _int_from_object(transferred)
+
+    def bulk_read(self, endpoint: int, length: int, timeout_ms: int) -> bytes:
+        data = _call_method(self._handle, "bulkRead", endpoint, length, timeout_ms)
+        if isinstance(data, bytes):
+            return data
+        if isinstance(data, bytearray | memoryview):
+            return bytes(data)
+        raise TypeError
 
 
 def _usb1_device_info(device: object) -> UsbDeviceInfo:
