@@ -49,7 +49,8 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 | `src/py3dscapture/tools/list_devices.py` | 修正 | backend kind と fallback 状態を表示する。 |
 | `src/py3dscapture/hardware_gate.py` | 修正 | `backend_kind` と Windows driver/service を command plan に記録する。 |
 | `tests/unit/` | 修正/新規 | binding を fake 化した D3XX backend と fallback selection を unit test する。 |
-| `tests/e2e/` | 修正 | D3XX backend の open-close / pipe / connect / raw capture gate を追加または parameterize する。 |
+| `tests/e2e/test_n3dsxl_d3xx_backend.py` | 新規 | D3XX backend の open-close / native pipe setup / fallback selector / connect gate を追加する。 |
+| `tests/e2e/` | 修正 | raw capture gate を D3XX backend へ追加または parameterize する。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -192,6 +193,8 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | D3XX native pipe setup probe | pass | `D3xxHandle.abort_pipe 0x82 status ok`; `D3xxHandle.set_stream_pipe 0x82 length=1024 status ok` |
 | D3XX fallback selector probe | pass | libusb candidate `0x0403:0x601e product=- product_status=unreadable`; `selected_backend d3xx`; `transport_close status ok` |
 | D3XX connect probe | blocked | direct DLL `FT_WritePipe` により write は前進したが、`_read_3ds_config_3d()` の `FT_ReadPipe(0x82, 0x10)` が status `32`。`FT_SetPipeTimeout` 併用 probe は timeout し、その後 D3XX listing が 0 件になった。libusb listing では device は継続して見えている。 |
+| D3XX e2e gate file | pass | `uv run pytest tests/e2e/test_n3dsxl_d3xx_backend.py -q`: 4 skipped by `PONKAN_RUN_N3DSXL` gate |
+| D3XX listing recovery | blocked | `D3xxBackend().iter_device_candidates()` が 0 件。`uv run python -m py3dscapture.tools.list_devices` では libusb candidate `0x0403:0x601e product=- product_status=unreadable` が見えている。 |
 | unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 4 passed |
 | unit fallback selector | pass | `uv run pytest tests/unit/test_ftd3_backend_selector.py -q`: 2 passed |
 | unit | pass | `uv run pytest tests/unit`: 71 passed |

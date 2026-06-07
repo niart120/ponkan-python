@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from importlib import import_module
 from types import ModuleType
-from typing import Any, Protocol, cast
+from typing import Any, Literal, Protocol, cast
 
 from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, classify_n3dsxl_device
 from py3dscapture.errors import CaptureError, OptionalDependencyError
@@ -106,6 +106,11 @@ class D3xxBackendError(CaptureError):
         """Create an error for an integer field that cannot be parsed."""
         return cls("invalid integer", field_name=field_name)
 
+    @classmethod
+    def invalid_candidate(cls) -> "D3xxBackendError":
+        """Create an error for an unsupported D3XX candidate object."""
+        return cls("invalid candidate")
+
 
 @dataclass(frozen=True, slots=True)
 class D3xxDeviceInfo:
@@ -131,7 +136,7 @@ class D3xxDeviceCandidate:
 class D3xxHandle:
     """Opened D3XX handle with idempotent close."""
 
-    backend_kind = "d3xx"
+    backend_kind: Literal["d3xx"] = "d3xx"
 
     def __init__(self, binding: D3xxBinding, device: object, candidate: DeviceCandidate) -> None:
         """Create a handle from an opened PyD3XX device detail object."""
@@ -261,8 +266,10 @@ class D3xxBackend:
                 )
         return tuple(candidates)
 
-    def open(self, candidate: D3xxDeviceCandidate) -> D3xxHandle:
+    def open(self, candidate: object) -> D3xxHandle:
         """Open one D3XX candidate and return a closeable handle."""
+        if not isinstance(candidate, D3xxDeviceCandidate):
+            raise D3xxBackendError.invalid_candidate()
         _, detail = _status_and_value(
             "FT_GetDeviceInfoDetail",
             self._binding.FT_GetDeviceInfoDetail(candidate.index),
