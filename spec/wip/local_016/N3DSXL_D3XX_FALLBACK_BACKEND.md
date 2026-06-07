@@ -70,8 +70,8 @@ cc3dsfs は N3DSXL/FTD3 で libusb と FTDI D3XX driver backend の両方を bui
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
 | green | D3XX binding fake から device candidate を列挙できる | unit | 3.1 | no hardware |
-| todo | libusb unsupported/not-found のとき D3XX fallback が選ばれる | unit | 3.1 | fallback selection |
-| todo | libusb success のとき D3XX fallback を試さない | unit | 3.1 | regression |
+| green | libusb unsupported/not-found のとき D3XX fallback が選ばれる | unit | 3.1 | fallback selection |
+| green | libusb success のとき D3XX fallback を試さない | unit | 3.1 | regression |
 | green | D3XX open-close が cleanup を保証する | unit | 3.1 | fake handle |
 | green | D3XX pipe API が read/write/set/abort を native call へ写像する | unit | 3.1 | no command payload |
 | todo | metadata / command plan に backend identity が入る | unit | 3.1 | artifact traceability |
@@ -176,7 +176,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 - [ ] `Ftd3Transport` Protocol と libusb adapter を導入する。
 - [x] D3XX enumeration / open-close adapter を fake binding で TDD 実装する。
 - [x] D3XX pipe adapter を fake binding で TDD 実装する。
-- [ ] fallback selector を追加する。
+- [x] fallback selector を追加する。
 - [ ] metadata / hardware gate に backend identity を追加する。
 - [x] 実機 D3XX listing / open-close gate を承認後に実行する。
 - [ ] raw capture / streaming gate を D3XX backend で再開する。
@@ -189,9 +189,11 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 | D3XX listing probe | pass | `d3xx_device_count 1`; `0x0403:0x601e product=N3DSXL.2 serial=nxl530228 flags=4` |
 | D3XX open-close probe | pass | `D3xxBackend.open status ok`; `D3xxHandle.close status ok` |
 | D3XX native pipe setup probe | pass | `D3xxHandle.abort_pipe 0x82 status ok`; `D3xxHandle.set_stream_pipe 0x82 length=1024 status ok` |
+| D3XX fallback selector probe | pass | libusb candidate `0x0403:0x601e product=- product_status=unreadable`; `selected_backend d3xx`; `transport_close status ok` |
 | unit targeted | pass | `uv run pytest tests/unit/test_d3xx_backend.py -q`: 4 passed |
-| unit | pass | `uv run pytest tests/unit`: 67 passed |
-| format | pass | `uv run ruff format --check .`: 55 files already formatted |
+| unit fallback selector | pass | `uv run pytest tests/unit/test_ftd3_backend_selector.py -q`: 2 passed |
+| unit | pass | `uv run pytest tests/unit`: 69 passed |
+| format | pass | `uv run ruff format --check .`: 57 files already formatted |
 | lint | pass | `uv run ruff check .`: All checks passed |
 | type | pass | `uv run ty check --no-progress`: All checks passed |
 | lock | pass | `uv lock --check`: resolved lock is current |

@@ -127,6 +127,8 @@ class D3xxDeviceCandidate:
 class D3xxHandle:
     """Opened D3XX handle with idempotent close."""
 
+    backend_kind = "d3xx"
+
     def __init__(self, binding: D3xxBinding, device: object) -> None:
         """Create a handle from an opened PyD3XX device detail object."""
         self._binding = binding
