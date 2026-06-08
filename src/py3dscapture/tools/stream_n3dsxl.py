@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Literal, cast
 
 from py3dscapture.artifacts import write_json_artifact
 from py3dscapture.streaming.engine import StreamingEngine
-from py3dscapture.streaming.stats import PerformanceStats
+from py3dscapture.streaming.stats import PerformanceStats, StreamingBackendKind
 from py3dscapture.transport.libusb_async import LibusbAsyncBackend
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ def run_streaming_smoke(
     raw_slots: int,
     output_queue_size: int,
     drop_policy: str,
-    backend_kind: Literal["libusb", "d3xx"] = "libusb",
+    backend_kind: StreamingBackendKind = "libusb",
     driver_service: str | None = None,
     poll_interval: float = 0.004,
 ) -> PerformanceStats:

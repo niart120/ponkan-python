@@ -110,3 +110,21 @@ def test_performance_stats_include_timing_when_supplied() -> None:
             "mean": 2.0,
         }
     }
+
+
+def test_performance_stats_accept_native_d3xx_backend_kind() -> None:
+    stats = PerformanceStats.from_stream_stats(
+        StreamStats(delivered=1),
+        product_string="N3DSXL.2",
+        product_string_status="accepted",
+        mode_3d=False,
+        duration_seconds=1.0,
+        raw_slots=2,
+        output_queue_size=2,
+        drop_policy="drop_oldest",
+        shutdown_seconds=0.0,
+        backend_kind="d3xx-native",
+        driver_service="FTDIBUS3",
+    )
+
+    assert stats.to_dict()["backend_kind"] == "d3xx-native"

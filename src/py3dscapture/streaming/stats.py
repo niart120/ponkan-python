@@ -16,6 +16,7 @@ TIMING_METRIC_NAMES = (
 
 TimingMetricSummary = dict[str, float | int]
 TimingSummary = dict[str, TimingMetricSummary]
+StreamingBackendKind = Literal["libusb", "d3xx", "d3xx-native"]
 
 
 @dataclass(slots=True)
@@ -127,7 +128,7 @@ class PerformanceStats:
     model: Literal["new_3ds_xl"]
     product_string: str | None
     product_string_status: Literal["accepted", "unreadable"]
-    backend_kind: Literal["libusb", "d3xx"]
+    backend_kind: StreamingBackendKind
     driver_service: str | None
     mode_3d: bool
     duration_seconds: float
@@ -161,7 +162,7 @@ class PerformanceStats:
         output_queue_size: int,
         drop_policy: str,
         shutdown_seconds: float,
-        backend_kind: Literal["libusb", "d3xx"] = "libusb",
+        backend_kind: StreamingBackendKind = "libusb",
         driver_service: str | None = None,
         timing: TimingSummary | None = None,
     ) -> "PerformanceStats":
