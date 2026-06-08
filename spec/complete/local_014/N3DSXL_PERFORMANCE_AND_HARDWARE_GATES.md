@@ -318,9 +318,9 @@ uv run python -m py3dscapture.tools.stream_n3dsxl --duration 60 --noop-consumer 
 | ---- | ---- | -------- |
 | device identity | pass | `0x0403:0x601e product=N3DSXL.2 serial=nxl530228`。 |
 | functional streaming E2E | pass | `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests/e2e/test_n3dsxl_streaming.py -q`: 1 passed。 |
-| hardware E2E suite | pass | `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests/e2e -q`: 10 passed, 11 warnings。 |
-| performance smoke | pass | `PONKAN_RUN_N3DSXL=1`、`PONKAN_RUN_PERFORMANCE=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest -m "requires_n3dsxl and performance" tests/performance -q`: 1 passed。 |
-| performance stats | pass | `backend_kind=d3xx`, `product_string=N3DSXL.2`, `delivered_fps=59.8`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1`, `shutdown_seconds=0.009768699994310737`。 |
+| hardware E2E suite | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests/e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。raw `.bin` / `.json` artifacts を保存。 |
+| performance smoke | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_RUN_PERFORMANCE=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest -m "requires_n3dsxl and performance" tests\performance -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-performance`: 1 passed。 |
+| performance stats | pass | `artifacts\n3dsxl\20260608-185720\pytest-performance\test_n3dsxl_streaming_60_secon0\n3dsxl\performance-smoke\stream_stats.json`: `backend_kind=d3xx`, `product_string=N3DSXL.2`, `delivered_fps=59.8`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1`, `shutdown_seconds=0.01651809993200004`。 |
 
 ### 7.4 Deferred
 

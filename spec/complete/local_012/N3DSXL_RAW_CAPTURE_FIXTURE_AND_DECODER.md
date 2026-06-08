@@ -39,7 +39,7 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 
 - [x] `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` の 2D connect が実装済み。
 - [x] capture struct size と payload slicing の source audit 状態が確認済み。
-- [ ] raw capture を実行する場合、人間承認と artifact 保存先が決まっている。
+- [x] raw capture を実行する場合、人間承認と artifact 保存先が決まっている。
 
 ### 1.6 Work Unit メタデータ
 
@@ -97,7 +97,7 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | green | `to_ndarray(colorspace="BGR")` が channel order を変換する | new behavior | 3.1 | unit |
 | green | Pillow 未導入時の `to_pillow()` error が分かりやすい | regression | 3.1 | optional dependency |
 | green | `raw_to_png` が candidate PNG を複数出力する | new behavior | 3.1 | CLI |
-| deferred | 実機 raw_2d_001.bin と raw_2d_001.json を保存できる | hardware | 3.1 | `requires_n3dsxl`。人間承認待ち |
+| green | 実機 raw_2d_001.bin と raw_2d_001.json を保存できる | hardware | 3.1 | D3XX fallback E2E で完了 |
 | deferred | manual visual check で decoder_version を metadata に残す | manual_visual | 3.1 | 人間確認待ち |
 
 ### 3.3 設計方針
@@ -251,7 +251,7 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 | local complete | `uv run pytest tests\unit\test_raw_capture_metadata.py tests\unit\test_layout_3ds_decoder.py -q` が 12 passed |
 | unit regression | `uv run pytest tests\unit -q` が 39 passed |
 | static | `uv run ruff format --check .`、`uv run ruff check src tests`、`uv run ty check --no-progress` が pass |
-| raw fixture pending | `uv run pytest tests\e2e -q` は `PONKAN_RUN_N3DSXL` 未設定で 4 skipped。実機 raw capture は未実行 |
+| raw fixture complete | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests\e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。raw artifacts は `raw_2d_001.bin` / `.json` と `raw_2d_d3xx_001.bin` / `.json`。metadata は `backend_kind=d3xx`、`product_string=N3DSXL.2`、`product_string_status=accepted`、`transferred=520588`、`video_size=518400`、`capture_size=555008`。 |
 | manual visual pending | candidate PNG 出力 CLI は local test 済み。実機 PNG の目視承認と `decoder_version` 固定は未実行 |
 
 ## 5. テスト方針
@@ -307,5 +307,5 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 - [x] `CaptureFrame` と colorspace adapter を実装する。
 - [x] `capture_raw` CLI を実装する。
 - [x] `raw_to_png` CLI と decoder candidate 出力を実装する。
-- [x] 実機 raw fixture 保存 gate は人間承認まで未実行として報告する。
+- [x] 実機 raw fixture 保存 gate を承認後に実行し、D3XX fallback E2E で完了を確認する。
 - [x] manual visual の結果は pending として metadata と gate 報告に残す。

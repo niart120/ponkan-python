@@ -31,7 +31,7 @@
 
 | 指標 | 現状 | 目標 |
 | ---- | ---- | ---- |
-| Work Unit 選択 | 初期 workflow の Step を都度読み解く | 索引から local 完了状態と残る hardware pending を判断できる |
+| Work Unit 選択 | 初期 workflow の Step を都度読み解く | 索引から local / hardware 完了状態と残る非 e2e gate を判断できる |
 | scope 境界 | MVP 全体仕様から推測する | 各仕様に対象、非対象、依存、gate を明記する |
 | TDD 開始 | Step 単位が大きい | TDD Test List 1項目へ分割できる |
 | source audit | 実装時に個別判断 | command、定数、構造体サイズを使う前の gate として扱う |
@@ -86,10 +86,10 @@ Work Unit は次の依存順に扱う。
 | 順序 | ディレクトリ | 仕様書 | 対応 Step | 実機要否 | Source Audit | 現在状態 |
 | ---- | ---------- | ------ | --------- | -------- | ------------ | -------- |
 | 0 | `complete/local_009` | `N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` | Step 0 | 不要 | 定数・構造体サイズ | 完了、unit test 通過 |
-| 1 | `complete/local_010` | `N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` | Step 1-2 | listing/open E2E で必要 | identity filter | local 完了、hardware pending |
-| 2 | `complete/local_011` | `N3DSXL_FTD3_PIPE_AND_CONNECT.md` | Step 3-4 | command pipe / connect E2E で必要 | command payload / sequence | local 完了、hardware pending |
-| 3 | `complete/local_012` | `N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` | Step 5-6 | raw capture / PNG 目視で必要 | capture struct / layout | local 完了、raw fixture / manual visual pending |
-| 4 | `complete/local_013` | `N3DSXL_ASYNC_STREAMING_ENGINE.md` | Step 7 | streaming E2E で必要 | async transfer sequence | local 完了、hardware pending |
+| 1 | `complete/local_010` | `N3DSXL_DEVICE_DISCOVERY_AND_SESSION.md` | Step 1-2 | listing/open E2E で必要 | identity filter | hardware complete via D3XX fallback E2E |
+| 2 | `complete/local_011` | `N3DSXL_FTD3_PIPE_AND_CONNECT.md` | Step 3-4 | command pipe / connect E2E で必要 | command payload / sequence | hardware complete via D3XX fallback E2E |
+| 3 | `complete/local_012` | `N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` | Step 5-6 | raw capture / PNG 目視で必要 | capture struct / layout | raw fixture complete via D3XX fallback E2E、manual visual pending |
+| 4 | `complete/local_013` | `N3DSXL_ASYNC_STREAMING_ENGINE.md` | Step 7 | streaming E2E で必要 | async transfer sequence | hardware streaming E2E complete |
 | 5 | `complete/local_014` | `N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` | Step 8 | 必要 | 性能値は初回測定で更新 | hardware / performance 完了 |
 | 6 | `complete/local_015` | `N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` | Hardware safety | listing / open で必要 | identity policy | 完了 |
 | 7 | `complete/local_016` | `N3DSXL_D3XX_FALLBACK_BACKEND.md` | Windows D3XX fallback | 必要 | D3XX compatibility path | 完了 |
@@ -169,9 +169,9 @@ def select_next_work_unit(specs: list[WorkUnitSpec], intent_delta: IntentDelta) 
 
 | シナリオ | 検証内容 | 前提条件 | 期待結果 |
 | -------- | -------- | -------- | -------- |
-| Agentic SDD 開始 | 索引から次候補を選べる | `complete/local_008` から `complete/local_014` が存在する | local task は完了、残る項目は hardware-gated と判断できる |
+| Agentic SDD 開始 | 索引から次候補を選べる | `complete/local_008` から `complete/local_014` が存在する | local / hardware task の完了状態と残る manual gate を判断できる |
 | Source audit 戻り | command 値が未確認 | Step 3 を選ぶ | `cc3dsfs-source-audit` item を先に選べる |
-| Hardware 承認待ち | 実機 E2E が必要 | Step 2 以降 | command を実行せず承認待ちにできる |
+| Hardware 承認待ち | 実機 E2E が必要 | Step 2 以降 | command を実行せず承認待ちにでき、承認後は gate 結果を仕様へ反映できる |
 
 ### 検証コマンド
 
@@ -220,8 +220,9 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | E2E / performance skip | pass | `uv run pytest tests/e2e tests/performance -q`: 11 skipped。 |
 | Static | pass | `uv run ruff format --check .`、`uv run ruff check .`、`uv run ty check --no-progress`。 |
 | Diff | pass | `git diff --check`。 |
-| Hardware | not run | local_008 は index 完了のみ。実機 command は実行しない。 |
+| Hardware E2E | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests\e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。 |
+| Performance | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_RUN_PERFORMANCE=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest -m "requires_n3dsxl and performance" tests\performance -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-performance`: 1 passed。 |
 
 ### 7.3 Completion Notes
 
-`spec/wip` 配下に未完了仕様は残っていない。local_009 から local_014 は全て local complete で、実機が必要な gate は各 complete 仕様に pending として残す。
+`spec/wip` 配下に未完了仕様は残っていない。local_009 から local_014 は全て local complete で、実機 E2E / performance gate は D3XX fallback backend で完了した。local_012 の manual visual gate は e2e 実機テスト外のため、別 gate として pending のまま残す。
