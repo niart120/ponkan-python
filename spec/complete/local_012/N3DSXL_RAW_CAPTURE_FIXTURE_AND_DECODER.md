@@ -1,6 +1,6 @@
 # N3DSXL Raw Capture Fixture And Decoder 仕様書
 
-更新日: 2026-06-07
+更新日: 2026-06-08
 
 ## 1. 概要
 
@@ -49,6 +49,7 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | 対応 Step | Step 5: single raw frame capture、Step 6: decoder and PNG |
 | 前提 Work Unit | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` |
 | 次 Work Unit | `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
+| 追跡 Work Unit | `spec/wip/local_018/N3DSXL_LAYOUT_FRAME_SYNC_INVESTIGATION.md`。manual visual self-check で見つかった表示変換・frame boundary 疑いを扱う。 |
 | local task | RawCapture metadata、transfer validation、synthetic decoder、Pillow/colorspace adapter。 |
 | hardware task | raw_2d fixture capture、candidate PNG、manual visual approval。 |
 | 選択条件 | 2D connect が完了し、streaming 前の raw artifact / decoder evidence が未確定のとき。 |
@@ -100,7 +101,7 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | green | `raw_to_png` が candidate PNG を複数出力する | new behavior | 3.1 | CLI |
 | green | 実機 raw_2d_001.bin と raw_2d_001.json を保存できる | hardware | 3.1 | D3XX fallback E2E で完了 |
 | green | `manual_visual` test が実 raw fixture から candidate PNG と manifest を出力する | manual_visual | 3.1 | `PONKAN_RUN_MANUAL_VISUAL=1` と raw/out env が必要 |
-| deferred | manual visual check で decoder_version を metadata に残す | manual_visual | 3.1 | 人間確認待ち |
+| deferred | manual visual check で decoder_version を metadata に残す | manual_visual | 3.1 | 2026-06-08 の self-check では未承認。local_018 へ追跡 |
 
 ### 3.3 設計方針
 
@@ -113,7 +114,8 @@ Source Audit:
 | `FTD3_3DSCaptureReceived` / `_3D` struct | `include/capture_structs.hpp` | video、audio、unused、error buffer 構造を確認 |
 | `N3DSXL_SAMPLES_IN` | `include/hw_defs.hpp` | `1096 * 16` を確認。Step 0 size 計算と一致 |
 | raw video layout | `capture_structs.hpp` と `hw_defs.hpp` | 2D raw video size `240 * 720 * 3` を確認。最終 transform は manual visual で確定 |
-| decoder transform | 実機 PNG 目視 | 未確定。candidate 出力と `manual_visual_status=pending` を実装 |
+| decoder transform | 実機 PNG 目視 | 未確定。2026-06-08 の self-check では既存 4 candidate の承認不可を確認 |
+| screen split / frame boundary | 実機 raw artifact と cc3dsfs acquisition / display path | 未確定。`reshape((720, 240, 3))` 後の `0:400` / `400:720` 分割と raw read 開始位置を local_018 で調査 |
 
 Hardware:
 
@@ -257,7 +259,8 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 | static | `uv run ruff format --check .`、`uv run ruff check src tests`、`uv run ty check --no-progress` が pass |
 | raw fixture complete | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests\e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。raw artifacts は `raw_2d_001.bin` / `.json` と `raw_2d_d3xx_001.bin` / `.json`。metadata は `backend_kind=d3xx`、`product_string=N3DSXL.2`、`product_string_status=accepted`、`transferred=520588`、`video_size=518400`、`capture_size=555008`。 |
 | manual visual artifact complete | 2026-06-08: `PONKAN_RUN_MANUAL_VISUAL=1`、`PONKAN_MANUAL_VISUAL_RAW=artifacts\n3dsxl\20260608-185720\pytest-e2e\test_n3dsxl_raw_capture_fixtur0\raw_2d_001.bin`、`PONKAN_MANUAL_VISUAL_METADATA=...raw_2d_001.json`、`PONKAN_MANUAL_VISUAL_OUT=artifacts\n3dsxl\20260608-191353\manual-visual` で `uv run --extra image pytest tests\manual\test_n3dsxl_decoder_visual.py -q`: 1 passed。candidate PNG 8 件と `manual_visual_manifest.json` を保存。 |
-| manual visual pending | 実機 PNG の目視承認と `decoder_version` 固定は未実行 |
+| manual visual self-check failed | 2026-06-08: user observation と VLM self-check で、artifact は上下反転に見えるうえ、上画面と下画面が重なったように見える。`candidate_0` / `candidate_1` / `candidate_3` は同系統で split overlap 疑い、`candidate_2` は mirrored 疑い。追加 probe `artifacts\n3dsxl\20260608-191353\manual-visual-layout-probe\layout_probe_contact.png` と `roll_probe_contact.png` でも明確な承認候補なし。 |
+| manual visual pending | 実機 PNG の目視承認と `decoder_version` 固定は未実行。既存 decoder を public streaming の確定表示変換として扱わず、local_018 へ表示変換・frame sync 調査を引き継ぐ |
 
 ## 5. テスト方針
 
@@ -319,3 +322,4 @@ uv run --extra image pytest -m manual_visual tests/manual/test_n3dsxl_decoder_vi
 - [x] `manual_visual` marked test で candidate PNG と manifest を生成する。
 - [x] 実機 raw fixture 保存 gate を承認後に実行し、D3XX fallback E2E で完了を確認する。
 - [x] manual visual artifact を生成し、承認結果は pending として manifest と gate 報告に残す。
+- [x] manual visual self-check の失敗結果を記録し、表示変換・frame boundary 調査を `local_018` へ切り出す。
