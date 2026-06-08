@@ -19,6 +19,8 @@ production path は常に cc3dsfs FTD3 2D layout を使い、調査用の複数 
 | Decoder Version | `local_012` / `local_018` で使った数値 candidate ID。production API から削除する対象。 |
 | Decoder ID | manifest に残す意味付き識別子。承認済み decoder は `ftd3_cc3dsfs_2d` とする。 |
 | Legacy Candidate | `0..3` の単純 split / rotate / flip 候補。過去 artifact の説明用には残すが production API には出さない。 |
+| Public-Reachable Path | public API、streaming default、通常 CLI から実行される call graph。 |
+| Dead Branch | public-reachable path から呼ばれず、probe option からも明示的に到達しない legacy 分岐、helper、enum、test fixture。 |
 
 ### 1.3 背景・問題
 
@@ -34,6 +36,7 @@ production path は常に cc3dsfs FTD3 2D layout を使い、調査用の複数 
 | 意味の混同 | `decoder_version=4` は互換バージョンではなく、manual visual candidate の番号である。 |
 | obsolete candidate | `0..3` は誤った split 前提の比較用候補であり、production path から到達できるべきではない。 |
 | manifest drift | `selected_decoder_version` は調査手段の番号で、承認済み decoder の意味を直接表していない。 |
+| dead branch risk | 引数だけ削除して内部の legacy branch / helper を残すと、保守者が誤って再利用しやすく、cleanup 完了の根拠にならない。 |
 
 ### 1.4 期待効果
 
@@ -44,6 +47,7 @@ production path は常に cc3dsfs FTD3 2D layout を使い、調査用の複数 
 | probe candidate | protocol module の `DecoderVersion` として露出 | `tools` / test helper 側へ隔離 |
 | manifest | `selected_decoder_version=4` | `decoder_id="ftd3_cc3dsfs_2d"` |
 | legacy candidate | production decoder と同じ enum に混在 | probe 専用・過去 artifact 説明用に限定 |
+| dead code | production module に legacy branch が残る | legacy branch は削除、または明示 probe module / function へ移動 |
 
 ### 1.5 着手条件
 
@@ -62,7 +66,7 @@ production path は常に cc3dsfs FTD3 2D layout を使い、調査用の複数 
 | local task | public decoder signature cleanup、probe API isolation、manifest key cleanup、tests update |
 | hardware task | 不要。既存 approved artifact と unit / manual visual artifact generation で検証する |
 | 選択条件 | approved decoder が確定し、調査用 `decoder_version` が production API に残っているとき |
-| 完了証拠 | `decoder_version` 引数が production path から消え、`decoder_id` manifest と regression tests が残る |
+| 完了証拠 | `decoder_version` 引数と legacy branch が production path から消え、`decoder_id` manifest と regression tests が残る |
 
 ## 2. 対象ファイル
 
@@ -91,6 +95,7 @@ production path は常に cc3dsfs FTD3 2D layout を使い、調査用の複数 
 | manifest を記録する | approved PNG generation | `decoder_id="ftd3_cc3dsfs_2d"`、`manual_visual_status` を残す | `selected_decoder_version` は新規 manifest では使わない |
 | probe を明示実行する | raw fixture、probe option | legacy/probe candidate PNG を出力する | production API と別経路 |
 | legacy candidate を隔離する | `0..3` 相当の比較候補 | protocol public API から直接到達できない | tests も probe 側へ移す |
+| dead branch を削除する | production module cleanup 後 | `DecoderVersion`、version switch、obsolete helper が public-reachable path に残らない | interface だけ変えて完了にしない |
 
 ### 3.2 TDD Test List
 
@@ -102,6 +107,8 @@ production path は常に cc3dsfs FTD3 2D layout を使い、調査用の複数 
 | todo | `raw_to_png` 通常実行は approved PNG と `decoder_id` manifest を出す | behavior change | 3.1 | outputs は top/bottom のみ |
 | todo | probe option 実行だけが legacy candidates を出す | tool behavior | 3.1 | candidate ID は名前付き |
 | todo | 新規 manifest に `selected_decoder_version` が出ない | regression | 3.1 | 過去 artifact は読めてもよい |
+| todo | production module に legacy candidate branch / enum / helper が残っていない | cleanup gate | 3.1 | `rg DecoderVersion|iter_decoder_candidates|decoder_version src/py3dscapture/protocol src/py3dscapture/streaming` |
+| todo | probe candidate が明示 option なしでは到達できない | reachability | 3.1 | 通常 CLI / streaming / public decode の call graph |
 | todo | `local_012` / `local_018` の仕様表現が `decoder_version` production 固定を推奨しない | documentation | 3.1 | `rg` で確認 |
 
 ### 3.3 設計方針
@@ -115,6 +122,18 @@ production と investigation を分ける。
 | `tools/raw_to_png.py` | 通常は approved PNG を出す。調査用 candidate は `--probe-candidates` のような明示 option に閉じる。 |
 | manifest | production result は `decoder_id` を使う。probe result は `probe_id` / `candidate_id` を使う。 |
 | tests | production tests と probe tests を分け、legacy candidate を production regression として扱わない。 |
+
+No dead branch rule:
+
+```text
+cleanup 完了条件は、public interface の形だけではなく public-reachable path の実装から legacy 分岐が消えていること。
+```
+
+- `layout_3ds.py` に `DecoderVersion`、`iter_decoder_candidates()`、`decoder_version` switch を残さない。
+- approved decoder と同じ module に legacy candidate helper を残さない。
+- probe が必要なら `tools/raw_to_png.py` 内部または `tools` 配下の明示 probe helper として隔離する。
+- probe helper は通常 CLI、streaming default、public `decode_rgb8_2d()` から呼ばれない。
+- 「今は呼ばれないが残しておく」legacy branch は、この Work Unit の完了条件を満たさない。
 
 Source Audit:
 
@@ -190,6 +209,38 @@ probe 出力:
 
 `RawCapture.to_metadata()` の `decoder_version: null` は raw capture 時点の metadata であり、今回の production decoder API cleanup とは別扱いにする。必要なら後続で `decoder_id` へ移行するが、この Work Unit の必須範囲は decoded artifact / decoder API に限定する。
 
+### 4.5 Reachability Cleanup
+
+production module で許可する branch は次だけにする。
+
+```text
+1. raw size validation
+2. approved FTD3 2D source split
+3. approved display transform
+4. CaptureFrame construction
+```
+
+次は production module から削除する。
+
+```text
+- DecoderVersion enum
+- iter_decoder_candidates()
+- decoder_version 引数
+- version による if / match / dispatch
+- top-first legacy split helper
+- legacy rotate / flip candidate helper
+```
+
+probe 用に残す場合は、名前と到達経路を明示する。
+
+```text
+tools/raw_to_png.py --probe-candidates
+  -> _iter_probe_candidates(...)
+  -> candidate_id="legacy_top_first_transpose"
+```
+
+この経路は通常の `raw_to_png`、`decode_rgb8_2d()`、`StreamingEngine` から呼ばれないことを test または `rg` evidence で確認する。
+
 ## 5. テスト方針
 
 ### ユニットテスト
@@ -202,6 +253,8 @@ probe 出力:
 | raw_to_png manifest | decoder_id | synthetic raw | `decoder_id="ftd3_cc3dsfs_2d"` |
 | raw_to_png manifest | legacy version removal | normal generation | `selected_decoder_version` がない |
 | probe mode | legacy candidates | explicit probe option | named candidate outputs |
+| production source grep | legacy branch removal | `src/py3dscapture/protocol`, `src/py3dscapture/streaming` | `DecoderVersion` / `iter_decoder_candidates` / `decoder_version` が残らない |
+| probe reachability | explicit-only | normal CLI / streaming / public decode | probe helper が通常経路から呼ばれない |
 
 ### 統合テスト
 
@@ -217,6 +270,7 @@ probe 出力:
 uv run pytest tests/unit/test_layout_3ds_decoder.py -q
 uv run pytest tests/unit/test_streaming_engine_fake_async.py -q
 uv run pytest tests/manual/test_n3dsxl_decoder_visual.py -q
+rg -n "DecoderVersion|iter_decoder_candidates|decoder_version" src/py3dscapture/protocol src/py3dscapture/streaming
 uv run ruff format --check .
 uv run ruff check .
 uv run ty check --no-progress
@@ -226,11 +280,14 @@ git diff --check
 ## 6. 実装チェックリスト
 
 - [ ] `decode_rgb8_2d()` から `decoder_version` 引数を削除する。
-- [ ] `DecoderVersion` / `iter_decoder_candidates()` を production API から削除または probe 専用へ移動する。
+- [ ] `DecoderVersion` / `iter_decoder_candidates()` を production module から削除する。
+- [ ] production module から legacy split / rotate / flip branch と helper を削除する。
 - [ ] `_decode_2d_default()` を `decode_rgb8_2d(raw_video)` 呼び出しにする。
 - [ ] `raw_to_png` の通常出力を approved decoder のみへ変更する。
 - [ ] `raw_to_png` の manifest を `decoder_id` へ変更し、新規 manifest から `selected_decoder_version` を削除する。
 - [ ] legacy candidates を明示 probe option に隔離する。
+- [ ] probe helper が明示 option なしでは到達不能であることを確認する。
+- [ ] `rg` で production module に `DecoderVersion` / `iter_decoder_candidates` / `decoder_version` が残らないことを確認する。
 - [ ] unit / manual visual tests を production と probe に分けて更新する。
 - [ ] `local_012` / `local_018` の `decoder_version` production 固定表現を cleanup 方針に合わせて更新する。
 - [ ] 検証コマンドを実行し、結果を仕様へ反映する。
