@@ -6,7 +6,20 @@ from typing import Literal
 
 @dataclass(slots=True)
 class StreamStats:
-    """Mutable streaming counters."""
+    """Mutable streaming counters.
+
+    Attributes:
+        submitted: Raw reads submitted to the backend.
+        completed: Backend completions received.
+        decoded: Raw completions decoded into frames.
+        delivered: Decoded frames retained for consumers.
+        dropped_raw: Raw completions dropped before decode.
+        dropped_decoded: Decoded frames dropped by queue policy.
+        usb_errors: Backend completion errors.
+        decode_errors: Decoder failures.
+        cancelled: In-flight transfers cancelled during shutdown.
+        last_error: Optional class name for the last decode error.
+    """
 
     submitted: int = 0
     completed: int = 0
@@ -20,17 +33,30 @@ class StreamStats:
     last_error: str | None = None
 
     def snapshot(self) -> "StreamStats":
-        """Return a copy suitable for reporting."""
+        """Return a copy suitable for reporting.
+
+        Returns:
+            Independent counter object representing the current values.
+        """
         return StreamStats(**asdict(self))
 
     def to_dict(self) -> dict[str, int | str | None]:
-        """Return JSON-serializable counters."""
+        """Return JSON-serializable counters.
+
+        Returns:
+            Dictionary form of all stream counters.
+        """
         return asdict(self)
 
 
 @dataclass(frozen=True, slots=True)
 class PerformanceStats:
-    """JSON-serializable performance smoke report."""
+    """JSON-serializable performance smoke report.
+
+    Attributes mirror the performance smoke artifact schema. Time values are
+    seconds, and ``delivered_fps`` is calculated from delivered frame count and
+    requested duration.
+    """
 
     model: Literal["new_3ds_xl"]
     product_string: str | None
@@ -71,7 +97,25 @@ class PerformanceStats:
         backend_kind: Literal["libusb", "d3xx"] = "libusb",
         driver_service: str | None = None,
     ) -> "PerformanceStats":
-        """Build a performance report from streaming counters."""
+        """Build a performance report from streaming counters.
+
+        Args:
+            stats: Streaming counters collected during the smoke run.
+            product_string: USB product string when readable.
+            product_string_status: Whether the product string was accepted or
+                unreadable.
+            mode_3d: Capture mode used by the smoke run.
+            duration_seconds: Requested smoke duration in seconds.
+            raw_slots: Raw transfer slot count.
+            output_queue_size: Decoded frame queue capacity.
+            drop_policy: Decoded frame overflow policy.
+            shutdown_seconds: Time spent stopping the engine.
+            backend_kind: Transport backend used for the run.
+            driver_service: Optional Windows driver service observed.
+
+        Returns:
+            Frozen JSON-serializable performance report.
+        """
         delivered_fps = stats.delivered / duration_seconds if duration_seconds > 0 else 0.0
         return cls(
             model="new_3ds_xl",
@@ -99,5 +143,9 @@ class PerformanceStats:
         )
 
     def to_dict(self) -> dict[str, bool | float | int | str | None]:
-        """Return JSON-serializable performance stats."""
+        """Return JSON-serializable performance stats.
+
+        Returns:
+            Dictionary form suitable for JSON artifact output.
+        """
         return asdict(self)

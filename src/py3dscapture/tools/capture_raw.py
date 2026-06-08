@@ -11,7 +11,16 @@ from py3dscapture.transport.libusb_backend import Usb1Backend
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entrypoint."""
+    """Run the raw-capture CLI.
+
+    Args:
+        argv: Optional command-line arguments. ``None`` uses ``sys.argv`` through
+            ``argparse``.
+
+    Returns:
+        Process status code. Zero means the raw payload and metadata sidecar were
+        written.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", choices=["new_3ds_xl"], default="new_3ds_xl")
     parser.add_argument("--out", type=Path, required=True)

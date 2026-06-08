@@ -15,7 +15,18 @@ APPROVED_N3DSXL_2D_DECODER_ID = "ftd3_cc3dsfs_2d"
 
 
 def decode_rgb8_2d(raw_video: bytes | memoryview) -> CaptureFrame:
-    """Decode 2D N3DSXL raw RGB8 bytes into top and bottom screens."""
+    """Decode 2D N3DSXL raw RGB8 bytes into top and bottom screens.
+
+    Args:
+        raw_video: Exact 2D RGB8 video region from an N3DSXL raw capture. The
+            input must not include audio, unused, or error-buffer bytes.
+
+    Returns:
+        A decoded RGB ``CaptureFrame`` with top and bottom screens populated.
+
+    Raises:
+        DecodeError: The input length does not match the 2D video payload size.
+    """
     raw_bytes = bytes(raw_video)
     if len(raw_bytes) != video_size(mode_3d=False):
         raise DecodeError

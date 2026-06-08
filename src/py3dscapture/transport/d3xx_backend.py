@@ -22,29 +22,69 @@ PYD3XX_MODULE_NAMES = ("PyD3XX", "pyd3xx")
 
 
 class D3xxBinding(Protocol):
-    """Subset of the PyD3XX module needed for device enumeration."""
+    """Subset of the PyD3XX module needed for device enumeration and I/O.
+
+    The real package exposes module-level functions and factory classes. This
+    protocol describes only the calls used by ``D3xxBackend`` and ``D3xxHandle``.
+    """
 
     FT_Pipe: Any
     FT_Buffer: Any
 
     def FT_CreateDeviceInfoList(self) -> tuple[int, int]:
-        """Return D3XX status and number of devices."""
+        """Return D3XX status and number of devices.
+
+        Returns:
+            ``(status, count)`` where status must be ``FT_OK``.
+        """
         ...
 
     def FT_GetDeviceInfoDetail(self, index: int) -> tuple[int, object]:
-        """Return D3XX status and one device information node."""
+        """Return D3XX status and one device information node.
+
+        Args:
+            index: Zero-based device index in the current D3XX device list.
+
+        Returns:
+            ``(status, detail)`` where detail contains ID, description,
+            serial-number, and flag fields.
+        """
         ...
 
     def FT_Create(self, identifier: object, open_flag: int, device: object) -> int:
-        """Open a D3XX device into an initialized FT_Device object."""
+        """Open a D3XX device into an initialized FT_Device object.
+
+        Args:
+            identifier: Serial number or index used by the selected open flag.
+            open_flag: D3XX open mode such as serial-number or index.
+            device: Device detail object to initialize.
+
+        Returns:
+            D3XX status code.
+        """
         ...
 
     def FT_Close(self, device: object) -> int:
-        """Close an opened D3XX device object."""
+        """Close an opened D3XX device object.
+
+        Args:
+            device: Open D3XX device object.
+
+        Returns:
+            D3XX status code.
+        """
         ...
 
     def FT_AbortPipe(self, device: object, pipe: object) -> int:
-        """Abort one D3XX native pipe."""
+        """Abort one D3XX native pipe.
+
+        Args:
+            device: Open D3XX device object.
+            pipe: D3XX pipe object with the selected pipe ID.
+
+        Returns:
+            D3XX status code.
+        """
         ...
 
     def FT_SetStreamPipe(
@@ -55,7 +95,18 @@ class D3xxBinding(Protocol):
         pipe: object,
         stream_size: int,
     ) -> int:
-        """Configure streaming for one D3XX native pipe."""
+        """Configure streaming for one D3XX native pipe.
+
+        Args:
+            device: Open D3XX device object.
+            all_write_pipes: Whether all write pipes should be affected.
+            all_read_pipes: Whether all read pipes should be affected.
+            pipe: D3XX pipe object with the selected pipe ID.
+            stream_size: Stream transfer size in bytes.
+
+        Returns:
+            D3XX status code.
+        """
         ...
 
     def FT_ReadPipe(
@@ -65,7 +116,17 @@ class D3xxBinding(Protocol):
         buffer_length: int,
         overlapped_timeout_ms: int,
     ) -> tuple[int, object, int]:
-        """Read bytes from one D3XX native pipe."""
+        """Read bytes from one D3XX native pipe.
+
+        Args:
+            device: Open D3XX device object.
+            pipe: D3XX pipe object with the selected pipe ID.
+            buffer_length: Maximum read length in bytes.
+            overlapped_timeout_ms: Read timeout in milliseconds.
+
+        Returns:
+            ``(status, buffer, transferred)``.
+        """
         ...
 
     def FT_ReadPipeEx(
@@ -75,7 +136,17 @@ class D3xxBinding(Protocol):
         buffer_length: int,
         overlapped_timeout_ms: int,
     ) -> tuple[int, object, int]:
-        """Read bytes from one D3XX native stream pipe."""
+        """Read bytes from one D3XX native stream pipe.
+
+        Args:
+            device: Open D3XX device object.
+            pipe: D3XX pipe object with the selected pipe ID.
+            buffer_length: Maximum read length in bytes.
+            overlapped_timeout_ms: Read timeout in milliseconds.
+
+        Returns:
+            ``(status, buffer, transferred)``.
+        """
         ...
 
     def FT_WritePipe(
@@ -86,12 +157,29 @@ class D3xxBinding(Protocol):
         buffer_length: int,
         overlapped_timeout_ms: int,
     ) -> tuple[int, int]:
-        """Write bytes to one D3XX native pipe."""
+        """Write bytes to one D3XX native pipe.
+
+        Args:
+            device: Open D3XX device object.
+            pipe: D3XX pipe object with the selected pipe ID.
+            buffer: D3XX buffer object containing payload bytes.
+            buffer_length: Number of bytes to write.
+            overlapped_timeout_ms: Write timeout in milliseconds.
+
+        Returns:
+            ``(status, transferred)``.
+        """
         ...
 
 
 class D3xxBackendError(CaptureError):
-    """Raised when a D3XX API call fails or returns unsupported data."""
+    """Raised when a D3XX API call fails or returns unsupported data.
+
+    Attributes:
+        function: D3XX function or parser step associated with the failure.
+        status: Optional native status code.
+        field_name: Optional detail field that was missing or invalid.
+    """
 
     def __init__(
         self,
@@ -100,7 +188,13 @@ class D3xxBackendError(CaptureError):
         *,
         field_name: str | None = None,
     ) -> None:
-        """Create a structured D3XX backend failure."""
+        """Create a structured D3XX backend failure.
+
+        Args:
+            function: D3XX function or parser step associated with the failure.
+            status: Optional native status code.
+            field_name: Optional detail field that was missing or invalid.
+        """
         message = _d3xx_error_message(function, status, field_name)
         super().__init__(message)
         self.function = function
@@ -109,23 +203,48 @@ class D3xxBackendError(CaptureError):
 
     @classmethod
     def missing_field(cls, field_name: str) -> "D3xxBackendError":
-        """Create an error for an unsupported D3XX detail shape."""
+        """Create an error for an unsupported D3XX detail shape.
+
+        Args:
+            field_name: Required field that was not present.
+
+        Returns:
+            Structured backend error.
+        """
         return cls("missing field", field_name=field_name)
 
     @classmethod
     def invalid_integer(cls, field_name: str) -> "D3xxBackendError":
-        """Create an error for an integer field that cannot be parsed."""
+        """Create an error for an integer field that cannot be parsed.
+
+        Args:
+            field_name: Integer field that could not be converted.
+
+        Returns:
+            Structured backend error.
+        """
         return cls("invalid integer", field_name=field_name)
 
     @classmethod
     def invalid_candidate(cls) -> "D3xxBackendError":
-        """Create an error for an unsupported D3XX candidate object."""
+        """Create an error for an unsupported D3XX candidate object.
+
+        Returns:
+            Structured backend error for a wrong candidate type.
+        """
         return cls("invalid candidate")
 
 
 @dataclass(frozen=True, slots=True)
 class D3xxDeviceInfo:
-    """D3XX listing information normalized for N3DSXL classification."""
+    """D3XX listing information normalized for N3DSXL classification.
+
+    Attributes:
+        index: Zero-based D3XX device index.
+        usb_info: USB identity reconstructed from D3XX detail fields.
+        flags: Optional D3XX flags field.
+        device_id: Raw D3XX device ID containing VID/PID information.
+    """
 
     index: int
     usb_info: UsbDeviceInfo
@@ -135,7 +254,15 @@ class D3xxDeviceInfo:
 
 @dataclass(frozen=True, slots=True)
 class D3xxDeviceCandidate:
-    """N3DSXL candidate found through the D3XX driver backend."""
+    """N3DSXL candidate found through the D3XX driver backend.
+
+    Attributes:
+        candidate: Accepted N3DSXL candidate after USB identity classification.
+        index: Zero-based D3XX device index.
+        flags: Optional D3XX flags field.
+        device_id: Raw D3XX device ID containing VID/PID information.
+        backend_kind: Normalized backend label for metadata.
+    """
 
     candidate: DeviceCandidate
     index: int
@@ -145,7 +272,11 @@ class D3xxDeviceCandidate:
 
 
 class D3xxHandle:
-    """Opened D3XX handle with idempotent close."""
+    """Opened D3XX handle with idempotent close.
+
+    The handle implements the pipe operations expected by ``N3DSXLProtocol`` and
+    records which pipes were configured for stream reads.
+    """
 
     backend_kind: Literal["d3xx"] = "d3xx"
 
@@ -156,7 +287,14 @@ class D3xxHandle:
         candidate: DeviceCandidate,
         d3xx_candidate: D3xxDeviceCandidate | None = None,
     ) -> None:
-        """Create a handle from an opened PyD3XX device detail object."""
+        """Create a handle from an opened PyD3XX device detail object.
+
+        Args:
+            binding: PyD3XX-compatible module binding.
+            device: Open D3XX device detail object.
+            candidate: Accepted N3DSXL candidate for metadata.
+            d3xx_candidate: Original D3XX candidate, required for reconnect.
+        """
         self._binding = binding
         self._device = device
         self.candidate = candidate
@@ -165,7 +303,13 @@ class D3xxHandle:
         self._stream_pipes: set[int] = set()
 
     def close(self) -> None:
-        """Close the D3XX device handle."""
+        """Close the D3XX device handle.
+
+        The method is idempotent after the first successful or attempted close.
+
+        Raises:
+            D3xxBackendError: ``FT_Close`` returns a non-OK status.
+        """
         if self._closed:
             return
         try:
@@ -174,15 +318,31 @@ class D3xxHandle:
             self._closed = True
 
     def abort_pipe(self, pipe: int) -> None:
-        """Abort one D3XX native pipe."""
+        """Abort one D3XX native pipe.
+
+        Args:
+            pipe: D3XX pipe ID.
+
+        Raises:
+            D3xxBackendError: ``FT_AbortPipe`` fails.
+        """
         pipe_object = _pipe_from_id(self._binding, pipe)
         _check_status("FT_AbortPipe", self._binding.FT_AbortPipe(self._device, pipe_object))
 
     def create_pipe(self) -> None:
-        """Keep protocol compatibility; D3XX native backend has no command-pipe create."""
+        """Keep protocol compatibility with the shared FTD3 transport surface.
+
+        The D3XX native API does not need the libusb command-pipe create
+        payload, so this operation is intentionally a no-op.
+        """
 
     def reconnect_after_drain(self) -> None:
-        """Close and reopen after the initial drain, matching cc3dsfs' D3XX path."""
+        """Close and reopen after the initial drain, matching cc3dsfs' D3XX path.
+
+        Raises:
+            D3xxBackendError: The handle lacks original candidate metadata, or
+                the D3XX detail lookup/open call fails.
+        """
         if self._d3xx_candidate is None:
             raise D3xxBackendError.invalid_candidate()
         self.close()
@@ -202,7 +362,15 @@ class D3xxHandle:
         self._closed = False
 
     def set_stream_pipe(self, pipe: int, length: int) -> None:
-        """Configure one D3XX native stream pipe."""
+        """Configure one D3XX native stream pipe.
+
+        Args:
+            pipe: D3XX pipe ID to configure.
+            length: Stream transfer length in bytes.
+
+        Raises:
+            D3xxBackendError: ``FT_SetStreamPipe`` fails.
+        """
         pipe_object = _pipe_from_id(self._binding, pipe)
         _check_status(
             "FT_SetStreamPipe",
@@ -222,7 +390,20 @@ class D3xxHandle:
         length: int,
         timeout_ms: int = D3XX_DEFAULT_TIMEOUT_MS,
     ) -> bytes:
-        """Read bytes from one D3XX native pipe."""
+        """Read bytes from one D3XX native pipe.
+
+        Args:
+            pipe: D3XX pipe ID to read.
+            length: Maximum number of bytes to read.
+            timeout_ms: Read timeout in milliseconds.
+
+        Returns:
+            Bytes read from the native D3XX pipe.
+
+        Raises:
+            D3xxBackendError: The D3XX read call fails or returns unsupported
+                buffer metadata.
+        """
         if pipe in self._stream_pipes:
             return self._read_stream_pipe(pipe, length, timeout_ms)
         direct = _direct_read_pipe(self._binding, self._device, pipe, length, timeout_ms)
@@ -250,7 +431,19 @@ class D3xxHandle:
         payload: bytes,
         timeout_ms: int = D3XX_DEFAULT_TIMEOUT_MS,
     ) -> int:
-        """Write bytes to one D3XX native pipe."""
+        """Write bytes to one D3XX native pipe.
+
+        Args:
+            pipe: D3XX pipe ID to write.
+            payload: Bytes to transfer.
+            timeout_ms: Write timeout in milliseconds.
+
+        Returns:
+            Number of bytes transferred.
+
+        Raises:
+            D3xxBackendError: The D3XX write call fails.
+        """
         direct = _direct_write_pipe(self._binding, self._device, pipe, payload, timeout_ms)
         if direct is not None:
             return direct
@@ -271,7 +464,15 @@ class D3xxHandle:
 
 
 def load_pyd3xx_binding() -> D3xxBinding:
-    """Import the optional PyD3XX module."""
+    """Import the optional PyD3XX module.
+
+    Returns:
+        Imported module cast to the D3XX binding protocol.
+
+    Raises:
+        OptionalDependencyError: Neither supported PyD3XX module name can be
+            imported.
+    """
     for module_name in PYD3XX_MODULE_NAMES:
         try:
             return cast("D3xxBinding", import_module(module_name))
@@ -281,14 +482,35 @@ def load_pyd3xx_binding() -> D3xxBinding:
 
 
 class D3xxBackend:
-    """FTDI D3XX-backed device enumeration."""
+    """FTDI D3XX-backed device enumeration.
+
+    This backend is used as a fallback when libusb cannot open an otherwise
+    accepted N3DSXL because the installed Windows driver belongs to D3XX.
+    """
 
     def __init__(self, binding: D3xxBinding | None = None) -> None:
-        """Create a backend using an injected or optional PyD3XX binding."""
+        """Create a backend using an injected or optional PyD3XX binding.
+
+        Args:
+            binding: Optional test or real PyD3XX binding. When omitted, the
+                optional dependency is imported lazily.
+
+        Raises:
+            OptionalDependencyError: ``binding`` is omitted and PyD3XX is not
+                installed.
+        """
         self._binding = binding or load_pyd3xx_binding()
 
     def iter_devices(self) -> tuple[D3xxDeviceInfo, ...]:
-        """Return D3XX devices visible through the binding."""
+        """Return D3XX devices visible through the binding.
+
+        Returns:
+            Tuple of normalized D3XX device information.
+
+        Raises:
+            D3xxBackendError: The binding returns a non-OK status or an
+                unsupported detail shape.
+        """
         _, count = _status_and_value(
             "FT_CreateDeviceInfoList",
             self._binding.FT_CreateDeviceInfoList(),
@@ -303,7 +525,12 @@ class D3xxBackend:
         return tuple(devices)
 
     def iter_device_candidates(self) -> tuple[D3xxDeviceCandidate, ...]:
-        """Return N3DSXL candidates visible through the D3XX backend."""
+        """Return N3DSXL candidates visible through the D3XX backend.
+
+        Returns:
+            D3XX devices that pass the same N3DSXL classification policy as the
+            libusb path.
+        """
         candidates: list[D3xxDeviceCandidate] = []
         for device in self.iter_devices():
             classified = classify_n3dsxl_device(device.usb_info)
@@ -319,7 +546,18 @@ class D3xxBackend:
         return tuple(candidates)
 
     def open(self, candidate: object) -> D3xxHandle:
-        """Open one D3XX candidate and return a closeable handle."""
+        """Open one D3XX candidate and return a closeable handle.
+
+        Args:
+            candidate: ``D3xxDeviceCandidate`` returned by this backend.
+
+        Returns:
+            Open D3XX handle compatible with the N3DSXL protocol pipe surface.
+
+        Raises:
+            D3xxBackendError: The candidate type is unsupported, or the D3XX
+                detail lookup/open call fails.
+        """
         if not isinstance(candidate, D3xxDeviceCandidate):
             raise D3xxBackendError.invalid_candidate()
         _, detail = _status_and_value(

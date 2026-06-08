@@ -29,7 +29,20 @@ class _ProbeCandidate:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entrypoint."""
+    """Run the raw-to-PNG conversion CLI.
+
+    Args:
+        argv: Optional command-line arguments. ``None`` uses ``sys.argv`` through
+            ``argparse``.
+
+    Returns:
+        Process status code. Zero means image outputs were written.
+
+    Raises:
+        FileExistsError: An output exists and ``--force`` was not provided.
+        DecodeError: The selected decoder cannot decode the raw video region.
+        OptionalDependencyError: Pillow is unavailable for PNG writing.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("raw", type=Path)
     parser.add_argument("--metadata", type=Path)
