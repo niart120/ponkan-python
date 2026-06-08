@@ -338,3 +338,7 @@ uv run python -m py3dscapture.tools.stream_n3dsxl --duration 10 --stats
 - [x] public `frames()` / `frames_async()` を実装する。
 - [x] `stream_n3dsxl` CLI を実装する。
 - [x] 実機 streaming E2E を承認後に実行し、D3XX fallback E2E で完了を確認する。
+
+## 7. Follow-up Notes
+
+`local_013` 実装時点では `raw_slots=4` を functional streaming の既定として扱った。`local_021` の D3XX timing 実機計測で `raw_slots=2`, `poll_interval=0.004` が 60 秒 smoke でも安定し、submit 起点 latency と completion queue wait が低下したため、現在の低 latency default は `raw_slots=2` とする。`raw_slots` 自体は引き続き可変であり、`raw_slots=4` の unit test は任意 slot 数の preallocation / submit count を確認するために残す。

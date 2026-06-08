@@ -92,7 +92,7 @@ def test_stream_cli_writes_performance_stats_json(
         "driver_service": None,
         "mode_3d": False,
         "duration_seconds": 0.0,
-        "raw_slots": 4,
+        "raw_slots": 2,
         "output_queue_size": 2,
         "drop_policy": "drop_oldest",
         "submitted": 4,

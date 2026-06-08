@@ -35,7 +35,7 @@ def _open_d3xx_streaming_engine() -> tuple[
         raise
     engine = StreamingEngine(
         D3xxAsyncBackend(handle),
-        raw_slots=4,
+        raw_slots=2,
         output_queue_size=2,
         drop_policy="drop_oldest",
     )
@@ -62,7 +62,7 @@ def test_n3dsxl_streaming_60_second_performance_smoke(tmp_path: Path) -> None:
         backend_kind="d3xx",
         driver_service=os.environ.get("PONKAN_N3DSXL_DRIVER_SERVICE", "FTDIBUS3"),
         mode_3d=False,
-        raw_slots=4,
+        raw_slots=2,
         output_queue_size=2,
         drop_policy="drop_oldest",
     )

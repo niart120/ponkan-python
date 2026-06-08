@@ -28,7 +28,7 @@ def run_streaming_smoke(
     drop_policy: str,
     backend_kind: Literal["libusb", "d3xx"] = "libusb",
     driver_service: str | None = None,
-    poll_interval: float = 0.01,
+    poll_interval: float = 0.004,
 ) -> PerformanceStats:
     """Run a bounded streaming smoke loop and return performance stats.
 
@@ -106,8 +106,9 @@ def main(argv: list[str] | None = None) -> int:
         "--product-string-status",
         choices=("accepted", "unreadable"),
     )
-    parser.add_argument("--raw-slots", type=int, default=4)
+    parser.add_argument("--raw-slots", type=int, default=2)
     parser.add_argument("--output-queue-size", type=int, default=2)
+    parser.add_argument("--poll-interval", type=float, default=0.004)
     parser.add_argument("--collect-timing", action="store_true")
     parser.add_argument(
         "--drop-policy",
@@ -137,6 +138,7 @@ def main(argv: list[str] | None = None) -> int:
         raw_slots=args.raw_slots,
         output_queue_size=args.output_queue_size,
         drop_policy=args.drop_policy,
+        poll_interval=args.poll_interval,
     )
 
     if args.stats:

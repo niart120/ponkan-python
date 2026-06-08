@@ -29,7 +29,7 @@ class StreamingEngine:
         self,
         backend: AsyncTransferBackend,
         *,
-        raw_slots: int = 4,
+        raw_slots: int = 2,
         raw_slot_size: int | None = None,
         output_queue_size: int = 2,
         drop_policy: DropPolicy = "drop_oldest",

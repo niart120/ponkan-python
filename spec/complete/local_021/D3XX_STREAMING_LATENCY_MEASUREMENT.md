@@ -104,6 +104,8 @@ D3XX streaming の fast path 実装可否を fps ではなく latency / jitter /
 | green | CLI `--collect-timing` で performance artifact に `timing` が出る | tool behavior | 3.1 | fake engine |
 | green | 実機 D3XX backend で 10 秒 timing smoke を実行する | hardware | 3.1 | `artifacts\n3dsxl\20260608-230954\timing-smoke\stream_stats.json` |
 | green | 実機 D3XX backend で 60 秒 performance smoke を実行する | hardware | 3.1 | `artifacts\n3dsxl\20260608-230954\pytest-performance-timing\...stream_stats.json` |
+| green | `raw_slots=2`, `poll_interval=0.004` の 60 秒 timing smoke が安定する | hardware | 3.1 | `artifacts\n3dsxl\20260608-233430\timing-smoke-rs2-poll4ms-60s\stream_stats.json` |
+| green | 低 latency default として `raw_slots=2`, `poll_interval=0.004` を採用する | behavior | 3.1 | `StreamingEngine` / CLI / hardware tests |
 
 ### 3.3 設計方針
 
@@ -155,7 +157,7 @@ Fast path 判断:
 ```python
 engine = StreamingEngine(
     D3xxAsyncBackend(handle),
-    raw_slots=4,
+    raw_slots=2,
     output_queue_size=2,
     drop_policy="drop_oldest",
     collect_timing=True,
@@ -174,6 +176,7 @@ stats.to_dict()["timing"]["read_duration_ms"]["p95"]
 | `PerformanceStats.from_stream_stats(..., timing=...)` | timing summary を artifact に含める。 |
 | `PerformanceStats.to_dict()` | timing が `None` の場合は `timing` key を省略する。 |
 | `stream_n3dsxl --collect-timing` | CLI smoke で timing collection を有効化する。 |
+| `stream_n3dsxl --poll-interval` | CLI smoke の completion polling interval を秒単位で上書きする。既定は `0.004`。 |
 
 ### 4.2 Timestamp Flow
 
@@ -268,6 +271,9 @@ uv run pytest -m "requires_n3dsxl and performance" tests/performance -q
 | Hardware streaming smoke | pass | `$env:PONKAN_RUN_N3DSXL='1'; $env:PONKAN_HARDWARE_APPROVED='1'; $env:PONKAN_N3DSXL_DRIVER_SERVICE='FTDIBUS3'; uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_streaming.py -q --basetemp artifacts\n3dsxl\20260608-230954\pytest-e2e-timing`: 1 passed in 2.86s |
 | Hardware timing smoke | pass | `collect_timing=True` の D3XX 10 秒 smoke。`artifacts\n3dsxl\20260608-230954\timing-smoke\stream_stats.json`: `delivered_fps=59.7`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1` |
 | Hardware performance smoke | pass | `$env:PONKAN_RUN_N3DSXL='1'; $env:PONKAN_RUN_PERFORMANCE='1'; $env:PONKAN_HARDWARE_APPROVED='1'; $env:PONKAN_N3DSXL_DRIVER_SERVICE='FTDIBUS3'; uv run pytest -m "requires_n3dsxl and performance" tests/performance/test_n3dsxl_streaming_smoke.py -q --basetemp artifacts\n3dsxl\20260608-230954\pytest-performance-timing`: 1 passed in 60.83s |
+| Hardware low latency timing smoke | pass | `raw_slots=2`, `poll_interval=0.004`, `collect_timing=True` の D3XX 60 秒 smoke。`artifacts\n3dsxl\20260608-233430\timing-smoke-rs2-poll4ms-60s\stream_stats.json`: `delivered_fps=59.8`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1` |
+| Adoption hardware streaming smoke | pass | low latency default 適用後、`uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_streaming.py -q --basetemp artifacts\n3dsxl\20260608-233917\pytest-e2e-rs2-poll4ms`: 1 passed in 2.86s |
+| Adoption hardware performance smoke | pass | low latency default 適用後、`uv run pytest -m "requires_n3dsxl and performance" tests/performance/test_n3dsxl_streaming_smoke.py -q --basetemp artifacts\n3dsxl\20260608-233917\pytest-performance-rs2-poll4ms`: 1 passed in 60.82s。`raw_slots=2`, `delivered_fps=59.8167`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1`, `shutdown_seconds=0.00458` |
 
 ## 8. Timing Evaluation
 
@@ -293,8 +299,39 @@ uv run pytest -m "requires_n3dsxl and performance" tests/performance -q
 | slot submit から decoded frame enqueue まで | p50 約 `submit_to_complete + completion_queue_wait + decode = 66.72ms`、p99 約 `77.26ms` | `raw_slots=4` sequential worker の queue depth を含む host pipeline latency。約 4.0 frames p50、4.6 frames p99。 |
 | 実画面変化から frame delivery まで | この artifact だけでは絶対値は確定不能 | USB payload に外部視覚 timestamp がないため、panel scanout / capture board 内部 buffering は別途 optical / timestamp fixture が必要。 |
 
-今回の artifact では、completion interval と read duration は 59.834Hz に対して妥当で、短時間の jitter 異常は見えない。改善余地として見えているのは D3XX read 自体ではなく、`raw_slots=4` sequential worker の先行 queue depth と、10ms poll loop による completion queue wait である。fast path を検討する前に、低 latency mode として raw slot 数、poll interval、processing loop wakeup を切り分ける価値がある。
+今回の baseline artifact では、completion interval と read duration は 59.834Hz に対して妥当で、短時間の jitter 異常は見えない。改善余地として見えているのは D3XX read 自体ではなく、`raw_slots=4` sequential worker の先行 queue depth と、10ms poll loop による completion queue wait である。fast path を検討する前に、低 latency mode として raw slot 数、poll interval、processing loop wakeup を切り分ける価値がある。
+
+### 8.1 Low Latency Setting Evaluation
+
+`raw_slots=2`, `poll_interval=0.004` の 60 秒 timing smoke では次の値になった。
+
+| Metric | p50 | p95 | p99 | max | frame 換算 / 評価 |
+| ------ | --- | --- | --- | --- | ----------------- |
+| `completion_interval_ms` | 16.7132ms | 16.8280ms | 16.8987ms | 17.1090ms | p50 は refresh period +0.0003ms、p99 は +0.1858ms。baseline と同等に安定。 |
+| `read_duration_ms` | 16.6844ms | 16.7977ms | 16.8633ms | 17.0943ms | p50 は 0.998 frames、p99 は 1.009 frames。read は 1 frame 周期を維持。 |
+| `backend_queue_wait_ms` | 14.0755ms | 15.9973ms | 16.1958ms | 16.5311ms | p50 は 0.84 frames、p99 は 0.97 frames。`raw_slots=4` baseline の約 3 frame queue から大きく減少。 |
+| `completion_queue_wait_ms` | 2.0391ms | 4.0448ms | 4.3392ms | 5.1419ms | poll interval 4ms により baseline の p99 約 10.1ms から半減。 |
+| `decode_ms` | 0.5848ms | 0.9045ms | 1.0519ms | 1.1919ms | decode は引き続き支配要因ではない。 |
+| `callback_to_resubmit_ms` | 2.6778ms | 4.6928ms | 5.0684ms | 6.0330ms | completion queue wait と decode を含む p99 が 0.30 frames。 |
+| `submit_to_complete_ms` | 30.7388ms | 32.6482ms | 32.8708ms | 33.0936ms | p50 は 1.84 frames、p99 は 1.97 frames。baseline の約 4 frames からほぼ半減。 |
+
+低 latency setting で推定できる遅延は次の通り。
+
+| 起点 | 推定値 | 解釈 |
+| ---- | ------ | ---- |
+| USB completion から decoded frame enqueue まで | p50 約 `2.62ms`、p99 約 `5.39ms` | host-side 追加遅延は baseline から半減。 |
+| slot submit から decoded frame enqueue まで | p50 約 `33.36ms`、p99 約 `38.26ms` | queue depth 込みで約 2.0 frames p50、2.3 frames p99。 |
+| 実画面変化から frame delivery まで | この artifact だけでは絶対値は確定不能 | capture board 内部 buffering は別途計測が必要。 |
+
+採用判断:
+
+```text
+raw_slots=2
+poll_interval=0.004
+```
+
+60 秒で fps、USB error、decode error、completion interval jitter が baseline と同等に安定し、submit 起点 latency と completion queue wait は大きく下がった。したがって、この Work Unit の low latency default として採用する。
 
 ## 9. Completion Notes
 
-今回の完了条件は「fast path を入れる」ことではなく「fast path が必要かを判断する計測を入れる」こととする。実機 timing smoke の結果、read duration と completion interval は 59.834Hz の frame period に整合し、decode も p99 約 1.15ms と小さい。一方で submit 起点の latency は raw slot queue depth を含み約 4 frame 規模になるため、次の低 latency 検討では fast path 直行ではなく raw slots / poll interval / wakeup path の切り分けを優先する。
+今回の完了条件は「fast path を入れる」ことではなく「fast path が必要かを判断する計測を入れる」こととする。実機 timing smoke の結果、read duration と completion interval は 59.834Hz の frame period に整合し、decode も小さい。`raw_slots=2`, `poll_interval=0.004` では安定性を維持したまま host pipeline latency が約 2 frame 規模まで下がったため、fast path 直行ではなくこの低 latency default を採用する。
