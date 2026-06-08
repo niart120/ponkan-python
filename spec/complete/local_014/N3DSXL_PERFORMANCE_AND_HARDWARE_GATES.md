@@ -187,7 +187,7 @@ stats JSON:
   "product_string": "N3DSXL",
   "mode_3d": false,
   "duration_seconds": 60,
-  "raw_slots": 4,
+  "raw_slots": 2,
   "output_queue_size": 2,
   "drop_policy": "drop_oldest",
   "submitted": 0,
@@ -321,6 +321,7 @@ uv run python -m py3dscapture.tools.stream_n3dsxl --duration 60 --noop-consumer 
 | hardware E2E suite | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests/e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。raw `.bin` / `.json` artifacts を保存。 |
 | performance smoke | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_RUN_PERFORMANCE=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest -m "requires_n3dsxl and performance" tests\performance -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-performance`: 1 passed。 |
 | performance stats | pass | `artifacts\n3dsxl\20260608-185720\pytest-performance\test_n3dsxl_streaming_60_secon0\n3dsxl\performance-smoke\stream_stats.json`: `backend_kind=d3xx`, `product_string=N3DSXL.2`, `delivered_fps=59.8`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1`, `shutdown_seconds=0.01651809993200004`。 |
+| low latency default performance | pass | 2026-06-08: `local_021` で `raw_slots=2`, `poll_interval=0.004` を採用後、`artifacts\n3dsxl\20260608-233917\pytest-performance-rs2-poll4ms\test_n3dsxl_streaming_60_secon0\n3dsxl\performance-smoke\stream_stats.json`: `delivered_fps=59.81666666666667`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1`, `shutdown_seconds=0.0045770000433549285`。 |
 
 ### 7.4 Deferred
 

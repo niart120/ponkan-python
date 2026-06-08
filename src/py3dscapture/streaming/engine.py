@@ -11,7 +11,7 @@ from py3dscapture.protocol.layout_3ds import decode_rgb8_2d
 from py3dscapture.protocol.sizes import capture_size, video_size
 from py3dscapture.streaming.buffers import BufferPool, RawFrameResult, RawFrameSlot
 from py3dscapture.streaming.policies import BoundedFrameQueue, DropPolicy, put_frame_with_policy
-from py3dscapture.streaming.stats import StreamStats
+from py3dscapture.streaming.stats import StreamStats, StreamTimingCollector, TimingSummary
 from py3dscapture.transport.libusb_async import AsyncTransferBackend
 
 Decoder = Callable[[bytes], CaptureFrame]
@@ -29,11 +29,12 @@ class StreamingEngine:
         self,
         backend: AsyncTransferBackend,
         *,
-        raw_slots: int = 4,
+        raw_slots: int = 2,
         raw_slot_size: int | None = None,
         output_queue_size: int = 2,
         drop_policy: DropPolicy = "drop_oldest",
         decoder: Decoder | None = None,
+        collect_timing: bool = False,
     ) -> None:
         """Create a streaming engine over an async transfer backend.
 
@@ -47,6 +48,8 @@ class StreamingEngine:
             drop_policy: Overflow behavior for decoded-frame delivery.
             decoder: Optional raw-video decoder used for tests or alternate
                 decode strategies.
+            collect_timing: Collect per-transfer timing samples and expose a
+                summary through ``timing_summary`` when true.
 
         Raises:
             ValueError: Slot or queue sizes are not positive.
@@ -61,6 +64,7 @@ class StreamingEngine:
         self._completion_queue: queue.Queue[RawFrameResult] = queue.Queue(maxsize=raw_slots)
         self._running = False
         self._next_sequence = 0
+        self._timing = StreamTimingCollector() if collect_timing else None
 
     def start(self) -> None:
         """Submit initial raw-slot async reads.
@@ -159,8 +163,21 @@ class StreamingEngine:
         """
         return self._stats.snapshot()
 
+    def timing_summary(self) -> TimingSummary | None:
+        """Return opt-in timing summary for completed samples.
+
+        Returns:
+            Timing summary when collection is enabled, otherwise ``None``.
+        """
+        if self._timing is None:
+            return None
+        return self._timing.summary()
+
     def _submit_slot(self, slot: RawFrameSlot) -> None:
         slot.submitted_ns = time.monotonic_ns()
+        slot.backend_started_ns = None
+        slot.completed_ns = None
+        slot.transferred = 0
         slot.sequence = self._next_sequence
         self._next_sequence += 1
         self.backend.submit_read(
@@ -180,15 +197,36 @@ class StreamingEngine:
         slot = self.buffer_pool.get(slot_index)
         slot.completed_ns = completed_ns
         slot.transferred = transferred
+        submitted_ns = slot.submitted_ns
+        backend_started_ns = slot.backend_started_ns
         sequence = 0 if slot.sequence is None else slot.sequence
         result = RawFrameResult(
             slot_index=slot_index,
             view=slot.view,
             transferred=transferred,
             status=status,
+            submitted_ns=submitted_ns,
+            backend_started_ns=backend_started_ns,
             completed_ns=completed_ns,
             sequence=sequence,
         )
+        if self._timing is not None:
+            self._timing.record_completion_interval(completed_ns)
+            if submitted_ns is not None:
+                self._timing.record_ns_delta(
+                    "submit_to_complete_ms",
+                    completed_ns - submitted_ns,
+                )
+                if backend_started_ns is not None:
+                    self._timing.record_ns_delta(
+                        "backend_queue_wait_ms",
+                        backend_started_ns - submitted_ns,
+                    )
+            if backend_started_ns is not None:
+                self._timing.record_ns_delta(
+                    "read_duration_ms",
+                    completed_ns - backend_started_ns,
+                )
         try:
             self._completion_queue.put_nowait(result)
         except queue.Full:
@@ -198,6 +236,12 @@ class StreamingEngine:
             self._stats.completed += 1
 
     def _process_result(self, result: RawFrameResult) -> None:
+        if self._timing is not None:
+            process_started_ns = time.monotonic_ns()
+            self._timing.record_ns_delta(
+                "completion_queue_wait_ms",
+                process_started_ns - result.completed_ns,
+            )
         try:
             if result.status != 0:
                 self._stats.usb_errors += 1
@@ -207,7 +251,17 @@ class StreamingEngine:
                 self._stats.dropped_raw += 1
                 return
             raw_video = bytes(result.view[:expected_video_size])
-            frame = self._decoder(raw_video)
+            if self._timing is None:
+                frame = self._decoder(raw_video)
+            else:
+                decode_started_ns = time.monotonic_ns()
+                try:
+                    frame = self._decoder(raw_video)
+                finally:
+                    self._timing.record_ns_delta(
+                        "decode_ms",
+                        time.monotonic_ns() - decode_started_ns,
+                    )
             frame.sequence = result.sequence
             frame.timestamp_ns = result.completed_ns
             self._stats.decoded += 1
@@ -218,6 +272,12 @@ class StreamingEngine:
         finally:
             self.buffer_pool.release(result.slot_index)
             if self._running:
+                if self._timing is not None:
+                    resubmit_started_ns = time.monotonic_ns()
+                    self._timing.record_ns_delta(
+                        "callback_to_resubmit_ms",
+                        resubmit_started_ns - result.completed_ns,
+                    )
                 self._submit_slot(self.buffer_pool.checkout(result.slot_index))
 
 

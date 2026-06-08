@@ -2,6 +2,7 @@ import asyncio
 import time
 
 import numpy as np
+import pytest
 
 from py3dscapture.image.frame import CaptureFrame
 from py3dscapture.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS, video_size
@@ -25,11 +26,20 @@ class _FakeAsyncBackend:
         self.calls.append("submit")
         self.submitted.append((slot.index, length, callback))
 
-    def complete(self, submit_index: int, payload: bytes, *, status: int = 0) -> None:
+    def complete(
+        self,
+        submit_index: int,
+        payload: bytes,
+        *,
+        status: int = 0,
+        backend_started_ns: int | None = None,
+        completed_ns: int | None = None,
+    ) -> None:
         slot_index, _length, callback = self.submitted[submit_index]
         slot = self._slot_lookup[slot_index]
         slot.buffer[: len(payload)] = payload
-        callback(slot_index, len(payload), status, time.monotonic_ns())
+        slot.backend_started_ns = backend_started_ns
+        callback(slot_index, len(payload), status, completed_ns or time.monotonic_ns())
 
     def bind_slots(self, slots: tuple[RawFrameSlot, ...]) -> None:
         self._slot_lookup = {slot.index: slot for slot in slots}
@@ -128,6 +138,97 @@ def test_short_transfer_is_not_decoded() -> None:
     assert engine.stats().decoded == 0
     assert engine.stats().dropped_raw == 1
     assert len(backend.submitted) == 2
+
+
+def test_timing_summary_collects_opt_in_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
+    clock_ticks = iter(
+        [
+            1_000_000_000,
+            1_020_000_000,
+            1_021_000_000,
+            1_024_000_000,
+            1_030_000_000,
+            1_031_000_000,
+        ]
+    )
+    monkeypatch.setattr(time, "monotonic_ns", lambda: next(clock_ticks))
+    backend = _FakeAsyncBackend()
+    engine = StreamingEngine(
+        backend,
+        raw_slots=1,
+        raw_slot_size=video_size(False),
+        decoder=_DecoderSpy(),
+        collect_timing=True,
+    )
+    backend.bind_slots(engine.buffer_pool.slots)
+    engine.start()
+
+    backend.complete(
+        0,
+        _raw_payload(),
+        backend_started_ns=1_005_000_000,
+        completed_ns=1_015_000_000,
+    )
+    engine.process_completed(limit=1)
+
+    summary = engine.timing_summary()
+    assert summary is not None
+    assert summary["backend_queue_wait_ms"] == {
+        "count": 1,
+        "min": 5.0,
+        "p50": 5.0,
+        "p95": 5.0,
+        "p99": 5.0,
+        "max": 5.0,
+        "mean": 5.0,
+    }
+    assert summary["read_duration_ms"]["mean"] == 10.0
+    assert summary["submit_to_complete_ms"]["mean"] == 15.0
+    assert summary["completion_queue_wait_ms"]["mean"] == 5.0
+    assert summary["decode_ms"]["mean"] == 3.0
+    assert summary["callback_to_resubmit_ms"]["mean"] == 15.0
+
+
+def test_short_transfer_records_timing_without_decode_sample() -> None:
+    backend = _FakeAsyncBackend()
+    engine = StreamingEngine(
+        backend,
+        raw_slots=1,
+        raw_slot_size=video_size(False),
+        decoder=_DecoderSpy(),
+        collect_timing=True,
+    )
+    backend.bind_slots(engine.buffer_pool.slots)
+    engine.start()
+
+    backend.complete(
+        0,
+        b"x" * (video_size(False) - 1),
+        backend_started_ns=1_005_000_000,
+        completed_ns=1_015_000_000,
+    )
+    engine.process_completed(limit=1)
+
+    summary = engine.timing_summary()
+    assert summary is not None
+    assert "decode_ms" not in summary
+    assert engine.stats().dropped_raw == 1
+
+
+def test_timing_summary_is_absent_when_disabled() -> None:
+    backend = _FakeAsyncBackend()
+    engine = StreamingEngine(
+        backend,
+        raw_slots=1,
+        raw_slot_size=video_size(False),
+        decoder=_DecoderSpy(),
+    )
+    backend.bind_slots(engine.buffer_pool.slots)
+    engine.start()
+    backend.complete(0, _raw_payload())
+    engine.process_completed(limit=1)
+
+    assert engine.timing_summary() is None
 
 
 def test_frames_iterator_delivers_decoded_frame() -> None:

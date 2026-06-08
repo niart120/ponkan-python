@@ -62,6 +62,7 @@ def test_d3xx_async_backend_reads_into_slot_and_invokes_callback() -> None:
 
     assert handle.reads == [(0x82, 8, 250)]
     assert bytes(slot.buffer[:6]) == b"abcdef"
+    assert slot.backend_started_ns is not None
     assert completions == [(0, 6, 0)]
     assert handle.closed
 

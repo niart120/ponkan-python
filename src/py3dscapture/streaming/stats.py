@@ -1,7 +1,73 @@
 """Streaming counters."""
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
+from threading import Lock
 from typing import Literal
+
+TIMING_METRIC_NAMES = (
+    "backend_queue_wait_ms",
+    "read_duration_ms",
+    "submit_to_complete_ms",
+    "completion_interval_ms",
+    "completion_queue_wait_ms",
+    "decode_ms",
+    "callback_to_resubmit_ms",
+)
+
+TimingMetricSummary = dict[str, float | int]
+TimingSummary = dict[str, TimingMetricSummary]
+
+
+@dataclass(slots=True)
+class StreamTimingCollector:
+    """Collect opt-in per-transfer timing samples for streaming reports.
+
+    The collector stores all samples in memory and summarizes them on demand.
+    This is intended for bounded smoke runs, not indefinite production
+    telemetry.
+    """
+
+    _samples: dict[str, list[float]] = field(
+        default_factory=lambda: {name: [] for name in TIMING_METRIC_NAMES}
+    )
+    _last_completed_ns: int | None = None
+    _lock: Lock = field(default_factory=Lock)
+
+    def record_ns_delta(self, metric: str, delta_ns: int) -> None:
+        """Record one non-negative nanosecond delta as milliseconds.
+
+        Args:
+            metric: Metric name from ``TIMING_METRIC_NAMES``.
+            delta_ns: Duration in nanoseconds.
+        """
+        if delta_ns < 0:
+            return
+        with self._lock:
+            self._samples[metric].append(delta_ns / 1_000_000)
+
+    def record_completion_interval(self, completed_ns: int) -> None:
+        """Record interval from the previous backend completion.
+
+        Args:
+            completed_ns: Monotonic timestamp for the current completion.
+        """
+        with self._lock:
+            if self._last_completed_ns is not None:
+                delta_ns = completed_ns - self._last_completed_ns
+                if delta_ns >= 0:
+                    self._samples["completion_interval_ms"].append(delta_ns / 1_000_000)
+            self._last_completed_ns = completed_ns
+
+    def summary(self) -> TimingSummary:
+        """Return count/min/percentile/max/mean summaries by metric.
+
+        Returns:
+            JSON-serializable timing summary. Metrics without samples are
+            omitted.
+        """
+        with self._lock:
+            samples = {name: tuple(values) for name, values in self._samples.items()}
+        return {name: _summarize_metric(values) for name, values in samples.items() if values}
 
 
 @dataclass(slots=True)
@@ -80,6 +146,7 @@ class PerformanceStats:
     last_error: str | None
     shutdown_seconds: float
     delivered_fps: float
+    timing: TimingSummary | None = None
 
     @classmethod
     def from_stream_stats(
@@ -96,6 +163,7 @@ class PerformanceStats:
         shutdown_seconds: float,
         backend_kind: Literal["libusb", "d3xx"] = "libusb",
         driver_service: str | None = None,
+        timing: TimingSummary | None = None,
     ) -> "PerformanceStats":
         """Build a performance report from streaming counters.
 
@@ -112,11 +180,17 @@ class PerformanceStats:
             shutdown_seconds: Time spent stopping the engine.
             backend_kind: Transport backend used for the run.
             driver_service: Optional Windows driver service observed.
+            timing: Optional timing summary collected by ``StreamingEngine``.
 
         Returns:
             Frozen JSON-serializable performance report.
         """
         delivered_fps = stats.delivered / duration_seconds if duration_seconds > 0 else 0.0
+        timing_copy = (
+            {metric: dict(summary) for metric, summary in timing.items()}
+            if timing is not None
+            else None
+        )
         return cls(
             model="new_3ds_xl",
             product_string=product_string,
@@ -140,12 +214,40 @@ class PerformanceStats:
             last_error=stats.last_error,
             shutdown_seconds=shutdown_seconds,
             delivered_fps=delivered_fps,
+            timing=timing_copy,
         )
 
-    def to_dict(self) -> dict[str, bool | float | int | str | None]:
+    def to_dict(self) -> dict[str, object]:
         """Return JSON-serializable performance stats.
 
         Returns:
             Dictionary form suitable for JSON artifact output.
         """
-        return asdict(self)
+        payload = asdict(self)
+        if self.timing is None:
+            payload.pop("timing")
+        return payload
+
+
+def _summarize_metric(values: tuple[float, ...]) -> TimingMetricSummary:
+    ordered = tuple(sorted(values))
+    count = len(ordered)
+    return {
+        "count": count,
+        "min": ordered[0],
+        "p50": _percentile(ordered, 0.50),
+        "p95": _percentile(ordered, 0.95),
+        "p99": _percentile(ordered, 0.99),
+        "max": ordered[-1],
+        "mean": sum(ordered) / count,
+    }
+
+
+def _percentile(values: tuple[float, ...], percentile: float) -> float:
+    if len(values) == 1:
+        return values[0]
+    position = (len(values) - 1) * percentile
+    lower_index = int(position)
+    upper_index = min(lower_index + 1, len(values) - 1)
+    fraction = position - lower_index
+    return values[lower_index] + (values[upper_index] - values[lower_index]) * fraction

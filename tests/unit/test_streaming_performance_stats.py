@@ -71,3 +71,42 @@ def test_performance_stats_zero_duration_reports_zero_fps() -> None:
     )
 
     assert stats.delivered_fps == 0.0
+
+
+def test_performance_stats_include_timing_when_supplied() -> None:
+    stats = PerformanceStats.from_stream_stats(
+        StreamStats(delivered=1),
+        product_string=None,
+        product_string_status="unreadable",
+        mode_3d=False,
+        duration_seconds=1.0,
+        raw_slots=4,
+        output_queue_size=2,
+        drop_policy="drop_oldest",
+        shutdown_seconds=0.0,
+        backend_kind="d3xx",
+        driver_service="FTDIBUS3",
+        timing={
+            "read_duration_ms": {
+                "count": 1,
+                "min": 2.0,
+                "p50": 2.0,
+                "p95": 2.0,
+                "p99": 2.0,
+                "max": 2.0,
+                "mean": 2.0,
+            }
+        },
+    )
+
+    assert stats.to_dict()["timing"] == {
+        "read_duration_ms": {
+            "count": 1,
+            "min": 2.0,
+            "p50": 2.0,
+            "p95": 2.0,
+            "p99": 2.0,
+            "max": 2.0,
+            "mean": 2.0,
+        }
+    }
