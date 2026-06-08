@@ -31,7 +31,18 @@ USB_CAPTURE_ALIGNMENT_BYTES: Final = 1024
 
 @dataclass(frozen=True, slots=True)
 class CaptureSizes:
-    """Calculated raw capture sizes for one transfer mode."""
+    """Calculated raw capture sizes for one transfer mode.
+
+    Attributes:
+        mode_3d: Whether these values describe the N3DSXL 3D transfer layout.
+        video_size: RGB8 video payload bytes at the start of a transfer.
+        audio_size: Audio buffer bytes present in the cc3dsfs structure.
+        struct_total_before_1024_floor: Size before the cc3dsfs 1024-byte floor
+            operation.
+        capture_size: Bulk transfer size after 1024-byte alignment flooring.
+        max_non_error_transferred: Largest transfer length that does not overlap
+            the error buffer.
+    """
 
     mode_3d: bool
     video_size: int
@@ -42,7 +53,14 @@ class CaptureSizes:
 
 
 def video_size(mode_3d: bool) -> int:
-    """Return RGB8 video payload bytes for 2D or 3D mode."""
+    """Return RGB8 video payload bytes for 2D or 3D mode.
+
+    Args:
+        mode_3d: Include the right-eye top screen when true.
+
+    Returns:
+        Number of RGB8 video bytes before audio, unused, and error buffers.
+    """
     stacked_screen_width = TOP_WIDTH_3DS + BOTTOM_WIDTH_3DS
     if mode_3d:
         stacked_screen_width += TOP_WIDTH_3DS
@@ -50,25 +68,54 @@ def video_size(mode_3d: bool) -> int:
 
 
 def struct_total_before_1024_floor(mode_3d: bool) -> int:
-    """Return the C capture struct size before cc3dsfs' 1024-byte floor operation."""
+    """Return the C capture struct size before cc3dsfs' 1024-byte floor operation.
+
+    Args:
+        mode_3d: Include the right-eye top screen when true.
+
+    Returns:
+        Sum of video, audio, unused, and error-buffer bytes before USB transfer
+        alignment is applied.
+    """
     return (
         video_size(mode_3d) + AUDIO_SIZE_BYTES + UNUSED_BUFFER_SIZE_BYTES + ERROR_BUFFER_SIZE_BYTES
     )
 
 
 def capture_size(mode_3d: bool) -> int:
-    """Return the transfer size after the 1024-byte floor operation."""
+    """Return the transfer size after the 1024-byte floor operation.
+
+    Args:
+        mode_3d: Include the right-eye top screen when true.
+
+    Returns:
+        Bulk transfer length used by the N3DSXL read path.
+    """
     total = struct_total_before_1024_floor(mode_3d)
     return (total // USB_CAPTURE_ALIGNMENT_BYTES) * USB_CAPTURE_ALIGNMENT_BYTES
 
 
 def max_non_error_transferred(mode_3d: bool) -> int:
-    """Return the largest transfer length that does not enter the error buffer."""
+    """Return the largest transfer length that does not enter the error buffer.
+
+    Args:
+        mode_3d: Include the right-eye top screen when true.
+
+    Returns:
+        Transfer byte count threshold before the cc3dsfs error buffer starts.
+    """
     return capture_size(mode_3d) - ERROR_BUFFER_SIZE_BYTES
 
 
 def capture_sizes(mode_3d: bool) -> CaptureSizes:
-    """Return all calculated size values for one transfer mode."""
+    """Return all calculated size values for one transfer mode.
+
+    Args:
+        mode_3d: Include the right-eye top screen when true.
+
+    Returns:
+        Immutable grouped size values for metadata and characterization tests.
+    """
     total = struct_total_before_1024_floor(mode_3d)
     transfer_size = capture_size(mode_3d)
     return CaptureSizes(

@@ -18,7 +18,12 @@ Decoder = Callable[[bytes], CaptureFrame]
 
 
 class StreamingEngine:
-    """Coordinate raw async acquisition, decode handoff, and frame delivery."""
+    """Coordinate raw async acquisition, decode handoff, and frame delivery.
+
+    Transfer callbacks only enqueue raw completion metadata. Decoding and
+    decoded-frame queue policy are handled by ``process_completed`` outside the
+    callback path.
+    """
 
     def __init__(
         self,
@@ -30,7 +35,22 @@ class StreamingEngine:
         drop_policy: DropPolicy = "drop_oldest",
         decoder: Decoder | None = None,
     ) -> None:
-        """Create a streaming engine over an async transfer backend."""
+        """Create a streaming engine over an async transfer backend.
+
+        Args:
+            backend: Async transfer backend that fills raw slots and invokes a
+                completion callback.
+            raw_slots: Number of in-flight raw transfer buffers.
+            raw_slot_size: Byte size for each raw slot. Defaults to the 2D
+                capture size.
+            output_queue_size: Number of decoded frames retained for consumers.
+            drop_policy: Overflow behavior for decoded-frame delivery.
+            decoder: Optional raw-video decoder used for tests or alternate
+                decode strategies.
+
+        Raises:
+            ValueError: Slot or queue sizes are not positive.
+        """
         self.raw_slot_size = raw_slot_size or capture_size(mode_3d=False)
         self.buffer_pool = BufferPool(raw_slots=raw_slots, raw_slot_size=self.raw_slot_size)
         self.backend = backend
@@ -43,7 +63,11 @@ class StreamingEngine:
         self._next_sequence = 0
 
     def start(self) -> None:
-        """Submit initial raw_slots async reads."""
+        """Submit initial raw-slot async reads.
+
+        The method is idempotent while already running. Each slot is checked out
+        and submitted once.
+        """
         if self._running:
             return
         self._running = True
@@ -51,7 +75,12 @@ class StreamingEngine:
             self._submit_slot(self.buffer_pool.checkout(slot.index))
 
     def stop(self, timeout: float | None = None) -> None:
-        """Cancel, drain, release backend resources, and release raw slots."""
+        """Cancel, drain, release backend resources, and release raw slots.
+
+        Args:
+            timeout: Reserved for future bounded shutdown support. Current
+                shutdown drains using the backend's own semantics.
+        """
         _ = timeout
         if not self._running and self.buffer_pool.in_use_count() == 0:
             return
@@ -65,7 +94,15 @@ class StreamingEngine:
         self.backend.release()
 
     def process_completed(self, *, limit: int | None = None) -> int:
-        """Decode completed raw results outside the callback."""
+        """Decode completed raw results outside the callback.
+
+        Args:
+            limit: Maximum number of completions to process, or ``None`` to
+                process until the completion queue is empty.
+
+        Returns:
+            Number of raw completions consumed from the completion queue.
+        """
         processed = 0
         while limit is None or processed < limit:
             try:
@@ -77,7 +114,15 @@ class StreamingEngine:
         return processed
 
     def frames(self, *, max_frames: int | None = None) -> Iterator[CaptureFrame]:
-        """Yield decoded frames currently available to consumers."""
+        """Yield decoded frames currently available to consumers.
+
+        Args:
+            max_frames: Maximum number of frames to yield, or ``None`` to drain
+                all currently queued frames.
+
+        Yields:
+            Decoded frames from the output queue in delivery order.
+        """
         delivered = 0
         while max_frames is None or delivered < max_frames:
             try:
@@ -88,7 +133,15 @@ class StreamingEngine:
             yield frame
 
     async def frames_async(self, *, max_frames: int | None = None) -> AsyncIterator[CaptureFrame]:
-        """Yield decoded frames through an async iterator."""
+        """Yield decoded frames through an async iterator.
+
+        Args:
+            max_frames: Maximum number of frames to yield, or ``None`` to drain
+                all currently queued frames.
+
+        Yields:
+            Decoded frames from the output queue in delivery order.
+        """
         delivered = 0
         while max_frames is None or delivered < max_frames:
             frame = next(self.frames(max_frames=1), None)
@@ -99,7 +152,11 @@ class StreamingEngine:
             await asyncio.sleep(0)
 
     def stats(self) -> StreamStats:
-        """Return a snapshot of current stream counters."""
+        """Return a snapshot of current stream counters.
+
+        Returns:
+            Independent counter snapshot for reporting.
+        """
         return self._stats.snapshot()
 
     def _submit_slot(self, slot: RawFrameSlot) -> None:

@@ -19,24 +19,61 @@ N3DSXL_RAW_FRAME_READ_ATTEMPTS = 8
 
 
 class N3DSXLPipe(Protocol):
-    """FTD3 operations used by the N3DSXL protocol layer."""
+    """FTD3 operations used by the N3DSXL protocol layer.
+
+    Implementations may wrap libusb command payloads or the native FTDI D3XX
+    API, but they must expose the same pipe-level behavior to the protocol
+    sequence.
+    """
 
     backend_kind: str
 
     def create_pipe(self) -> None:
-        """Create the FTD3 command pipe."""
+        """Create the FTD3 command pipe.
+
+        Raises:
+            Ftd3CommandError: The backend cannot create or emulate the command
+                pipe.
+        """
         ...
 
     def abort_pipe(self, pipe: int) -> None:
-        """Abort one FTD3 pipe."""
+        """Abort one FTD3 pipe.
+
+        Args:
+            pipe: Bulk pipe or endpoint ID to abort.
+
+        Raises:
+            Ftd3CommandError: The backend reports a pipe abort failure.
+        """
         ...
 
     def set_stream_pipe(self, pipe: int, length: int) -> None:
-        """Set the stream pipe transfer length."""
+        """Set the stream pipe transfer length.
+
+        Args:
+            pipe: Bulk pipe or endpoint ID to configure.
+            length: Transfer length in bytes for streaming reads.
+
+        Raises:
+            Ftd3CommandError: The backend rejects the stream configuration.
+        """
         ...
 
     def read_pipe(self, pipe: int, length: int, timeout_ms: int = FTD3_COMMAND_TIMEOUT_MS) -> bytes:
-        """Read from one FTD3 pipe."""
+        """Read from one FTD3 pipe.
+
+        Args:
+            pipe: Bulk pipe or endpoint ID to read.
+            length: Maximum number of bytes to read.
+            timeout_ms: Backend read timeout in milliseconds.
+
+        Returns:
+            Bytes transferred by the backend.
+
+        Raises:
+            Ftd3CommandError: The backend read or required prepare step fails.
+        """
         ...
 
     def write_pipe(
@@ -45,32 +82,74 @@ class N3DSXLPipe(Protocol):
         payload: bytes,
         timeout_ms: int = FTD3_COMMAND_TIMEOUT_MS,
     ) -> int:
-        """Write to one FTD3 pipe."""
+        """Write to one FTD3 pipe.
+
+        Args:
+            pipe: Bulk pipe or endpoint ID to write.
+            payload: Bytes to send.
+            timeout_ms: Backend write timeout in milliseconds.
+
+        Returns:
+            Number of payload bytes transferred.
+
+        Raises:
+            Ftd3CommandError: The backend write or required prepare step fails.
+        """
         ...
 
     def reconnect_after_drain(self) -> None:
-        """Reconnect after the initial drain when the backend requires it."""
+        """Reconnect after the initial drain when the backend requires it.
+
+        D3XX follows cc3dsfs by closing and reopening after the initial drain;
+        libusb keeps the current session.
+        """
         ...
 
 
 class N3DSXLSessionIdentity(Protocol):
-    """Opened session identity needed for raw metadata."""
+    """Opened session identity needed for raw metadata.
+
+    Attributes:
+        candidate: Accepted N3DSXL candidate for artifact metadata.
+    """
 
     candidate: DeviceCandidate
 
 
 class N3DSXLProtocol:
-    """N3DSXL connect sequence over an accepted device and FTD3 pipe."""
+    """N3DSXL connect sequence over an accepted device and FTD3 pipe.
+
+    The protocol assumes device classification and human hardware-command
+    approval have already happened outside this class.
+    """
 
     def __init__(self, device: N3DSXLSessionIdentity, pipe: N3DSXLPipe) -> None:
-        """Create protocol orchestration for one safe device session."""
+        """Create protocol orchestration for one safe device session.
+
+        Args:
+            device: Opened session identity with an accepted N3DSXL candidate.
+            pipe: FTD3 pipe implementation used for command and bulk transfer.
+
+        Raises:
+            UnsupportedDevice: ``device.candidate`` is not an accepted
+                ``DeviceCandidate``.
+        """
         if not isinstance(device.candidate, DeviceCandidate):
             raise UnsupportedDevice
         self.device = device
         self.pipe = pipe
 
     def connect(self, *, mode_3d: bool = False) -> None:
-        """Run the 2D default connect and stream setup sequence."""
+        """Run the 2D default connect and stream setup sequence.
+
+        Args:
+            mode_3d: Requested capture mode. 3D mode is outside the current MVP
+                and is rejected.
+
+        Raises:
+            UnsupportedOperation: ``mode_3d`` is true.
+            Ftd3CommandError: Any FTD3 setup command or transfer fails.
+        """
         if mode_3d:
             raise UnsupportedOperation
 
@@ -85,7 +164,22 @@ class N3DSXLProtocol:
         self._set_2d_stream_pipe()
 
     def read_raw_frame(self, *, mode_3d: bool = False) -> RawCapture:
-        """Read one raw frame after connect."""
+        """Read one raw frame after connect.
+
+        Args:
+            mode_3d: Requested capture mode. 3D mode is outside the current MVP
+                and is rejected.
+
+        Returns:
+            Raw capture payload with N3DSXL identity metadata attached.
+
+        Raises:
+            UnsupportedOperation: ``mode_3d`` is true.
+            Ftd3CommandError: Bulk read through the selected backend fails.
+            DecodeError: The resulting raw capture is shorter than the expected
+                video region.
+            TransferOverflow: The backend reports more than the 2D capture size.
+        """
         if mode_3d:
             raise UnsupportedOperation
         transfer_size = capture_size(mode_3d=False)

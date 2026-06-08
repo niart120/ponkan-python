@@ -14,7 +14,17 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, slots=True)
 class UsbDeviceInfo:
-    """USB descriptor fields needed before opening a capture device."""
+    """USB descriptor fields needed before opening a capture device.
+
+    Attributes:
+        bus_number: USB bus number when the backend can provide it.
+        address: Device address on the bus when available.
+        vendor_id: USB vendor ID.
+        product_id: USB product ID.
+        product_string: Product string read before opening, or ``None`` when it
+            cannot be read.
+        serial_number: Optional serial number used to disambiguate devices.
+    """
 
     bus_number: int | None
     address: int | None
@@ -25,54 +35,118 @@ class UsbDeviceInfo:
 
 
 class UsbHandle(Protocol):
-    """Opened USB handle primitive."""
+    """Opened USB handle primitive.
+
+    Protocol implemented by real libusb handles and tests. Callers own closing
+    any handle returned by a backend.
+    """
 
     def detach_kernel_driver(self, interface: int) -> None:
-        """Detach the kernel driver for an interface when supported."""
+        """Detach the kernel driver for an interface when supported.
+
+        Args:
+            interface: USB interface number.
+        """
         ...
 
     def set_configuration(self, configuration: int) -> None:
-        """Select a USB configuration."""
+        """Select a USB configuration.
+
+        Args:
+            configuration: USB configuration value to select.
+        """
         ...
 
     def claim_interface(self, interface: int) -> None:
-        """Claim a USB interface."""
+        """Claim a USB interface.
+
+        Args:
+            interface: USB interface number to claim.
+        """
         ...
 
     def release_interface(self, interface: int) -> None:
-        """Release a USB interface."""
+        """Release a USB interface.
+
+        Args:
+            interface: USB interface number to release.
+        """
         ...
 
     def close(self) -> None:
-        """Close the device handle."""
+        """Close the device handle.
+
+        Implementations should make repeated close attempts harmless when the
+        underlying library permits it.
+        """
         ...
 
     def bulk_write(self, endpoint: int, payload: bytes, timeout_ms: int) -> int:
-        """Write bytes to a bulk endpoint and return transferred bytes."""
+        """Write bytes to a bulk endpoint and return transferred bytes.
+
+        Args:
+            endpoint: USB bulk OUT endpoint address.
+            payload: Bytes to transfer.
+            timeout_ms: Write timeout in milliseconds.
+
+        Returns:
+            Number of payload bytes transferred.
+        """
         ...
 
     def bulk_read(self, endpoint: int, length: int, timeout_ms: int) -> bytes:
-        """Read bytes from a bulk endpoint."""
+        """Read bytes from a bulk endpoint.
+
+        Args:
+            endpoint: USB bulk IN endpoint address.
+            length: Maximum number of bytes to read.
+            timeout_ms: Read timeout in milliseconds.
+
+        Returns:
+            Bytes returned by the backend.
+        """
         ...
 
 
 class LibusbBackend(Protocol):
-    """Device enumeration and opening primitive."""
+    """Device enumeration and opening primitive.
+
+    Backends enumerate descriptor information without sending N3DSXL commands.
+    """
 
     def iter_devices(self) -> Iterable[UsbDeviceInfo]:
-        """Iterate devices visible through the backend."""
+        """Iterate devices visible through the backend.
+
+        Returns:
+            Iterable of USB descriptors visible to this backend.
+        """
         ...
 
     def open(self, device: UsbDeviceInfo) -> UsbHandle:
-        """Open one device descriptor."""
+        """Open one device descriptor.
+
+        Args:
+            device: Descriptor identity returned by ``iter_devices``.
+
+        Returns:
+            Opened handle owned by the caller.
+        """
         ...
 
 
 class Usb1Backend:
-    """libusb1-backed implementation."""
+    """libusb1-backed implementation.
+
+    The backend imports ``usb1`` lazily so package import does not require the
+    optional USB runtime to be usable.
+    """
 
     def iter_devices(self) -> list[UsbDeviceInfo]:
-        """Return devices visible through libusb1."""
+        """Return devices visible through libusb1.
+
+        Returns:
+            List of descriptor records normalized to ``UsbDeviceInfo``.
+        """
         usb1 = import_module("usb1")
         context_factory = cast("Callable[[], object]", usb1.USBContext)
         context = context_factory()
@@ -86,7 +160,18 @@ class Usb1Backend:
             _call_method(context, "close")
 
     def open(self, device: UsbDeviceInfo) -> UsbHandle:
-        """Open a USB device by descriptor identity."""
+        """Open a USB device by descriptor identity.
+
+        Args:
+            device: Descriptor identity to match against the current device
+                list.
+
+        Returns:
+            Open libusb handle wrapper. The caller owns ``close``.
+
+        Raises:
+            DeviceOpenError: No matching device can be opened.
+        """
         usb1 = import_module("usb1")
         context_factory = cast("Callable[[], object]", usb1.USBContext)
         context = context_factory()

@@ -30,7 +30,26 @@ def run_streaming_smoke(
     driver_service: str | None = None,
     poll_interval: float = 0.01,
 ) -> PerformanceStats:
-    """Run a bounded streaming smoke loop and return performance stats."""
+    """Run a bounded streaming smoke loop and return performance stats.
+
+    Args:
+        engine: Streaming engine to start, poll, and stop.
+        duration: Requested run duration in seconds.
+        noop_consumer: Drain decoded frames without inspecting them when true.
+        product_string: USB product string recorded for the run.
+        product_string_status: Whether the product string was accepted or
+            unreadable.
+        mode_3d: Capture mode recorded in the report.
+        raw_slots: Raw slot count used by the engine.
+        output_queue_size: Decoded frame queue capacity used by the engine.
+        drop_policy: Decoded-frame overflow policy.
+        backend_kind: Transport backend recorded in the report.
+        driver_service: Optional Windows driver service recorded in the report.
+        poll_interval: Sleep interval between completion polls.
+
+    Returns:
+        JSON-serializable performance report.
+    """
     started = time.monotonic()
     engine_started = False
     shutdown_seconds = 0.0
@@ -65,7 +84,16 @@ def run_streaming_smoke(
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entrypoint."""
+    """Run the streaming smoke CLI.
+
+    Args:
+        argv: Optional command-line arguments. ``None`` uses ``sys.argv`` through
+            ``argparse``.
+
+    Returns:
+        Process status code. Zero means the smoke loop completed and requested
+        stats output was written.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--duration", type=float, default=10.0)
     parser.add_argument("--stats", action="store_true")

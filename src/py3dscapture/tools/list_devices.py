@@ -5,7 +5,15 @@ from py3dscapture.transport.libusb_backend import LibusbBackend, Usb1Backend
 
 
 def format_device_listing(listing: DeviceListing) -> str:
-    """Format candidates and rejected FTDI devices for humans."""
+    """Format candidates and rejected FTDI devices for humans.
+
+    Args:
+        listing: Classified device listing from ``list_n3dsxl_devices``.
+
+    Returns:
+        Multi-line text containing accepted candidates and rejected FTDI-family
+        devices, or a single empty-state line.
+    """
     if not listing.candidates and not listing.rejected:
         return "No N3DSXL candidates or rejected FTDI devices found."
 
@@ -32,7 +40,15 @@ def format_device_listing(listing: DeviceListing) -> str:
 
 
 def main(backend: LibusbBackend | None = None) -> int:
-    """CLI entrypoint."""
+    """Run the device-listing CLI.
+
+    Args:
+        backend: Optional backend injection for tests. ``Usb1Backend`` is used
+            when omitted.
+
+    Returns:
+        Process status code. Zero means the listing was printed.
+    """
     listing = list_n3dsxl_devices(backend or Usb1Backend())
     print(format_device_listing(listing))
     return 0
