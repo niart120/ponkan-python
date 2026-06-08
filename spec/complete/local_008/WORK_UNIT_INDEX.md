@@ -56,7 +56,8 @@
 | `spec/complete/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` | 完了済み | Step 5-6 の raw frame capture、fixture、decoder、PNG 目視確認を定義する。 |
 | `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` | 完了済み | Step 7 の async transfer、decode worker、queue、stats、shutdown を定義する。 |
 | `spec/complete/local_014/N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` | 完了済み | Step 8 と実機 gate、performance smoke、artifact 記録を定義する。 |
-| `spec/wip/local_018/N3DSXL_LAYOUT_FRAME_SYNC_INVESTIGATION.md` | 未完了追跡 | manual visual self-check で見つかった表示変換・frame sync 疑いを調査する。 |
+| `spec/complete/local_018/N3DSXL_LAYOUT_FRAME_SYNC_INVESTIGATION.md` | 完了済み | cc3dsfs FTD3 2D deinterleave により manual visual self-check の表示変換問題を解消する。 |
+| `spec/complete/local_019/N3DSXL_DECODER_API_CLEANUP.md` | 完了済み follow-up | 調査用 `decoder_version` を production API から削除し、probe candidate を tools 側へ隔離する。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -94,7 +95,8 @@ Work Unit は次の依存順に扱う。
 | 5 | `complete/local_014` | `N3DSXL_PERFORMANCE_AND_HARDWARE_GATES.md` | Step 8 | 必要 | 性能値は初回測定で更新 | hardware / performance 完了 |
 | 6 | `complete/local_015` | `N3DSXL_UNREADABLE_PRODUCT_STRING_POLICY.md` | Hardware safety | listing / open で必要 | identity policy | 完了 |
 | 7 | `complete/local_016` | `N3DSXL_D3XX_FALLBACK_BACKEND.md` | Windows D3XX fallback | 必要 | D3XX compatibility path | 完了 |
-| 8 | `wip/local_018` | `N3DSXL_LAYOUT_FRAME_SYNC_INVESTIGATION.md` | Step 6-7 follow-up | 追加 raw capture 時のみ必要 | display transform / acquisition path | 未完了 |
+| 8 | `complete/local_018` | `N3DSXL_LAYOUT_FRAME_SYNC_INVESTIGATION.md` | Step 6-7 follow-up | 不要 | display transform / acquisition path | 完了 |
+| 9 | `complete/local_019` | `N3DSXL_DECODER_API_CLEANUP.md` | Step 6-7 follow-up | 不要 | 追加なし | 完了 |
 
 Main Agent は上から順に、次を満たす最小単位を選ぶ。
 
@@ -114,7 +116,7 @@ Main Agent は、この仕様群を使う作業開始時に次を提示する。
 
 ```text
 Agentic SDD bootstrap:
-- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_017/*, spec/wip/local_018/*
+- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_019/*
 - Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <spec file + TDD item>
@@ -212,7 +214,8 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | `complete/local_014` | hardware performance smoke complete | none |
 | `complete/local_015` | hardware policy complete | none |
 | `complete/local_016` | D3XX fallback complete | none |
-| `wip/local_018` | investigation pending | display transform / frame sync |
+| `complete/local_018` | approved decoder fixed | none |
+| `complete/local_019` | decoder API cleanup complete | production `decoder_version` removed |
 
 ### 7.2 Gate Results
 
@@ -225,8 +228,9 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | Diff | pass | `git diff --check`。 |
 | Hardware E2E | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests\e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。 |
 | Performance | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_RUN_PERFORMANCE=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest -m "requires_n3dsxl and performance" tests\performance -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-performance`: 1 passed。 |
-| Manual visual self-check | fail | 2026-06-08: `artifacts\n3dsxl\20260608-191353\manual-visual` の candidate は承認不可。上下反転と top / bottom overlap 疑いを `spec/wip/local_018` に切り出した。 |
+| Manual visual self-check | pass | 2026-06-08: `artifacts\n3dsxl\20260608-191353\manual-visual-approved` の `candidate_4_*` を承認。`selected_decoder_version=4`。 |
+| Decoder API cleanup | pass | 2026-06-08: `local_019` で production API から `decoder_version` を削除し、新規 manifest を `decoder_id="ftd3_cc3dsfs_2d"` へ移行。`uv run pytest tests/unit -q`: 88 passed。 |
 
 ### 7.3 Completion Notes
 
-local_009 から local_014 は全て local complete で、実機 E2E / performance gate は D3XX fallback backend で完了した。local_012 の manual visual artifact は生成済みだが、2026-06-08 の self-check で承認不可となったため、表示変換・screen split・frame sync の追跡 Work Unit として `spec/wip/local_018` を残す。
+local_009 から local_014 は全て local complete で、実機 E2E / performance gate は D3XX fallback backend で完了した。local_012 の manual visual artifact は初回 self-check で承認不可だったが、local_018 で cc3dsfs FTD3 2D deinterleave を反映し、approved layout を確定した。production API に残った調査用 `decoder_version` の cleanup は `complete/local_019` で完了済み。
