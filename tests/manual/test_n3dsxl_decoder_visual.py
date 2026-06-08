@@ -32,14 +32,14 @@ def test_n3dsxl_raw_fixture_manual_visual_artifacts() -> None:
     except OptionalDependencyError as exc:
         pytest.skip(str(exc))
 
-    for decoder_version in range(4):
+    for decoder_version in range(5):
         assert (out_dir / f"candidate_{decoder_version}_top.png").is_file()
         assert (out_dir / f"candidate_{decoder_version}_bottom.png").is_file()
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["manual_visual_status"] == "pending"
     assert manifest["selected_decoder_version"] is None
-    assert len(manifest["outputs"]) == 8
+    assert len(manifest["outputs"]) == 10
 
 
 def _required_file_env(name: str) -> Path:

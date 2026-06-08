@@ -19,6 +19,15 @@ def _synthetic_raw_2d() -> bytes:
     return stacked.tobytes()
 
 
+def _synthetic_ftd3_raw_2d() -> bytes:
+    width_delta = TOP_WIDTH_3DS - BOTTOM_WIDTH_3DS
+    stacked = np.zeros((TOP_WIDTH_3DS + BOTTOM_WIDTH_3DS, HEIGHT_3DS, 3), dtype=np.uint8)
+    stacked[:width_delta] = [10, 11, 12]
+    stacked[width_delta::2] = [4, 5, 6]
+    stacked[width_delta + 1 :: 2] = [1, 2, 3]
+    return stacked.tobytes()
+
+
 def test_2d_synthetic_raw_decodes_to_top_bottom_shapes() -> None:
     frame = decode_rgb8_2d(_synthetic_raw_2d(), decoder_version=1)
 
@@ -28,6 +37,18 @@ def test_2d_synthetic_raw_decodes_to_top_bottom_shapes() -> None:
     assert frame.bottom.dtype == np.uint8
     assert frame.top[0, 0].tolist() == [1, 2, 3]
     assert frame.bottom[0, 0].tolist() == [4, 5, 6]
+
+
+def test_2d_ftd3_raw_uses_cc3dsfs_deinterleaved_layout() -> None:
+    frame = decode_rgb8_2d(_synthetic_ftd3_raw_2d(), decoder_version=4)
+
+    assert frame.top.shape == (HEIGHT_3DS, TOP_WIDTH_3DS, 3)
+    assert frame.bottom.shape == (HEIGHT_3DS, BOTTOM_WIDTH_3DS, 3)
+    assert {tuple(pixel) for pixel in frame.top.reshape(-1, 3)} == {
+        (1, 2, 3),
+        (10, 11, 12),
+    }
+    assert np.all(frame.bottom == [4, 5, 6])
 
 
 def test_decode_rejects_wrong_video_size() -> None:
@@ -57,7 +78,7 @@ def test_to_mosaic_centers_bottom_screen() -> None:
 def test_decoder_candidates_return_multiple_versions() -> None:
     candidates = list(iter_decoder_candidates(_synthetic_raw_2d()))
 
-    assert {version for version, _frame in candidates} == {0, 1, 2, 3}
+    assert {version for version, _frame in candidates} == {0, 1, 2, 3, 4}
 
 
 def test_to_pillow_is_lazy_optional_dependency() -> None:
@@ -120,9 +141,52 @@ def test_raw_to_png_cli_writes_candidate_files(
         == 0
     )
     assert (out_dir / "candidate_0_top.png").read_bytes() == b"png"
-    assert (out_dir / "candidate_3_bottom.png").read_bytes() == b"png"
+    assert (out_dir / "candidate_4_bottom.png").read_bytes() == b"png"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["metadata_path"] == str(metadata_path)
     assert manifest["manual_visual_status"] == "pending"
     assert manifest["selected_decoder_version"] is None
-    assert len(manifest["outputs"]) == 8
+    assert len(manifest["outputs"]) == 10
+
+
+def test_raw_to_png_cli_records_approved_decoder_selection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw_path = tmp_path / "raw_2d_001.bin"
+    metadata_path = tmp_path / "raw_2d_001.json"
+    out_dir = tmp_path / "png"
+    manifest_path = out_dir / "manual_visual_manifest.json"
+    evidence_path = out_dir / "candidate_4_top.png"
+    raw_path.write_bytes(_synthetic_ftd3_raw_2d())
+    metadata_path.write_text(
+        json.dumps({"video_size": video_size(False)}),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(CaptureFrame, "to_pillow", _fake_to_pillow)
+
+    assert (
+        raw_to_png_main(
+            [
+                str(raw_path),
+                "--metadata",
+                str(metadata_path),
+                "--out",
+                str(out_dir),
+                "--manifest",
+                str(manifest_path),
+                "--manual-visual-status",
+                "approved",
+                "--selected-decoder-version",
+                "4",
+                "--approval-evidence",
+                str(evidence_path),
+            ]
+        )
+        == 0
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["manual_visual_status"] == "approved"
+    assert manifest["selected_decoder_version"] == 4
+    assert manifest["approval_evidence"] == str(evidence_path)

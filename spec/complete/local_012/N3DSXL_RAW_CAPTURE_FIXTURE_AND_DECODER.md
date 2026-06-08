@@ -32,7 +32,7 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | ---- | ---- | ---- |
 | raw 証拠 | 実装なし | decoder 前の `.bin` と metadata を保存できる |
 | decode 回帰 | 実装なし | raw fixture から実機なしで ndarray shape/dtype を検証できる |
-| layout 仮説 | 初期仕様に pending | candidate PNG を出力し、承認済み decoder_version を固定する |
+| layout 仮説 | 初期仕様に pending | candidate PNG を出力し、承認済み decoder identity を固定する |
 | async 前 gate | なし | streaming 実装前に 1 frame capture と decoder を通す |
 
 ### 1.5 着手条件
@@ -49,11 +49,11 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | 対応 Step | Step 5: single raw frame capture、Step 6: decoder and PNG |
 | 前提 Work Unit | `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` |
 | 次 Work Unit | `spec/complete/local_013/N3DSXL_ASYNC_STREAMING_ENGINE.md` |
-| 追跡 Work Unit | `spec/wip/local_018/N3DSXL_LAYOUT_FRAME_SYNC_INVESTIGATION.md`。manual visual self-check で見つかった表示変換・frame boundary 疑いを扱う。 |
+| 追跡 Work Unit | `spec/complete/local_018/N3DSXL_LAYOUT_FRAME_SYNC_INVESTIGATION.md`。manual visual self-check で見つかった表示変換疑いは `decoder_version=4` で解消済み。production API の `decoder_version` cleanup は `spec/wip/local_019/N3DSXL_DECODER_API_CLEANUP.md` で扱う。 |
 | local task | RawCapture metadata、transfer validation、synthetic decoder、Pillow/colorspace adapter。 |
 | hardware task | raw_2d fixture capture、candidate PNG、manual visual approval。 |
 | 選択条件 | 2D connect が完了し、streaming 前の raw artifact / decoder evidence が未確定のとき。 |
-| 完了証拠 | raw fixture 保存方針、decoder_version、manual visual 状態が metadata または gate 報告に残る。 |
+| 完了証拠 | raw fixture 保存方針、approved decoder identity、manual visual 状態が metadata または gate 報告に残る。 |
 
 ## 2. 対象ファイル
 
@@ -84,7 +84,7 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | metadata を保存する | RawCapture | model、VID/PID、product string、mode、transferred、video_size、capture_size、sequence を含む | json |
 | 2D decoder を実行する | `518400` bytes | top shape `(240, 400, 3)`、bottom shape `(240, 320, 3)`、dtype `uint8` | RGB |
 | decoder candidate を出力する | raw fixture | candidate ごとの PNG を出力する | manual visual |
-| decoder_version を固定する | 目視承認済み candidate | metadata に `decoder_version` と `manual_visual_status` を記録する | golden corpus |
+| decoder identity を固定する | 目視承認済み candidate | metadata または manifest に approved decoder identity と `manual_visual_status` を記録する | `decoder_version` は local_019 で production API から削除する |
 | Pillow へ変換する | `CaptureFrame.to_pillow()` | optional dependency がある場合に `Image` を返す | import は遅延 |
 
 ### 3.2 TDD Test List
@@ -101,7 +101,7 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | green | `raw_to_png` が candidate PNG を複数出力する | new behavior | 3.1 | CLI |
 | green | 実機 raw_2d_001.bin と raw_2d_001.json を保存できる | hardware | 3.1 | D3XX fallback E2E で完了 |
 | green | `manual_visual` test が実 raw fixture から candidate PNG と manifest を出力する | manual_visual | 3.1 | `PONKAN_RUN_MANUAL_VISUAL=1` と raw/out env が必要 |
-| deferred | manual visual check で decoder_version を metadata に残す | manual_visual | 3.1 | 2026-06-08 の self-check では未承認。local_018 へ追跡 |
+| green | manual visual check で approved decoder identity を metadata / manifest に残す | manual_visual | 3.1 | local_018 で `decoder_version=4` を approved candidate として固定。local_019 で `decoder_id` へ整理 |
 
 ### 3.3 設計方針
 
@@ -113,9 +113,9 @@ Source Audit:
 | ---- | ---------- | ---- |
 | `FTD3_3DSCaptureReceived` / `_3D` struct | `include/capture_structs.hpp` | video、audio、unused、error buffer 構造を確認 |
 | `N3DSXL_SAMPLES_IN` | `include/hw_defs.hpp` | `1096 * 16` を確認。Step 0 size 計算と一致 |
-| raw video layout | `capture_structs.hpp` と `hw_defs.hpp` | 2D raw video size `240 * 720 * 3` を確認。最終 transform は manual visual で確定 |
-| decoder transform | 実機 PNG 目視 | 未確定。2026-06-08 の self-check では既存 4 candidate の承認不可を確認 |
-| screen split / frame boundary | 実機 raw artifact と cc3dsfs acquisition / display path | 未確定。`reshape((720, 240, 3))` 後の `0:400` / `400:720` 分割と raw read 開始位置を local_018 で調査 |
+| raw video layout | `capture_structs.hpp` と `hw_defs.hpp` | 2D raw video size `240 * 720 * 3` を確認。FTD3 2D deinterleave は local_018 で確定 |
+| decoder transform | 実機 PNG 目視、`source/conversions.cpp`、`source/WindowScreen.cpp` | local_018 で `decoder_version=4` を承認。先頭 80 source rows は top-only、以降は bottom/top 交互 |
+| screen split / frame boundary | 実機 raw artifact と cc3dsfs acquisition / display path | frame boundary ではなく FTD3 2D source layout 変換漏れが原因。追加実機 capture は不要 |
 
 Hardware:
 
@@ -124,7 +124,7 @@ Hardware:
 | raw capture | `@pytest.mark.requires_n3dsxl`、人間承認必須 |
 | fixture 保存 | artifact path と上書き可否を事前に説明する |
 | manual visual artifact | `@pytest.mark.manual_visual`、`PONKAN_RUN_MANUAL_VISUAL=1`、raw / metadata / out env を明示する |
-| manual visual approval | 生成 PNG を人間が確認し、承認 version を manifest または仕様へ記録する |
+| manual visual approval | 生成 PNG を人間が確認し、approved decoder identity を manifest または仕様へ記録する |
 
 ### 3.4 Agentic SDD Task Graph
 
@@ -135,7 +135,7 @@ Hardware:
 | Blocking local task | synthetic raw で top/bottom shape と dtype を固定する | decoder unit test |
 | Sidecar task | capture struct と raw layout の source audit を行う | source audit note |
 | Hardware task | `raw_2d_001.bin` と `.json` を保存する | human approval、artifact |
-| Hardware task | candidate PNG を出して manual visual で decoder_version を固定する | manual_visual result |
+| Hardware task | candidate PNG を出して manual visual で approved decoder identity を固定する | manual_visual result |
 
 この仕様は continuous streaming を実装しない。raw frame 取得は bring-up gate であり、MVP acceptance は `local_013` と `local_014` まで進んだ時点で判断する。
 
@@ -221,7 +221,7 @@ def decode_rgb8_2d(raw_video: bytes | memoryview, *, decoder_version: int) -> Ca
 def iter_decoder_candidates(raw_video: bytes | memoryview) -> Iterable[tuple[int, CaptureFrame]]: ...
 ```
 
-candidate は初回実機 raw fixture で比較する。承認済み version が決まるまで、public streaming API の既定 decoder として固定しない。
+candidate は初回実機 raw fixture で比較する。local_018 で `decoder_version=4` を approved candidate として固定したが、これは調査用 ID であり production API の長期設計ではない。local_019 で `decode_rgb8_2d(raw_video)` の引数なし API と `decoder_id` manifest へ整理する。
 
 ### 4.4 CLI
 
@@ -247,7 +247,7 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 | raw fixture pending | 実機 raw capture の command scope、保存先、上書き policy、cleanup を示して承認待ち |
 | raw fixture complete | `.bin` と `.json` の path、transferred、video_size、capture_size、product string を報告 |
 | manual visual artifact complete | candidate PNG と `manual_visual_manifest.json` の path、decoder candidates、screen size を報告 |
-| decoder approved | candidate PNG と manual visual result、承認済み `decoder_version` を metadata に残す |
+| decoder approved | candidate PNG と manual visual result、approved decoder identity を metadata / manifest に残す |
 
 実装結果:
 
@@ -260,7 +260,7 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 | raw fixture complete | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests\e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。raw artifacts は `raw_2d_001.bin` / `.json` と `raw_2d_d3xx_001.bin` / `.json`。metadata は `backend_kind=d3xx`、`product_string=N3DSXL.2`、`product_string_status=accepted`、`transferred=520588`、`video_size=518400`、`capture_size=555008`。 |
 | manual visual artifact complete | 2026-06-08: `PONKAN_RUN_MANUAL_VISUAL=1`、`PONKAN_MANUAL_VISUAL_RAW=artifacts\n3dsxl\20260608-185720\pytest-e2e\test_n3dsxl_raw_capture_fixtur0\raw_2d_001.bin`、`PONKAN_MANUAL_VISUAL_METADATA=...raw_2d_001.json`、`PONKAN_MANUAL_VISUAL_OUT=artifacts\n3dsxl\20260608-191353\manual-visual` で `uv run --extra image pytest tests\manual\test_n3dsxl_decoder_visual.py -q`: 1 passed。candidate PNG 8 件と `manual_visual_manifest.json` を保存。 |
 | manual visual self-check failed | 2026-06-08: user observation と VLM self-check で、artifact は上下反転に見えるうえ、上画面と下画面が重なったように見える。`candidate_0` / `candidate_1` / `candidate_3` は同系統で split overlap 疑い、`candidate_2` は mirrored 疑い。追加 probe `artifacts\n3dsxl\20260608-191353\manual-visual-layout-probe\layout_probe_contact.png` と `roll_probe_contact.png` でも明確な承認候補なし。 |
-| manual visual pending | 実機 PNG の目視承認と `decoder_version` 固定は未実行。既存 decoder を public streaming の確定表示変換として扱わず、local_018 へ表示変換・frame sync 調査を引き継ぐ |
+| manual visual approved | local_018 で `artifacts\n3dsxl\20260608-191353\manual-visual-approved\candidate_4_top.png` / `candidate_4_bottom.png` を承認。`manual_visual_manifest.json` は `manual_visual_status=approved`、`selected_decoder_version=4`。local_019 で新規 manifest を `decoder_id` へ移行する。 |
 
 ## 5. テスト方針
 
@@ -282,7 +282,7 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 | -------- | -------- | -------- | -------- |
 | raw capture E2E | `.bin` / `.json` 保存 | human approval | raw fixture が残る |
 | raw_to_png | candidate PNG 出力 | raw fixture | top/bottom PNG が生成される |
-| manual visual | 向き・色・分割 | generated PNG | approved decoder_version |
+| manual visual | 向き・色・分割 | generated PNG | approved decoder identity |
 
 ### 検証コマンド
 
@@ -323,3 +323,6 @@ uv run --extra image pytest -m manual_visual tests/manual/test_n3dsxl_decoder_vi
 - [x] 実機 raw fixture 保存 gate を承認後に実行し、D3XX fallback E2E で完了を確認する。
 - [x] manual visual artifact を生成し、承認結果は pending として manifest と gate 報告に残す。
 - [x] manual visual self-check の失敗結果を記録し、表示変換・frame boundary 調査を `local_018` へ切り出す。
+- [x] local_018 で `decoder_version=4` を approved candidate として固定する。
+
+Follow-up: production API から調査用 `decoder_version` を削除する作業は `spec/wip/local_019/N3DSXL_DECODER_API_CLEANUP.md` で扱う。

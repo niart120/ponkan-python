@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 from py3dscapture.image.frame import CaptureFrame
-from py3dscapture.protocol.sizes import video_size
+from py3dscapture.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS, video_size
 from py3dscapture.streaming.buffers import RawFrameSlot
 from py3dscapture.streaming.engine import StreamingEngine
 from py3dscapture.transport.libusb_async import AsyncTransferCallback
@@ -66,6 +66,15 @@ class _DecoderSpy:
 
 def _raw_payload(value: int = 1) -> bytes:
     return bytes([value]) * video_size(False)
+
+
+def _ftd3_raw_payload() -> bytes:
+    width_delta = TOP_WIDTH_3DS - BOTTOM_WIDTH_3DS
+    stacked = np.zeros((TOP_WIDTH_3DS + BOTTOM_WIDTH_3DS, HEIGHT_3DS, 3), dtype=np.uint8)
+    stacked[:width_delta] = [10, 11, 12]
+    stacked[width_delta::2] = [4, 5, 6]
+    stacked[width_delta + 1 :: 2] = [1, 2, 3]
+    return stacked.tobytes()
 
 
 def test_start_submits_raw_slots() -> None:
@@ -133,6 +142,23 @@ def test_frames_iterator_delivers_decoded_frame() -> None:
 
     assert len(frames) == 1
     assert frames[0].sequence == 0
+
+
+def test_default_decoder_uses_ftd3_cc3dsfs_layout() -> None:
+    backend = _FakeAsyncBackend()
+    engine = StreamingEngine(backend, raw_slots=1, raw_slot_size=video_size(False))
+    backend.bind_slots(engine.buffer_pool.slots)
+    engine.start()
+    backend.complete(0, _ftd3_raw_payload())
+    engine.process_completed(limit=1)
+
+    frame = next(engine.frames(max_frames=1))
+
+    assert {tuple(pixel) for pixel in frame.top.reshape(-1, 3)} == {
+        (1, 2, 3),
+        (10, 11, 12),
+    }
+    assert np.all(frame.bottom == [4, 5, 6])
 
 
 def test_frames_async_delivers_decoded_frame() -> None:

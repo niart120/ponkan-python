@@ -22,6 +22,7 @@ class DecoderVersion(IntEnum):
     TRANSPOSE = 1
     ROTATE90 = 2
     ROTATE90_FLIP = 3
+    FTD3_CC3DSFS_2D = 4
 
 
 def decode_rgb8_2d(raw_video: bytes | memoryview, *, decoder_version: int) -> CaptureFrame:
@@ -33,9 +34,12 @@ def decode_rgb8_2d(raw_video: bytes | memoryview, *, decoder_version: int) -> Ca
     stacked = np.frombuffer(raw_bytes, dtype=np.uint8).reshape(
         (TOP_WIDTH_3DS + BOTTOM_WIDTH_3DS, HEIGHT_3DS, 3)
     )
-    top_source = stacked[:TOP_WIDTH_3DS]
-    bottom_source = stacked[TOP_WIDTH_3DS:]
     version = DecoderVersion(decoder_version)
+    if version == DecoderVersion.FTD3_CC3DSFS_2D:
+        top_source, bottom_source = _split_ftd3_2d_source(stacked)
+    else:
+        top_source = stacked[:TOP_WIDTH_3DS]
+        bottom_source = stacked[TOP_WIDTH_3DS:]
     return CaptureFrame(
         top=_transform_2d_source(top_source, version),
         bottom=_transform_2d_source(bottom_source, version),
@@ -53,7 +57,19 @@ def iter_decoder_candidates(raw_video: bytes | memoryview) -> Iterable[tuple[int
         yield int(version), decode_rgb8_2d(raw_video, decoder_version=int(version))
 
 
+def _split_ftd3_2d_source(source: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    width_delta = TOP_WIDTH_3DS - BOTTOM_WIDTH_3DS
+    top_source = np.empty((TOP_WIDTH_3DS, HEIGHT_3DS, 3), dtype=np.uint8)
+    bottom_source = np.empty((BOTTOM_WIDTH_3DS, HEIGHT_3DS, 3), dtype=np.uint8)
+    top_source[:width_delta] = source[:width_delta]
+    bottom_source[:] = source[width_delta::2]
+    top_source[width_delta:] = source[width_delta + 1 :: 2]
+    return top_source, bottom_source
+
+
 def _transform_2d_source(source: np.ndarray, version: DecoderVersion) -> np.ndarray:
+    if version == DecoderVersion.FTD3_CC3DSFS_2D:
+        return np.rot90(source, k=1).copy()
     if version in {DecoderVersion.RESHAPE_ONLY, DecoderVersion.TRANSPOSE}:
         return source.transpose(1, 0, 2).copy()
     if version == DecoderVersion.ROTATE90:
