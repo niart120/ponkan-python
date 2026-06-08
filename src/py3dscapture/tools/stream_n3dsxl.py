@@ -80,6 +80,7 @@ def run_streaming_smoke(
         output_queue_size=output_queue_size,
         drop_policy=drop_policy,
         shutdown_seconds=shutdown_seconds,
+        timing=engine.timing_summary(),
     )
 
 
@@ -107,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--raw-slots", type=int, default=4)
     parser.add_argument("--output-queue-size", type=int, default=2)
+    parser.add_argument("--collect-timing", action="store_true")
     parser.add_argument(
         "--drop-policy",
         choices=("drop_oldest", "drop_newest", "block"),
@@ -123,6 +125,7 @@ def main(argv: list[str] | None = None) -> int:
         raw_slots=args.raw_slots,
         output_queue_size=args.output_queue_size,
         drop_policy=drop_policy,
+        collect_timing=args.collect_timing,
     )
     stats = run_streaming_smoke(
         engine,

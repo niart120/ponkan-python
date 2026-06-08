@@ -13,6 +13,8 @@ class RawFrameSlot:
         view: Stable memoryview over ``buffer`` for zero-copy backend writes.
         in_use: Whether the slot is checked out by an in-flight transfer.
         submitted_ns: Optional monotonic timestamp when the transfer was queued.
+        backend_started_ns: Optional monotonic timestamp when the backend worker
+            started the actual read.
         completed_ns: Optional monotonic timestamp when the transfer completed.
         transferred: Bytes reported by the backend.
         sequence: Optional streaming sequence assigned at submission time.
@@ -23,6 +25,7 @@ class RawFrameSlot:
     view: memoryview = field(init=False)
     in_use: bool = False
     submitted_ns: int | None = None
+    backend_started_ns: int | None = None
     completed_ns: int | None = None
     transferred: int = 0
     sequence: int | None = None
@@ -45,6 +48,9 @@ class RawFrameResult:
         view: Memoryview containing the completed raw bytes.
         transferred: Number of bytes reported by the backend.
         status: Backend completion status, where zero means success.
+        submitted_ns: Monotonic submission timestamp when available.
+        backend_started_ns: Monotonic backend read-start timestamp when
+            available.
         completed_ns: Monotonic completion timestamp.
         sequence: Streaming sequence assigned when the read was submitted.
     """
@@ -53,6 +59,8 @@ class RawFrameResult:
     view: memoryview
     transferred: int
     status: int
+    submitted_ns: int | None
+    backend_started_ns: int | None
     completed_ns: int
     sequence: int
 
@@ -120,6 +128,7 @@ class BufferPool:
         slot = self._slots[index]
         slot.in_use = False
         slot.submitted_ns = None
+        slot.backend_started_ns = None
         slot.completed_ns = None
         slot.transferred = 0
         slot.sequence = None

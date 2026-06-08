@@ -19,11 +19,13 @@ class _FakeEngine:
         raw_slots: int,
         output_queue_size: int,
         drop_policy: str,
+        collect_timing: bool = False,
     ) -> None:
         self.backend = backend
         self.raw_slots = raw_slots
         self.output_queue_size = output_queue_size
         self.drop_policy = drop_policy
+        self.collect_timing = collect_timing
         self.started = False
         self.stopped = False
 
@@ -42,6 +44,21 @@ class _FakeEngine:
 
     def stats(self) -> StreamStats:
         return StreamStats(submitted=4, completed=4, decoded=4, delivered=4)
+
+    def timing_summary(self) -> dict[str, dict[str, float | int]] | None:
+        if not self.collect_timing:
+            return None
+        return {
+            "read_duration_ms": {
+                "count": 1,
+                "min": 1.0,
+                "p50": 1.0,
+                "p95": 1.0,
+                "p99": 1.0,
+                "max": 1.0,
+                "mean": 1.0,
+            }
+        }
 
 
 def test_stream_cli_writes_performance_stats_json(
@@ -90,3 +107,26 @@ def test_stream_cli_writes_performance_stats_json(
         "last_error": None,
         "delivered_fps": 0.0,
     }
+
+
+def test_stream_cli_writes_timing_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    stats_path = tmp_path / "artifacts" / "n3dsxl" / "run" / "stream_stats.json"
+    monkeypatch.setattr(stream_n3dsxl, "LibusbAsyncBackend", _FakeBackend)
+    monkeypatch.setattr(stream_n3dsxl, "StreamingEngine", _FakeEngine)
+
+    exit_code = stream_n3dsxl.main(
+        [
+            "--duration",
+            "0",
+            "--collect-timing",
+            "--stats-json",
+            str(stats_path),
+        ]
+    )
+
+    assert exit_code == 0
+    stats = json.loads(stats_path.read_text(encoding="utf-8"))
+    assert stats["timing"]["read_duration_ms"]["mean"] == 1.0

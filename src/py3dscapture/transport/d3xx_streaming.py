@@ -182,6 +182,7 @@ class D3xxAsyncBackend:
     ) -> None:
         transferred = 0
         status = 0
+        slot.backend_started_ns = time.monotonic_ns()
         try:
             payload = self._handle.read_pipe(self._pipe, length, self._timeout_ms)
             payload = payload[:length]
