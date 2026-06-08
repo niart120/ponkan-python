@@ -1,7 +1,6 @@
 """Explicit native FTDI D3XX DLL surface for fast-path streaming."""
 
 import ctypes
-import ctypes.wintypes as wintypes
 from dataclasses import dataclass
 from typing import ClassVar, Protocol, cast
 
@@ -13,11 +12,13 @@ FT_TIMEOUT = 19
 FT_IO_PENDING = 24
 FT_IO_INCOMPLETE = 25
 
-FT_STATUS = wintypes.ULONG
+FT_STATUS = ctypes.c_uint32
 FT_HANDLE = ctypes.c_void_p
 UCHAR = ctypes.c_ubyte
-ULONG = wintypes.ULONG
-BOOL = wintypes.BOOL
+ULONG = ctypes.c_uint32
+BOOL = ctypes.c_int32
+DWORD = ctypes.c_uint32
+HANDLE = ctypes.c_void_p
 PULONG = ctypes.POINTER(ULONG)
 
 
@@ -70,8 +71,8 @@ class D3xxNativeApiUnavailable(CaptureError):  # noqa: N818
 
 class _NativeOffsetPair(ctypes.Structure):
     _fields_: ClassVar[list[tuple[str, object]]] = [
-        ("Offset", wintypes.DWORD),
-        ("OffsetHigh", wintypes.DWORD),
+        ("Offset", DWORD),
+        ("OffsetHigh", DWORD),
     ]
 
 
@@ -89,7 +90,7 @@ class NativeOverlapped(ctypes.Structure):
         ("Internal", ctypes.c_size_t),
         ("InternalHigh", ctypes.c_size_t),
         ("u", _NativeOffsetUnion),
-        ("hEvent", wintypes.HANDLE),
+        ("hEvent", HANDLE),
     ]
 
 
