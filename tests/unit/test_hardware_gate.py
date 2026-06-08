@@ -1,6 +1,7 @@
 from py3dscapture.hardware_gate import (
     HardwareCommandPlan,
     hardware_approved,
+    manual_visual_tests_enabled,
     performance_tests_enabled,
     requires_n3dsxl_tests_enabled,
 )
@@ -14,6 +15,10 @@ def test_hardware_env_flags_require_exact_one() -> None:
     assert not performance_tests_enabled({})
     assert not performance_tests_enabled({"PONKAN_RUN_PERFORMANCE": "yes"})
     assert performance_tests_enabled({"PONKAN_RUN_PERFORMANCE": "1"})
+
+    assert not manual_visual_tests_enabled({})
+    assert not manual_visual_tests_enabled({"PONKAN_RUN_MANUAL_VISUAL": "yes"})
+    assert manual_visual_tests_enabled({"PONKAN_RUN_MANUAL_VISUAL": "1"})
 
     assert not hardware_approved({})
     assert not hardware_approved({"PONKAN_HARDWARE_APPROVED": "yes"})

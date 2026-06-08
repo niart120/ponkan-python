@@ -1,3 +1,4 @@
+import json
 from os import PathLike, fspath
 from pathlib import Path
 
@@ -71,6 +72,8 @@ def test_to_pillow_is_lazy_optional_dependency() -> None:
 
 
 class _FakeImage:
+    size = (1, 1)
+
     def save(self, fp: object) -> object:
         if not isinstance(fp, str | PathLike):
             raise TypeError
@@ -91,11 +94,35 @@ def test_raw_to_png_cli_writes_candidate_files(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     raw_path = tmp_path / "raw_2d_001.bin"
+    metadata_path = tmp_path / "raw_2d_001.json"
     out_dir = tmp_path / "png"
-    raw_path.write_bytes(_synthetic_raw_2d())
+    manifest_path = out_dir / "manual_visual_manifest.json"
+    raw_path.write_bytes(_synthetic_raw_2d() + b"transfer suffix")
+    metadata_path.write_text(
+        json.dumps({"video_size": video_size(False)}),
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr(CaptureFrame, "to_pillow", _fake_to_pillow)
 
-    assert raw_to_png_main([str(raw_path), "--out", str(out_dir)]) == 0
+    assert (
+        raw_to_png_main(
+            [
+                str(raw_path),
+                "--metadata",
+                str(metadata_path),
+                "--out",
+                str(out_dir),
+                "--manifest",
+                str(manifest_path),
+            ]
+        )
+        == 0
+    )
     assert (out_dir / "candidate_0_top.png").read_bytes() == b"png"
     assert (out_dir / "candidate_3_bottom.png").read_bytes() == b"png"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["metadata_path"] == str(metadata_path)
+    assert manifest["manual_visual_status"] == "pending"
+    assert manifest["selected_decoder_version"] is None
+    assert len(manifest["outputs"]) == 8

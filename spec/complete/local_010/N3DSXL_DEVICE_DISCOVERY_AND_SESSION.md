@@ -41,7 +41,7 @@ new 3DS XL capture board は FTDI VID を使うが、FTDI VID だけでは対象
 
 - [x] `spec/complete/local_009/N3DSXL_DEVICE_IDENTITY_AND_SIZES.md` の identity constants が存在する。
 - [x] libusb binding の薄い wrapper 方針を決める。
-- [ ] 実機 E2E を実行する場合、new 3DS XL capture board の接続と人間承認がある。
+- [x] 実機 E2E を実行する場合、new 3DS XL capture board の接続と人間承認がある。
 
 ### 1.6 Work Unit メタデータ
 
@@ -96,7 +96,7 @@ new 3DS XL capture board は FTDI VID を使うが、FTDI VID だけでは対象
 | green | interface 1 claim 失敗時に interface 0 release と handle close が呼ばれる | regression | 3.1 | cleanup |
 | green | close は冪等で複数回呼んでも安全 | regression | 3.1 | cleanup |
 | green | list_devices CLI が candidate と rejected reason を表示する | new behavior | 3.1 | stdout snapshot は過度に固定しない |
-| deferred | 実機 open -> claim -> close が複数回成功する | hardware | 3.1 | `requires_n3dsxl`。人間承認待ち |
+| green | 実機 open -> claim -> close が複数回成功する | hardware | 3.1 | D3XX fallback E2E で完了 |
 
 ### 3.3 設計方針
 
@@ -243,7 +243,7 @@ failure cleanup:
 | local complete | `uv run pytest tests\unit\test_n3dsxl_device_filter.py tests\unit\test_n3dsxl_session.py tests\unit\test_n3dsxl_list_devices_cli.py -q` が 11 passed |
 | unit regression | `uv run pytest tests\unit -q` が 16 passed |
 | static | `uv run ruff check src tests` と `uv run ty check --no-progress` が pass |
-| hardware pending | `uv run pytest tests\e2e\test_n3dsxl_open_close.py -q` は `PONKAN_RUN_N3DSXL` 未設定で skip。実機 command は未実行 |
+| hardware complete | 2026-06-08: device identity は libusb listing `0x0403:0x601e product_status=unreadable`、D3XX listing `0x0403:0x601e product=N3DSXL.2 serial=nxl530228`。`PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests\e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。open/close gate を含む。 |
 | source audit | `3dscapture_ftd3_libusb_comms.cpp` の libusb setup と `3dscapture_ftd3_shared.cpp` の accepted product string を確認 |
 
 ## 5. テスト方針
@@ -291,4 +291,4 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_open_close.py
 - [x] `N3DSXLDevice.open()` と `close()` を実装する。
 - [x] 実機 E2E test に `requires_n3dsxl` marker を付ける。
 - [x] local unit gate を実行する。
-- [x] 実機 gate は人間承認まで未実行として報告する。
+- [x] 実機 gate を承認後に実行し、D3XX fallback E2E で完了を確認する。

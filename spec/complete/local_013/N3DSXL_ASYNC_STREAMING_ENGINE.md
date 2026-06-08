@@ -44,7 +44,7 @@ callback 内で decode、Pillow 変換、blocking queue put、同期 libusb API 
 - [x] `spec/complete/local_012/N3DSXL_RAW_CAPTURE_FIXTURE_AND_DECODER.md` の 2D decoder と CaptureFrame が実装済み。
 - [x] `spec/complete/local_011/N3DSXL_FTD3_PIPE_AND_CONNECT.md` の 2D connect が実装済み。
 - [x] libusb binding が async transfer、callback、cancel、event handling を扱えることを確認済み。
-- [ ] 実機 streaming E2E を実行する場合、人間承認がある。
+- [x] 実機 streaming E2E を実行する場合、人間承認がある。
 
 ### 1.6 Work Unit メタデータ
 
@@ -109,7 +109,7 @@ callback 内で decode、Pillow 変換、blocking queue put、同期 libusb API 
 | green | callback 内で decoder が呼ばれない | safety | 3.1 | fake spy |
 | green | `frames()` が CaptureFrame iterator として動く | new behavior | 3.1 | fake engine |
 | green | `frames_async()` が async iterator として動く | new behavior | 3.1 | fake engine |
-| deferred | 実機で 10 秒 streaming でき、stats が出る | hardware | 3.1 | `requires_n3dsxl`。人間承認待ち |
+| green | 実機で streaming でき、stats が出る | hardware | 3.1 | D3XX fallback E2E で完了 |
 
 ### 3.3 設計方針
 
@@ -277,7 +277,7 @@ def put_frame_with_policy(
 | local complete | `uv run pytest tests\unit\test_streaming_buffers.py tests\unit\test_streaming_policies.py tests\unit\test_streaming_engine_fake_async.py -q` が 11 passed |
 | unit regression | `uv run pytest tests\unit -q` が 50 passed |
 | static | `uv run ruff format --check .`、`uv run ruff check src tests`、`uv run ty check --no-progress` が pass |
-| hardware pending | `uv run pytest tests\e2e -q` は `PONKAN_RUN_N3DSXL` 未設定で 5 skipped。実機 streaming は未実行 |
+| hardware complete | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests\e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。streaming gate を含む。 |
 | callback safety | fake backend test で callback 後 `process_completed()` まで decoder が呼ばれないことを確認 |
 | shutdown | fake backend test で `cancel_all -> drain -> release` の順序を確認 |
 
@@ -337,4 +337,4 @@ uv run python -m py3dscapture.tools.stream_n3dsxl --duration 10 --stats
 - [x] `streaming/*` を実装する。
 - [x] public `frames()` / `frames_async()` を実装する。
 - [x] `stream_n3dsxl` CLI を実装する。
-- [x] 実機 streaming E2E は人間承認まで未実行として報告する。
+- [x] 実機 streaming E2E を承認後に実行し、D3XX fallback E2E で完了を確認する。
