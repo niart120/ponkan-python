@@ -63,10 +63,11 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | `src/py3dscapture/image/frame.py` | 新規 | `CaptureFrame` data model と adapter を定義する。 |
 | `src/py3dscapture/protocol/layout_3ds.py` | 新規 | raw RGB8 video buffer を top/bottom に変換する。 |
 | `src/py3dscapture/tools/capture_raw.py` | 新規 | raw capture CLI を提供する。 |
-| `src/py3dscapture/tools/raw_to_png.py` | 新規 | raw fixture から PNG を出力する。 |
+| `src/py3dscapture/tools/raw_to_png.py` | 新規/修正 | raw fixture から PNG と manual visual manifest を出力する。metadata 指定時は `video_size` で video region を切り出す。 |
 | `tests/unit/test_raw_capture_metadata.py` | 新規 | metadata schema と validation を検証する。 |
 | `tests/unit/test_layout_3ds_decoder.py` | 新規 | synthetic / golden fixture で decoder を検証する。 |
 | `tests/e2e/test_n3dsxl_raw_capture.py` | 新規 | 実機 raw capture と fixture 保存を検証する。 |
+| `tests/manual/test_n3dsxl_decoder_visual.py` | 新規 | 実機 raw fixture から candidate PNG と manifest を生成する manual visual gate。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -98,6 +99,7 @@ raw capture struct には video、audio、unused buffer、error buffer が含ま
 | green | Pillow 未導入時の `to_pillow()` error が分かりやすい | regression | 3.1 | optional dependency |
 | green | `raw_to_png` が candidate PNG を複数出力する | new behavior | 3.1 | CLI |
 | green | 実機 raw_2d_001.bin と raw_2d_001.json を保存できる | hardware | 3.1 | D3XX fallback E2E で完了 |
+| green | `manual_visual` test が実 raw fixture から candidate PNG と manifest を出力する | manual_visual | 3.1 | `PONKAN_RUN_MANUAL_VISUAL=1` と raw/out env が必要 |
 | deferred | manual visual check で decoder_version を metadata に残す | manual_visual | 3.1 | 人間確認待ち |
 
 ### 3.3 設計方針
@@ -119,7 +121,8 @@ Hardware:
 | ---- | ---- |
 | raw capture | `@pytest.mark.requires_n3dsxl`、人間承認必須 |
 | fixture 保存 | artifact path と上書き可否を事前に説明する |
-| manual visual | `@pytest.mark.manual_visual` または明示的な報告として扱う |
+| manual visual artifact | `@pytest.mark.manual_visual`、`PONKAN_RUN_MANUAL_VISUAL=1`、raw / metadata / out env を明示する |
+| manual visual approval | 生成 PNG を人間が確認し、承認 version を manifest または仕様へ記録する |
 
 ### 3.4 Agentic SDD Task Graph
 
@@ -229,7 +232,7 @@ uv run python -m py3dscapture.tools.capture_raw --model new_3ds_xl --out tests/f
 raw to PNG:
 
 ```console
-uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.bin --metadata tests/fixtures/n3dsxl/raw_2d_001.json --out tests/fixtures/n3dsxl/
+uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.bin --metadata tests/fixtures/n3dsxl/raw_2d_001.json --out tests/fixtures/n3dsxl/ --manifest tests/fixtures/n3dsxl/manual_visual_manifest.json
 ```
 
 `capture_raw` は `.bin` と `.json` を同じ stem で保存する。既存 file 上書きは `--force` なしでは拒否する。
@@ -241,6 +244,7 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 | local complete | metadata、validation、decoder、colorspace の unit test が通る |
 | raw fixture pending | 実機 raw capture の command scope、保存先、上書き policy、cleanup を示して承認待ち |
 | raw fixture complete | `.bin` と `.json` の path、transferred、video_size、capture_size、product string を報告 |
+| manual visual artifact complete | candidate PNG と `manual_visual_manifest.json` の path、decoder candidates、screen size を報告 |
 | decoder approved | candidate PNG と manual visual result、承認済み `decoder_version` を metadata に残す |
 
 実装結果:
@@ -252,7 +256,8 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 | unit regression | `uv run pytest tests\unit -q` が 39 passed |
 | static | `uv run ruff format --check .`、`uv run ruff check src tests`、`uv run ty check --no-progress` が pass |
 | raw fixture complete | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest tests\e2e -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-e2e`: 10 passed。raw artifacts は `raw_2d_001.bin` / `.json` と `raw_2d_d3xx_001.bin` / `.json`。metadata は `backend_kind=d3xx`、`product_string=N3DSXL.2`、`product_string_status=accepted`、`transferred=520588`、`video_size=518400`、`capture_size=555008`。 |
-| manual visual pending | candidate PNG 出力 CLI は local test 済み。実機 PNG の目視承認と `decoder_version` 固定は未実行 |
+| manual visual artifact complete | 2026-06-08: `PONKAN_RUN_MANUAL_VISUAL=1`、`PONKAN_MANUAL_VISUAL_RAW=artifacts\n3dsxl\20260608-185720\pytest-e2e\test_n3dsxl_raw_capture_fixtur0\raw_2d_001.bin`、`PONKAN_MANUAL_VISUAL_METADATA=...raw_2d_001.json`、`PONKAN_MANUAL_VISUAL_OUT=artifacts\n3dsxl\20260608-191353\manual-visual` で `uv run --extra image pytest tests\manual\test_n3dsxl_decoder_visual.py -q`: 1 passed。candidate PNG 8 件と `manual_visual_manifest.json` を保存。 |
+| manual visual pending | 実機 PNG の目視承認と `decoder_version` 固定は未実行 |
 
 ## 5. テスト方針
 
@@ -295,7 +300,11 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_raw_capture.py
 manual visual:
 
 ```console
-uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.bin --metadata tests/fixtures/n3dsxl/raw_2d_001.json --out tests/fixtures/n3dsxl/
+$env:PONKAN_RUN_MANUAL_VISUAL = "1"
+$env:PONKAN_MANUAL_VISUAL_RAW = "artifacts\n3dsxl\<run>\raw_2d_001.bin"
+$env:PONKAN_MANUAL_VISUAL_METADATA = "artifacts\n3dsxl\<run>\raw_2d_001.json"
+$env:PONKAN_MANUAL_VISUAL_OUT = "artifacts\n3dsxl\<run>\manual-visual"
+uv run --extra image pytest -m manual_visual tests/manual/test_n3dsxl_decoder_visual.py
 ```
 
 ## 6. 実装チェックリスト
@@ -307,5 +316,6 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 - [x] `CaptureFrame` と colorspace adapter を実装する。
 - [x] `capture_raw` CLI を実装する。
 - [x] `raw_to_png` CLI と decoder candidate 出力を実装する。
+- [x] `manual_visual` marked test で candidate PNG と manifest を生成する。
 - [x] 実機 raw fixture 保存 gate を承認後に実行し、D3XX fallback E2E で完了を確認する。
-- [x] manual visual の結果は pending として metadata と gate 報告に残す。
+- [x] manual visual artifact を生成し、承認結果は pending として manifest と gate 報告に残す。

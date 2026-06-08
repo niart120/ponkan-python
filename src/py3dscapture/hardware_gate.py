@@ -22,6 +22,11 @@ def performance_tests_enabled(env: Mapping[str, str] | None = None) -> bool:
     return _env_flag("PONKAN_RUN_PERFORMANCE", env)
 
 
+def manual_visual_tests_enabled(env: Mapping[str, str] | None = None) -> bool:
+    """Return whether tests marked manual_visual should run."""
+    return _env_flag("PONKAN_RUN_MANUAL_VISUAL", env)
+
+
 def hardware_approved(env: Mapping[str, str] | None = None) -> bool:
     """Return whether a human approved the current hardware command."""
     return _env_flag("PONKAN_HARDWARE_APPROVED", env)
