@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from py3dscapture.errors import OptionalDependencyError
+from py3dscapture.protocol.layout_3ds import APPROVED_N3DSXL_2D_DECODER_ID
 from py3dscapture.tools.raw_to_png import main as raw_to_png_main
 
 pytestmark = pytest.mark.manual_visual
@@ -32,14 +33,35 @@ def test_n3dsxl_raw_fixture_manual_visual_artifacts() -> None:
     except OptionalDependencyError as exc:
         pytest.skip(str(exc))
 
-    for decoder_version in range(5):
-        assert (out_dir / f"candidate_{decoder_version}_top.png").is_file()
-        assert (out_dir / f"candidate_{decoder_version}_bottom.png").is_file()
-
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["manual_visual_status"] == "pending"
-    assert manifest["selected_decoder_version"] is None
-    assert len(manifest["outputs"]) == 10
+    assert manifest["decoder_id"] == APPROVED_N3DSXL_2D_DECODER_ID
+    assert "selected_decoder_version" not in manifest
+    assert (out_dir / "top.png").is_file()
+    assert (out_dir / "bottom.png").is_file()
+    assert len(manifest["outputs"]) == 2
+
+    probe_out_dir = out_dir / "probe"
+    probe_manifest_path = probe_out_dir / "manual_visual_probe_manifest.json"
+    probe_argv = [
+        str(raw_path),
+        "--out",
+        str(probe_out_dir),
+        "--manifest",
+        str(probe_manifest_path),
+        "--force",
+        "--probe-candidates",
+    ]
+    if metadata_path is not None:
+        probe_argv.extend(["--metadata", str(metadata_path)])
+
+    assert raw_to_png_main(probe_argv) == 0
+
+    assert (probe_out_dir / "probe_legacy_top_first_transpose_top.png").is_file()
+    assert (probe_out_dir / "probe_ftd3_cc3dsfs_2d_bottom.png").is_file()
+    probe_manifest = json.loads(probe_manifest_path.read_text(encoding="utf-8"))
+    assert probe_manifest["probe_mode"] is True
+    assert "selected_decoder_version" not in probe_manifest
 
 
 def _required_file_env(name: str) -> Path:

@@ -10,7 +10,7 @@
 
 調査の結果、問題の主因は frame boundary ではなく、N3DSXL FTD3 2D raw layout が単純な `top 0:400 / bottom 400:720` split ではないことだった。`cc3dsfs` の `ftd3_convertVideoToOutput()` と display crop / rotation path に合わせ、調査上の承認 candidate として `decoder_version=4` を一旦固定する。
 
-ただし `decoder_version` は manual visual 調査用 candidate ID であり、production decoder API の長期設計ではない。production path から `decoder_version` 引数を削除し、調査用 candidate を tools/probe 側へ隔離する後続 cleanup は `spec/wip/local_019/N3DSXL_DECODER_API_CLEANUP.md` で扱う。
+ただし `decoder_version` は manual visual 調査用 candidate ID であり、production decoder API の長期設計ではない。production path から `decoder_version` 引数を削除し、調査用 candidate を tools/probe 側へ隔離する後続 cleanup は `spec/complete/local_019/N3DSXL_DECODER_API_CLEANUP.md` で完了済み。
 
 ### 1.2 用語定義
 
@@ -40,8 +40,8 @@
 | decoder approval | `manual_visual_status=pending`、承認 candidate なし | `decoder_version=4` を approved candidate として manifest に記録 |
 | 原因切り分け | 表示変換、screen split、frame boundary が混在 | cc3dsfs FTD3 2D deinterleave 漏れとして切り分け済み |
 | raw fixture 価値 | artifact はあるが表示回帰には使えない | approved fixture として unit / manual visual evidence に使用 |
-| streaming への影響 | streaming は動くが表示正当性は未確定 | default decoder を `decoder_version=4` に切替 |
-| API cleanup | 調査用 `decoder_version` が production path に露出 | `local_019` で production API から削除 |
+| streaming への影響 | streaming は動くが表示正当性は未確定 | local_018 では暫定的に approved candidate へ切替。local_019 で引数なし default decoder へ整理 |
+| API cleanup | 調査用 `decoder_version` が production path に露出 | `local_019` で production API から削除済み |
 
 ### 1.5 着手条件
 
@@ -61,7 +61,7 @@
 | hardware task | 追加実機 capture は不要。既存 artifact で approved decoder を確認 |
 | 選択条件 | manual visual artifact が承認不能で、表示変換または frame sync のどちらが原因か未確定のとき |
 | 完了証拠 | `decoder_version=4`、approved manifest、unit tests、manual visual artifact |
-| 後続 Work Unit | `spec/wip/local_019/N3DSXL_DECODER_API_CLEANUP.md` |
+| 後続 Work Unit | `spec/complete/local_019/N3DSXL_DECODER_API_CLEANUP.md` |
 
 ## 2. 対象ファイル
 
@@ -205,19 +205,19 @@ frame boundary が疑われる場合は、実機追加 command の前に既存 r
 | approved decoder | `decoder_version=4`、`manual_visual_status=approved`、PNG path、manifest |
 | source blocker | なし。FTD3 2D conversion / display path を監査済み |
 | hardware blocker | なし。追加実機 capture 不要 |
-| no-change safety | approved manifest 生成後に streaming default を `decoder_version=4` へ変更。production API cleanup は local_019 へ分離 |
+| no-change safety | approved manifest 生成後に streaming default を暫定 candidate へ変更。production API cleanup は local_019 で完了済み |
 
 ### 4.5 実装結果
 
 | 項目 | 結果 |
 | ---- | ---- |
-| decoder version | `DecoderVersion.FTD3_CC3DSFS_2D = 4` |
+| decoder identity | local_018 時点は `DecoderVersion.FTD3_CC3DSFS_2D = 4`。local_019 以降は `decoder_id="ftd3_cc3dsfs_2d"` |
 | source split | `raw.reshape((720, 240, 3))` の先頭 80 rows を top-only、残りを bottom/top 交互に deinterleave |
 | display transform | deinterleave 後の source を `np.rot90(source, k=1)` で `(240, width, 3)` に変換 |
 | manual visual approved artifact | `artifacts\n3dsxl\20260608-191353\manual-visual-approved\candidate_4_top.png`、`candidate_4_bottom.png` |
 | approved manifest | `artifacts\n3dsxl\20260608-191353\manual-visual-approved\manual_visual_manifest.json` |
 | approval evidence | `artifacts\n3dsxl\20260608-191353\local-018-ftd3-probe\contact.png` |
-| streaming default | `_decode_2d_default()` は暫定的に `decode_rgb8_2d(..., decoder_version=4)` を使う。local_019 で引数なし呼び出しへ変更する |
+| streaming default | local_018 時点は暫定 candidate 呼び出し。local_019 で `_decode_2d_default()` は `decode_rgb8_2d(raw_video)` へ変更済み |
 
 ## 5. テスト方針
 
@@ -283,9 +283,9 @@ uv run --extra image pytest tests/manual/test_n3dsxl_decoder_visual.py -q
 | `artifacts\n3dsxl\20260608-191353\local-018-ftd3-probe\contact.png` | cc3dsfs FTD3 2D deinterleave 後、`rot_ccw` / `transpose_flip_y` が上画面・下画面を別々に自然な向きで復元 | approved |
 | `artifacts\n3dsxl\20260608-191353\manual-visual-approved\candidate_4_top.png` / `candidate_4_bottom.png` | UI 文字、画面境界、色順が自然。top / bottom 入れ替わりなし | approved |
 
-結論として、問題は raw payload の frame boundary ではなく、FTD3 2D source layout の deinterleave 漏れだった。`decoder_version=4` を approved candidate とし、既存 0-3 は比較用 legacy candidate として残す。
+結論として、問題は raw payload の frame boundary ではなく、FTD3 2D source layout の deinterleave 漏れだった。local_018 では `decoder_version=4` を調査上の approved candidate とした。
 
-設計上、`decoder_version` は調査 scaffolding であり production API として残すべきではない。この後始末は `local_019` で、`decode_rgb8_2d(raw_video)` の引数なし API、`decoder_id="ftd3_cc3dsfs_2d"` manifest、probe candidate の tools 側隔離として扱う。
+設計上、`decoder_version` は調査 scaffolding であり production API として残すべきではない。この後始末は `local_019` で完了し、現在の production API は `decode_rgb8_2d(raw_video)`、新規 manifest は `decoder_id="ftd3_cc3dsfs_2d"`、legacy candidate は `raw_to_png --probe-candidates` の明示実行に限定する。
 
 ## 8. Gate Results
 
@@ -293,7 +293,7 @@ uv run --extra image pytest tests/manual/test_n3dsxl_decoder_visual.py -q
 | ---- | ---- | -------- |
 | Unit | pass | `uv run pytest tests/unit -q`: 84 passed |
 | Manual visual default | skip as expected | `uv run pytest tests/manual/test_n3dsxl_decoder_visual.py -q`: 1 skipped。env 未設定時は実行しない |
-| Approved artifact generation | pass | `uv run --extra image python -m py3dscapture.tools.raw_to_png ... --manual-visual-status approved --selected-decoder-version 4` |
+| Approved artifact generation | pass | local_018 時点の command は `uv run --extra image python -m py3dscapture.tools.raw_to_png ... --manual-visual-status approved --selected-decoder-version 4`。local_019 以降の新規 manifest は `decoder_id` を使う |
 | Format | pass | `uv run ruff format --check .`: 61 files already formatted |
 | Lint | pass | `uv run ruff check .`: All checks passed |
 | Type | pass | `uv run ty check --no-progress`: All checks passed |

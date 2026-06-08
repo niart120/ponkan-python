@@ -165,4 +165,4 @@ class StreamingEngine:
 
 
 def _decode_2d_default(raw_video: bytes) -> CaptureFrame:
-    return decode_rgb8_2d(raw_video, decoder_version=4)
+    return decode_rgb8_2d(raw_video)
