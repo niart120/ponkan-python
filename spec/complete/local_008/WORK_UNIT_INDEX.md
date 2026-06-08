@@ -60,6 +60,7 @@
 | `spec/complete/local_019/N3DSXL_DECODER_API_CLEANUP.md` | 完了済み follow-up | 調査用 `decoder_version` を production API から削除し、probe candidate を tools 側へ隔離する。 |
 | `spec/complete/local_020/API_DOCSTRING_EXPANSION.md` | 完了済み follow-up | 公開 API と backend 境界の docstring を拡充する。 |
 | `spec/complete/local_021/D3XX_STREAMING_LATENCY_MEASUREMENT.md` | 完了済み follow-up | D3XX streaming の opt-in timing collection と fast path 判断基準を追加する。 |
+| `spec/complete/local_022/D3XX_NATIVE_FAST_PATH_BACKEND.md` | 完了済み follow-up | native D3XX API に近い opt-in fast path backend の実装、非対象、test list、hardware gate を定義する。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -100,7 +101,8 @@ Work Unit は次の依存順に扱う。
 | 8 | `complete/local_018` | `N3DSXL_LAYOUT_FRAME_SYNC_INVESTIGATION.md` | Step 6-7 follow-up | 不要 | display transform / acquisition path | 完了 |
 | 9 | `complete/local_019` | `N3DSXL_DECODER_API_CLEANUP.md` | Step 6-7 follow-up | 不要 | 追加なし | 完了 |
 | 10 | `complete/local_020` | `API_DOCSTRING_EXPANSION.md` | API documentation follow-up | 不要 | 追加なし | 完了 |
-| 11 | `complete/local_021` | `D3XX_STREAMING_LATENCY_MEASUREMENT.md` | Step 7-8 follow-up | 実機 timing gate で必要 | D3XX acquisition / performance guidance | local complete、hardware timing deferred |
+| 11 | `complete/local_021` | `D3XX_STREAMING_LATENCY_MEASUREMENT.md` | Step 7-8 follow-up | 実機 timing gate で必要 | D3XX acquisition / performance guidance | 完了、hardware timing / performance complete、low latency default adopted |
+| 12 | `complete/local_022` | `D3XX_NATIVE_FAST_PATH_BACKEND.md` | Step 7-8 follow-up | native backend smoke で必要 | D3XX acquisition / overlapped read / buffer lifetime | 完了、opt-in native backend implemented、hardware timing / performance complete、default adoption deferred |
 
 Main Agent は上から順に、次を満たす最小単位を選ぶ。
 
@@ -120,7 +122,7 @@ Main Agent は、この仕様群を使う作業開始時に次を提示する。
 
 ```text
 Agentic SDD bootstrap:
-- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_021/*
+- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_022/*
 - Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <spec file + TDD item>
@@ -221,7 +223,8 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | `complete/local_018` | approved decoder fixed | none |
 | `complete/local_019` | decoder API cleanup complete | production `decoder_version` removed |
 | `complete/local_020` | API docstring expansion complete | none |
-| `complete/local_021` | D3XX timing measurement local complete | hardware timing smoke deferred |
+| `complete/local_021` | D3XX timing measurement complete | none |
+| `complete/local_022` | D3XX native fast path backend complete | default adoption deferred; Phase 2 direct slot write deferred |
 
 ### 7.2 Gate Results
 
@@ -236,7 +239,8 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | Performance | pass | 2026-06-08: `PONKAN_RUN_N3DSXL=1`、`PONKAN_RUN_PERFORMANCE=1`、`PONKAN_HARDWARE_APPROVED=1` で `uv run pytest -m "requires_n3dsxl and performance" tests\performance -q --basetemp artifacts\n3dsxl\20260608-185720\pytest-performance`: 1 passed。 |
 | Manual visual self-check | pass | 2026-06-08: `artifacts\n3dsxl\20260608-191353\manual-visual-approved` の `candidate_4_*` を承認。`selected_decoder_version=4`。 |
 | Decoder API cleanup | pass | 2026-06-08: `local_019` で production API から `decoder_version` を削除し、新規 manifest を `decoder_id="ftd3_cc3dsfs_2d"` へ移行。`uv run pytest tests/unit -q`: 88 passed。 |
-| D3XX timing measurement | local pass / hardware deferred | 2026-06-08: `local_021` で opt-in timing collection を追加。実機 timing smoke は承認が必要なため未実行。 |
+| D3XX timing measurement | pass | 2026-06-08: `local_021` で opt-in timing collection を追加。D3XX 10 秒 timing smoke、60 秒 performance smoke、`raw_slots=2`, `poll_interval=0.004` の低遅延 60 秒 timing smoke が pass。 |
+| D3XX native fast path backend | pass / default adoption deferred | 2026-06-09: `complete/local_022` で `D3xxNativeApi` と opt-in native backend を実装。unit 103 passed、ruff / ty pass。D3XX native 10 秒 timing smoke と 60 秒 performance smoke は pass。60 秒 native artifact は `delivered_fps=59.81666666666667`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1`。submit-to-complete p99 は sequential low-latency baseline より約 1.06ms 悪いため default 採用は保留。 |
 
 ### 7.3 Completion Notes
 

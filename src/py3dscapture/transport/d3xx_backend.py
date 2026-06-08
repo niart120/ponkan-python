@@ -384,6 +384,23 @@ class D3xxHandle:
         )
         self._stream_pipes.add(pipe)
 
+    def pyd3xx_native_dll(self) -> object | None:
+        """Return the loaded PyD3XX DLL object for explicit native adapters.
+
+        The fast-path backend uses this through ``D3xxNativeApi`` so PyD3XX
+        private module details do not leak into the streaming backend itself.
+        """
+        return _pyd3xx_dll(self._binding)
+
+    def pyd3xx_native_handle(self) -> object:
+        """Return the native D3XX handle object for explicit native adapters.
+
+        Raises:
+            D3xxBackendError: The underlying PyD3XX device does not expose a
+                native handle.
+        """
+        return _device_handle(self._device)
+
     def read_pipe(
         self,
         pipe: int,
