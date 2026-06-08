@@ -102,8 +102,8 @@ D3XX streaming の fast path 実装可否を fps ではなく latency / jitter /
 | green | timing 無効時は summary がなく、既存 stats JSON に `timing` が出ない | compatibility | 3.1 | default off |
 | green | `D3xxAsyncBackend` が worker 実 read 開始時刻を slot に記録する | behavior | 3.1 | `backend_started_ns` |
 | green | CLI `--collect-timing` で performance artifact に `timing` が出る | tool behavior | 3.1 | fake engine |
-| deferred | 実機 D3XX backend で 10 秒 timing smoke を実行する | hardware | 3.1 | 承認後 |
-| deferred | 実機 D3XX backend で 60 秒 performance smoke を実行する | hardware | 3.1 | 承認後 |
+| green | 実機 D3XX backend で 10 秒 timing smoke を実行する | hardware | 3.1 | `artifacts\n3dsxl\20260608-230954\timing-smoke\stream_stats.json` |
+| green | 実機 D3XX backend で 60 秒 performance smoke を実行する | hardware | 3.1 | `artifacts\n3dsxl\20260608-230954\pytest-performance-timing\...stream_stats.json` |
 
 ### 3.3 設計方針
 
@@ -253,7 +253,9 @@ uv run pytest -m "requires_n3dsxl and performance" tests/performance -q
 - [x] 指定 pytest / ruff / ty を実行する。
 - [x] diff whitespace check を実行する。
 - [x] self-review を完了する。
-- [x] 実機 timing smoke は未実行 gate として残す。
+- [x] 実機 streaming smoke を実行する。
+- [x] 実機 timing smoke を実行する。
+- [x] 実機 performance smoke を実行する。
 
 ## 7. Gate Results
 
@@ -263,9 +265,36 @@ uv run pytest -m "requires_n3dsxl and performance" tests/performance -q
 | Ruff | pass | `uv run ruff check src tests`: All checks passed |
 | Type | pass | `uv run ty check --no-progress`: All checks passed |
 | Diff | pass | `git diff --check` |
-| Hardware timing smoke | not run | 実機 command のため人間承認が必要 |
-| Hardware performance smoke | not run | 実機 command のため人間承認が必要 |
+| Hardware streaming smoke | pass | `$env:PONKAN_RUN_N3DSXL='1'; $env:PONKAN_HARDWARE_APPROVED='1'; $env:PONKAN_N3DSXL_DRIVER_SERVICE='FTDIBUS3'; uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_streaming.py -q --basetemp artifacts\n3dsxl\20260608-230954\pytest-e2e-timing`: 1 passed in 2.86s |
+| Hardware timing smoke | pass | `collect_timing=True` の D3XX 10 秒 smoke。`artifacts\n3dsxl\20260608-230954\timing-smoke\stream_stats.json`: `delivered_fps=59.7`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1` |
+| Hardware performance smoke | pass | `$env:PONKAN_RUN_N3DSXL='1'; $env:PONKAN_RUN_PERFORMANCE='1'; $env:PONKAN_HARDWARE_APPROVED='1'; $env:PONKAN_N3DSXL_DRIVER_SERVICE='FTDIBUS3'; uv run pytest -m "requires_n3dsxl and performance" tests/performance/test_n3dsxl_streaming_smoke.py -q --basetemp artifacts\n3dsxl\20260608-230954\pytest-performance-timing`: 1 passed in 60.83s |
 
-## 8. Completion Notes
+## 8. Timing Evaluation
 
-今回の完了条件は「fast path を入れる」ことではなく「fast path が必要かを判断する計測を入れる」こととする。次 Work Unit で fast path を検討する条件は、D3XX sequential worker の queue wait / jitter が実測上の問題として確認された場合に限定する。
+3DS 実機の refresh rate を 59.834Hz とすると、1 frame period は `1000 / 59.834 = 16.7129ms` である。
+
+10 秒 timing smoke の D3XX artifact は次の通り。
+
+| Metric | p50 | p95 | p99 | max | frame 換算 / 評価 |
+| ------ | --- | --- | --- | --- | ----------------- |
+| `completion_interval_ms` | 16.7153ms | 16.8542ms | 16.9122ms | 17.0802ms | p50 は refresh period +0.0024ms、p99 は +0.1993ms。1 frame 周期へよく同期している。 |
+| `read_duration_ms` | 16.6520ms | 16.7720ms | 16.8405ms | 16.9680ms | p50 は 0.996 frames、p99 は 1.008 frames。read はほぼ 1 frame 分で安定している。 |
+| `backend_queue_wait_ms` | 44.3788ms | 49.0211ms | 49.3043ms | 49.5666ms | p50 は 2.66 frames、p99 は 2.95 frames。`raw_slots=4` かつ sequential worker の先行 submit queue を反映している。 |
+| `completion_queue_wait_ms` | 4.9303ms | 9.5477ms | 10.1124ms | 10.2773ms | poll interval 10ms の影響を受ける。callback path そのものの USB jitter ではない。 |
+| `decode_ms` | 0.6909ms | 1.0906ms | 1.1491ms | 1.2381ms | p99 でも 0.069 frames。decode は latency 支配要因ではない。 |
+| `callback_to_resubmit_ms` | 5.7683ms | 10.3459ms | 10.8824ms | 11.0163ms | completion queue wait と decode を含む。p99 は 0.65 frames。 |
+| `submit_to_complete_ms` | 61.1003ms | 65.6884ms | 66.0014ms | 66.1813ms | p50 は 3.66 frames、p99 は 3.95 frames。slot submit から completion までの in-flight pipeline depth を示す。 |
+
+推定できる遅延は計測起点ごとに分ける。
+
+| 起点 | 推定値 | 解釈 |
+| ---- | ------ | ---- |
+| USB completion から decoded frame enqueue まで | p50 約 `completion_queue_wait + decode = 5.62ms`、p99 約 `11.26ms` | Python processing / polling による host-side 追加遅延。poll interval 10ms が主因で、decode は小さい。 |
+| slot submit から decoded frame enqueue まで | p50 約 `submit_to_complete + completion_queue_wait + decode = 66.72ms`、p99 約 `77.26ms` | `raw_slots=4` sequential worker の queue depth を含む host pipeline latency。約 4.0 frames p50、4.6 frames p99。 |
+| 実画面変化から frame delivery まで | この artifact だけでは絶対値は確定不能 | USB payload に外部視覚 timestamp がないため、panel scanout / capture board 内部 buffering は別途 optical / timestamp fixture が必要。 |
+
+今回の artifact では、completion interval と read duration は 59.834Hz に対して妥当で、短時間の jitter 異常は見えない。改善余地として見えているのは D3XX read 自体ではなく、`raw_slots=4` sequential worker の先行 queue depth と、10ms poll loop による completion queue wait である。fast path を検討する前に、低 latency mode として raw slot 数、poll interval、processing loop wakeup を切り分ける価値がある。
+
+## 9. Completion Notes
+
+今回の完了条件は「fast path を入れる」ことではなく「fast path が必要かを判断する計測を入れる」こととする。実機 timing smoke の結果、read duration と completion interval は 59.834Hz の frame period に整合し、decode も p99 約 1.15ms と小さい。一方で submit 起点の latency は raw slot queue depth を含み約 4 frame 規模になるため、次の低 latency 検討では fast path 直行ではなく raw slots / poll interval / wakeup path の切り分けを優先する。
