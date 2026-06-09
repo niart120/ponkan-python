@@ -1,6 +1,6 @@
 # N3DSXL MVP Work Unit Index 仕様書
 
-更新日: 2026-06-08
+更新日: 2026-06-10
 
 ## 1. 概要
 
@@ -61,6 +61,7 @@
 | `spec/complete/local_020/API_DOCSTRING_EXPANSION.md` | 完了済み follow-up | 公開 API と backend 境界の docstring を拡充する。 |
 | `spec/complete/local_021/D3XX_STREAMING_LATENCY_MEASUREMENT.md` | 完了済み follow-up | D3XX streaming の opt-in timing collection と fast path 判断基準を追加する。 |
 | `spec/complete/local_022/D3XX_NATIVE_FAST_PATH_BACKEND.md` | 完了済み follow-up | native D3XX API に近い opt-in fast path backend の実装、非対象、test list、hardware gate を定義する。 |
+| `spec/complete/local_023/HIGH_LEVEL_CAPTURE_READ_API.md` | 完了済み follow-up | `open_capture()`、`CaptureReader.read()`、`CaptureOutput` の高レベル API を定義する。local gate と実機 high-level E2E は完了。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -103,6 +104,7 @@ Work Unit は次の依存順に扱う。
 | 10 | `complete/local_020` | `API_DOCSTRING_EXPANSION.md` | API documentation follow-up | 不要 | 追加なし | 完了 |
 | 11 | `complete/local_021` | `D3XX_STREAMING_LATENCY_MEASUREMENT.md` | Step 7-8 follow-up | 実機 timing gate で必要 | D3XX acquisition / performance guidance | 完了、hardware timing / performance complete、low latency default adopted |
 | 12 | `complete/local_022` | `D3XX_NATIVE_FAST_PATH_BACKEND.md` | Step 7-8 follow-up | native backend smoke で必要 | D3XX acquisition / overlapped read / buffer lifetime | 完了、opt-in native backend implemented、hardware timing / performance complete、default adoption deferred |
+| 13 | `complete/local_023` | `HIGH_LEVEL_CAPTURE_READ_API.md` | API follow-up | high-level E2E で必要 | 追加なし | 完了、hardware high-level E2E complete |
 
 Main Agent は上から順に、次を満たす最小単位を選ぶ。
 
@@ -225,6 +227,7 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | `complete/local_020` | API docstring expansion complete | none |
 | `complete/local_021` | D3XX timing measurement complete | none |
 | `complete/local_022` | D3XX native fast path backend complete | default adoption deferred; Phase 2 direct slot write deferred |
+| `complete/local_023` | high-level read API complete | none |
 
 ### 7.2 Gate Results
 
@@ -241,6 +244,7 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | Decoder API cleanup | pass | 2026-06-08: `local_019` で production API から `decoder_version` を削除し、新規 manifest を `decoder_id="ftd3_cc3dsfs_2d"` へ移行。`uv run pytest tests/unit -q`: 88 passed。 |
 | D3XX timing measurement | pass | 2026-06-08: `local_021` で opt-in timing collection を追加。D3XX 10 秒 timing smoke、60 秒 performance smoke、`raw_slots=2`, `poll_interval=0.004` の低遅延 60 秒 timing smoke が pass。 |
 | D3XX native fast path backend | pass / default adoption deferred | 2026-06-09: `complete/local_022` で `D3xxNativeApi` と opt-in native backend を実装。unit 103 passed、ruff / ty pass。D3XX native 10 秒 timing smoke と 60 秒 performance smoke は pass。60 秒 native artifact は `delivered_fps=59.81666666666667`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1`。submit-to-complete p99 は sequential low-latency baseline より約 1.06ms 悪いため default 採用は保留。 |
+| High-level capture read API | pass | 2026-06-10: `complete/local_023` で `CaptureOutput`、`CaptureConfig`、`CaptureReader`、`open_capture()` を実装。unit 120 passed、ruff / ty pass。承認後の high-level E2E は `uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_high_level_capture_read_api.py -q`: 1 passed。artifact は `artifacts\n3dsxl\20260610-010730\pytest-high-level-read-api\test_n3dsxl_high_level_capture0\n3dsxl\high-level-read-api\read_stats.json`。 |
 
 ### 7.3 Completion Notes
 

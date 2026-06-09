@@ -19,6 +19,10 @@ class UnsupportedDevice(CaptureError):  # noqa: N818
     """
 
 
+class DeviceNotFound(CaptureError):  # noqa: N818
+    """Raised when no accepted capture device is visible to the selected backend."""
+
+
 class DeviceOpenError(CaptureError):
     """Raised when opening or configuring a USB device fails.
 

@@ -8,6 +8,7 @@ submodules.
 
 from importlib.metadata import PackageNotFoundError, version
 
+from py3dscapture.capture import CaptureConfig, CaptureOutput, CaptureReader, open_capture
 from py3dscapture.protocol.sizes import (
     ACCEPTED_N3DSXL_PRODUCT_IDS,
     ACCEPTED_N3DSXL_PRODUCT_STRINGS,
@@ -25,7 +26,11 @@ __all__ = [
     "ACCEPTED_N3DSXL_PRODUCT_IDS",
     "ACCEPTED_N3DSXL_PRODUCT_STRINGS",
     "N3DSXL_VENDOR_ID",
+    "CaptureConfig",
+    "CaptureOutput",
+    "CaptureReader",
     "CaptureSizes",
     "__version__",
     "capture_sizes",
+    "open_capture",
 ]
