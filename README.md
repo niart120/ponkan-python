@@ -18,6 +18,40 @@
 - `spec/initial/cc3dsfs_python_rebuild_spec.md`
 - `spec/initial/cc3dsfs_python_n3dsxl_implementation_workflow.md`
 
+## Usage
+
+高レベル API では、new 3DS XL capture board を開いて `read()` で RGB8 `numpy.ndarray` を取得できます。
+
+```python
+from py3dscapture import CaptureOutput, open_capture
+
+with open_capture(output=CaptureOutput.BOTH_VERTICAL) as cap:
+    image = cap.read()
+    if image is not None:
+        print(image.shape)
+```
+
+上画面だけを読む場合は `CaptureOutput.TOP` を指定します。OpenCV へ渡す場合は `colorspace="BGR"` を指定できます。
+
+```python
+from py3dscapture import CaptureOutput, open_capture
+
+with open_capture(output=CaptureOutput.TOP, colorspace="BGR") as cap:
+    top_bgr = cap.read()
+```
+
+3DS 固有の上画面・下画面・sequence などが必要な場合は `read_frame()` を使います。
+
+```python
+from py3dscapture import open_capture
+
+with open_capture() as cap:
+    frame = cap.read_frame()
+    if frame is not None:
+        top = frame.top
+        bottom = frame.bottom
+```
+
 ## Development
 
 Python 実行と依存管理は `uv` を使います。
