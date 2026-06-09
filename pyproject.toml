@@ -2,19 +2,33 @@
 name = "ponkan-python"
 version = "0.1.0"
 description = "A Python capture library focused on new 3DS XL capture board frame acquisition."
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
 authors = [
+    { name = "niart120", email = "38847256+niart120@users.noreply.github.com" }
+]
+maintainers = [
     { name = "niart120", email = "38847256+niart120@users.noreply.github.com" }
 ]
 requires-python = ">=3.12, <3.14"
 license = "MIT"
+license-files = ["LICENSE", "NOTICE.md"]
+keywords = [
+    "3ds",
+    "capture-card",
+    "n3dsxl",
+    "new-3ds-xl",
+    "usb",
+    "video-capture",
+]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video :: Capture",
     "Typing :: Typed",
 ]
 dependencies = [
@@ -33,6 +47,18 @@ d3xx = [
     "pyd3xx>=1.1.4",
 ]
 
+[project.urls]
+Documentation = "https://github.com/niart120/ponkan-python/blob/master/docs/api.md"
+Homepage = "https://github.com/niart120/ponkan-python"
+Issues = "https://github.com/niart120/ponkan-python/issues"
+Repository = "https://github.com/niart120/ponkan-python.git"
+
+[project.scripts]
+py3dscapture-capture-raw = "py3dscapture.tools.capture_raw:main"
+py3dscapture-list-devices = "py3dscapture.tools.list_devices:main"
+py3dscapture-raw-to-png = "py3dscapture.tools.raw_to_png:main"
+py3dscapture-stream-n3dsxl = "py3dscapture.tools.stream_n3dsxl:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",
@@ -43,7 +69,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
 
 [tool.uv]
@@ -51,6 +77,17 @@ cache-dir = ".uv-cache"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/py3dscapture"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/LICENSE",
+    "/NOTICE.md",
+    "/README.md",
+    "/docs",
+    "/pyproject.toml",
+    "/src",
+    "/tests",
+]
 
 [tool.ruff]
 line-length = 100

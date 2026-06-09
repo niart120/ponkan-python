@@ -18,6 +18,21 @@
 - `spec/initial/cc3dsfs_python_rebuild_spec.md`
 - `spec/initial/cc3dsfs_python_n3dsxl_implementation_workflow.md`
 
+## Installation
+
+Python 3.12 / 3.13 を対象にしています。
+
+```console
+pip install ponkan-python
+```
+
+PNG 変換には Pillow extra、FTDI D3XX backend には D3XX extra を追加します。
+
+```console
+pip install "ponkan-python[image]"
+pip install "ponkan-python[d3xx]"
+```
+
 ## Usage
 
 高レベル API では、new 3DS XL capture board を開いて `read()` で RGB8 `numpy.ndarray` を取得できます。
@@ -52,6 +67,21 @@ with open_capture() as cap:
         bottom = frame.bottom
 ```
 
+API の詳細は [API Reference](https://github.com/niart120/ponkan-python/blob/master/docs/api.md) を参照してください。
+
+## Command Line Tools
+
+インストール後は次の console scripts を利用できます。
+
+```console
+py3dscapture-list-devices
+py3dscapture-capture-raw --out captures/n3dsxl/raw_2d_001.bin
+py3dscapture-raw-to-png captures/n3dsxl/raw_2d_001.bin --metadata captures/n3dsxl/raw_2d_001.json --out captures/n3dsxl/png
+py3dscapture-stream-n3dsxl --duration 10 --stats
+```
+
+実機へ N3DSXL command を送る操作は、事前に device identity と安全境界を確認してから実行してください。
+
 ## Development
 
 Python 実行と依存管理は `uv` を使います。
@@ -84,6 +114,10 @@ Codex project-local policy は `.codex/` に配置しています。Codex で有
 
 This project is licensed under the MIT License.
 
-This project references `cc3dsfs` by Lorenzooone:
+This project references `cc3dsfs` by Lorenzooone, which is also licensed under
+the MIT License. The upstream copyright notice is preserved in `LICENSE` and
+`NOTICE.md`.
 
 - https://github.com/Lorenzooone/cc3dsfs
+
+Release and publishing notes are kept in [Publishing](https://github.com/niart120/ponkan-python/blob/master/docs/publishing.md).
