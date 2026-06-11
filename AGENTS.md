@@ -37,7 +37,7 @@ agent skill は `.agents/skills` を正本として管理します。`.github/sk
 ## プロジェクト構造
 
 ```text
-src/py3dscapture/
+src/ponkan/
   __init__.py
   py.typed
   protocol/

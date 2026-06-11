@@ -2,7 +2,7 @@ import ctypes
 
 import pytest
 
-from py3dscapture.transport.d3xx_native import (
+from ponkan.transport.d3xx_native import (
     D3xxNativeApi,
     D3xxNativeApiUnavailable,
     NativeOverlapped,

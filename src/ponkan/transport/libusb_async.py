@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from py3dscapture.streaming.buffers import RawFrameSlot
+from ponkan.streaming.buffers import RawFrameSlot
 
 
 class AsyncTransferCallback(Protocol):

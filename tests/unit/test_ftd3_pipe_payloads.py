@@ -2,10 +2,10 @@ from typing import cast
 
 import pytest
 
-from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, N3DSXLDevice
-from py3dscapture.errors import Ftd3CommandError, UnsupportedDevice
-from py3dscapture.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT, capture_size
-from py3dscapture.transport.ftd3_pipe import (
+from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate, N3DSXLDevice
+from ponkan.errors import Ftd3CommandError, UnsupportedDevice
+from ponkan.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT, capture_size
+from ponkan.transport.ftd3_pipe import (
     FTD3_COMMAND_CREATE_PIPE_ID,
     Ftd3Pipe,
     build_abort_pipe_payload,
@@ -14,7 +14,7 @@ from py3dscapture.transport.ftd3_pipe import (
     build_prepare_write_payload,
     build_set_stream_pipe_payload,
 )
-from py3dscapture.transport.libusb_backend import UsbDeviceInfo
+from ponkan.transport.libusb_backend import UsbDeviceInfo
 
 
 class _FakeHandle:

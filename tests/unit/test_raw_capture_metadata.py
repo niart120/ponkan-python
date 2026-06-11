@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from py3dscapture.capture import RawCapture, save_raw_capture
-from py3dscapture.errors import DecodeError, TransferOverflow
-from py3dscapture.protocol.sizes import capture_size, video_size
+from ponkan.capture import RawCapture, save_raw_capture
+from ponkan.errors import DecodeError, TransferOverflow
+from ponkan.protocol.sizes import capture_size, video_size
 
 
 def _raw_capture(

@@ -2,9 +2,9 @@
 
 import numpy as np
 
-from py3dscapture.errors import DecodeError
-from py3dscapture.image.frame import CaptureFrame
-from py3dscapture.protocol.sizes import (
+from ponkan.errors import DecodeError
+from ponkan.image.frame import CaptureFrame
+from ponkan.protocol.sizes import (
     BOTTOM_WIDTH_3DS,
     HEIGHT_3DS,
     TOP_WIDTH_3DS,

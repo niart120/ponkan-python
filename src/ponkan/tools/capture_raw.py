@@ -3,11 +3,11 @@
 import argparse
 from pathlib import Path
 
-from py3dscapture.capture import save_raw_capture
-from py3dscapture.devices.n3dsxl_ftd3 import N3DSXLDevice, list_n3dsxl_devices
-from py3dscapture.protocol.n3dsxl import N3DSXLProtocol
-from py3dscapture.transport.ftd3_pipe import Ftd3Pipe
-from py3dscapture.transport.libusb_backend import Usb1Backend
+from ponkan.capture import save_raw_capture
+from ponkan.devices.n3dsxl_ftd3 import N3DSXLDevice, list_n3dsxl_devices
+from ponkan.protocol.n3dsxl import N3DSXLProtocol
+from ponkan.transport.ftd3_pipe import Ftd3Pipe
+from ponkan.transport.libusb_backend import Usb1Backend
 
 
 def main(argv: list[str] | None = None) -> int:

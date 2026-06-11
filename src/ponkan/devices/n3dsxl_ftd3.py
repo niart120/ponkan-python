@@ -4,8 +4,8 @@ from contextlib import suppress
 from dataclasses import dataclass
 from typing import Literal, cast
 
-from py3dscapture.errors import DeviceOpenError, UnsupportedDevice
-from py3dscapture.protocol.sizes import (
+from ponkan.errors import DeviceOpenError, UnsupportedDevice
+from ponkan.protocol.sizes import (
     ACCEPTED_N3DSXL_PRODUCT_IDS,
     ACCEPTED_N3DSXL_PRODUCT_STRINGS,
     N3DSXL_BULK_INTERFACE,
@@ -13,7 +13,7 @@ from py3dscapture.protocol.sizes import (
     N3DSXL_DEFAULT_CONFIGURATION,
     N3DSXL_VENDOR_ID,
 )
-from py3dscapture.transport.libusb_backend import LibusbBackend, UsbDeviceInfo, UsbHandle
+from ponkan.transport.libusb_backend import LibusbBackend, UsbDeviceInfo, UsbHandle
 
 AcceptedProductString = Literal["N3DSXL", "N3DSXL.2"]
 ProductStringStatus = Literal["accepted", "unreadable"]

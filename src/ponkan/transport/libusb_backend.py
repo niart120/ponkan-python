@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from importlib import import_module
 from typing import TYPE_CHECKING, Protocol, cast
 
-from py3dscapture.errors import DeviceOpenError
+from ponkan.errors import DeviceOpenError
 
 if TYPE_CHECKING:
     from collections.abc import Callable

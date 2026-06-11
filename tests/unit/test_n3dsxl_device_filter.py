@@ -1,5 +1,5 @@
-from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, RejectedDevice, classify_n3dsxl_device
-from py3dscapture.transport.libusb_backend import UsbDeviceInfo
+from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate, RejectedDevice, classify_n3dsxl_device
+from ponkan.transport.libusb_backend import UsbDeviceInfo
 
 
 def device_info(

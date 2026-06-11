@@ -3,8 +3,8 @@ import time
 
 import pytest
 
-from py3dscapture.streaming.buffers import RawFrameSlot
-from py3dscapture.transport.d3xx_native import (
+from ponkan.streaming.buffers import RawFrameSlot
+from ponkan.transport.d3xx_native import (
     FT_IO_INCOMPLETE,
     FT_IO_PENDING,
     FT_OK,
@@ -12,12 +12,12 @@ from py3dscapture.transport.d3xx_native import (
     NativeOverlapped,
     NativeTransferResult,
 )
-from py3dscapture.transport.d3xx_native_streaming import (
+from ponkan.transport.d3xx_native_streaming import (
     D3xxNativeFastPathBackend,
     D3xxNativeFastPathConfigError,
     D3xxNativeFastPathDrainTimeoutError,
 )
-from py3dscapture.transport.libusb_async import AsyncTransferCallback
+from ponkan.transport.libusb_async import AsyncTransferCallback
 
 
 class _FakeNativeApi:

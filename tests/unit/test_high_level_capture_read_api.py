@@ -4,11 +4,11 @@ from typing import cast
 import numpy as np
 import pytest
 
-import py3dscapture.capture as capture_module
-from py3dscapture.capture import CaptureConfig, CaptureOutput, CaptureReader, open_capture
-from py3dscapture.errors import CaptureError, DeviceNotFound, UnsupportedOperation
-from py3dscapture.image.frame import CaptureFrame
-from py3dscapture.streaming.stats import StreamStats
+import ponkan.capture as capture_module
+from ponkan.capture import CaptureConfig, CaptureOutput, CaptureReader, open_capture
+from ponkan.errors import CaptureError, DeviceNotFound, UnsupportedOperation
+from ponkan.image.frame import CaptureFrame
+from ponkan.streaming.stats import StreamStats
 
 
 class _FakeEngineError(CaptureError):

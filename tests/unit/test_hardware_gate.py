@@ -1,4 +1,4 @@
-from py3dscapture.hardware_gate import (
+from ponkan.hardware_gate import (
     HardwareCommandPlan,
     hardware_approved,
     manual_visual_tests_enabled,

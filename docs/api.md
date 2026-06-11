@@ -1,6 +1,6 @@
 # API Reference
 
-`py3dscapture` exposes a small public API for new 3DS XL capture board frame
+`ponkan` exposes a small public API for new 3DS XL capture board frame
 acquisition. The current package is focused on 2D N3DSXL video capture and does
 not provide GUI, audio playback, recording, old DS, Optimize, Nisetro, or IS
 device support.
@@ -14,7 +14,7 @@ pip install "ponkan-python[d3xx]"
 ```
 
 Use the `image` extra when calling `CaptureFrame.to_pillow()` or the
-`py3dscapture-raw-to-png` command. Use the `d3xx` extra when selecting the D3XX
+`ponkan-raw-to-png` command. Use the `d3xx` extra when selecting the D3XX
 backend.
 
 ## Top-Level Imports
@@ -22,7 +22,7 @@ backend.
 The package root exports the high-level reader and size helpers:
 
 ```python
-from py3dscapture import (
+from ponkan import (
     ACCEPTED_N3DSXL_PRODUCT_IDS,
     ACCEPTED_N3DSXL_PRODUCT_STRINGS,
     N3DSXL_VENDOR_ID,
@@ -45,7 +45,7 @@ tree without installed metadata it falls back to `"0.0.0"`.
 Open a high-level streaming reader for an accepted new 3DS XL capture board.
 
 ```python
-from py3dscapture import CaptureOutput, open_capture
+from ponkan import CaptureOutput, open_capture
 
 with open_capture(output=CaptureOutput.BOTH_VERTICAL) as cap:
     image = cap.read()
@@ -151,7 +151,7 @@ Write a raw payload and metadata sidecar using the same stem:
 
 ```python
 from pathlib import Path
-from py3dscapture.capture import save_raw_capture
+from ponkan.capture import save_raw_capture
 
 bin_path, metadata_path = save_raw_capture(capture, Path("captures/raw_2d_001.bin"))
 ```
@@ -162,8 +162,8 @@ unless `force=True` is provided.
 ## Device Discovery
 
 ```python
-from py3dscapture.devices.n3dsxl_ftd3 import list_n3dsxl_devices
-from py3dscapture.transport.libusb_backend import Usb1Backend
+from ponkan.devices.n3dsxl_ftd3 import list_n3dsxl_devices
+from ponkan.transport.libusb_backend import Usb1Backend
 
 listing = list_n3dsxl_devices(Usb1Backend())
 ```
@@ -183,7 +183,7 @@ Accepted device identity is constrained by `N3DSXL_VENDOR_ID`,
 ## Size Helpers
 
 ```python
-from py3dscapture import capture_sizes
+from ponkan import capture_sizes
 
 sizes = capture_sizes(mode_3d=False)
 print(sizes.video_size, sizes.capture_size)
@@ -208,10 +208,10 @@ Installed console scripts:
 
 | Command | Purpose |
 | --- | --- |
-| `py3dscapture-list-devices` | Print accepted and rejected FTDI-family devices without sending N3DSXL commands. |
-| `py3dscapture-capture-raw --out <path>` | Capture one raw frame and metadata sidecar. |
-| `py3dscapture-raw-to-png <raw> --metadata <json> --out <dir>` | Decode raw video to top and bottom PNG files. |
-| `py3dscapture-stream-n3dsxl --duration 10 --stats` | Run a bounded streaming smoke loop and print counters. |
+| `ponkan-list-devices` | Print accepted and rejected FTDI-family devices without sending N3DSXL commands. |
+| `ponkan-capture-raw --out <path>` | Capture one raw frame and metadata sidecar. |
+| `ponkan-raw-to-png <raw> --metadata <json> --out <dir>` | Decode raw video to top and bottom PNG files. |
+| `ponkan-stream-n3dsxl --duration 10 --stats` | Run a bounded streaming smoke loop and print counters. |
 
 Hardware commands should only be run after confirming the device identity and
 the project hardware safety policy.

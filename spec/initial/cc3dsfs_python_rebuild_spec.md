@@ -252,7 +252,7 @@ old 3DS:
 初期構成案:
 
 ```text
-py3dscapture/
+ponkan/
 ├── __init__.py
 ├── capture.py
 ├── devices/
@@ -803,7 +803,7 @@ copy_policy = copy_decoded_frame_before_release_raw_slot
 同期利用者向け:
 
 ```python
-from py3dscapture import open_capture
+from ponkan import open_capture
 
 with open_capture(model="new_3ds_xl") as cap:
     for frame in cap.frames(max_queue=2, drop_policy="drop_oldest"):
@@ -813,7 +813,7 @@ with open_capture(model="new_3ds_xl") as cap:
 asyncio 利用者向け:
 
 ```python
-from py3dscapture import open_capture_async
+from ponkan import open_capture_async
 
 async with await open_capture_async(model="new_3ds_xl") as cap:
     async for frame in cap.frames_async(max_queue=2, drop_policy="drop_oldest"):

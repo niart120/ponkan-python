@@ -4,11 +4,11 @@ import time
 import numpy as np
 import pytest
 
-from py3dscapture.image.frame import CaptureFrame
-from py3dscapture.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS, video_size
-from py3dscapture.streaming.buffers import RawFrameSlot
-from py3dscapture.streaming.engine import StreamingEngine
-from py3dscapture.transport.libusb_async import AsyncTransferCallback
+from ponkan.image.frame import CaptureFrame
+from ponkan.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS, video_size
+from ponkan.streaming.buffers import RawFrameSlot
+from ponkan.streaming.engine import StreamingEngine
+from ponkan.transport.libusb_async import AsyncTransferCallback
 
 
 class _FakeAsyncBackend:

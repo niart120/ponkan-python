@@ -4,8 +4,8 @@ import ctypes
 from dataclasses import dataclass
 from typing import ClassVar, Protocol, cast
 
-from py3dscapture.errors import CaptureError
-from py3dscapture.transport.d3xx_backend import D3xxBackendError
+from ponkan.errors import CaptureError
+from ponkan.transport.d3xx_backend import D3xxBackendError
 
 FT_OK = 0
 FT_TIMEOUT = 19

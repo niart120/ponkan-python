@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from py3dscapture.errors import OptionalDependencyError
-from py3dscapture.protocol.layout_3ds import APPROVED_N3DSXL_2D_DECODER_ID
-from py3dscapture.tools.raw_to_png import main as raw_to_png_main
+from ponkan.errors import OptionalDependencyError
+from ponkan.protocol.layout_3ds import APPROVED_N3DSXL_2D_DECODER_ID
+from ponkan.tools.raw_to_png import main as raw_to_png_main
 
 pytestmark = pytest.mark.manual_visual
 

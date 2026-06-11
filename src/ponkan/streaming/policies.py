@@ -4,8 +4,8 @@ from collections import deque
 from collections.abc import Iterator
 from typing import Literal
 
-from py3dscapture.image.frame import CaptureFrame
-from py3dscapture.streaming.stats import StreamStats
+from ponkan.image.frame import CaptureFrame
+from ponkan.streaming.stats import StreamStats
 
 DropPolicy = Literal["drop_oldest", "drop_newest", "block"]
 CopyPolicy = Literal["copy_decoded_frame_before_release_raw_slot", "zero_copy_experimental"]

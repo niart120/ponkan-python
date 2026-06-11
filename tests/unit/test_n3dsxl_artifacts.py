@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from py3dscapture.artifacts import n3dsxl_artifact_dir, write_json_artifact
+from ponkan.artifacts import n3dsxl_artifact_dir, write_json_artifact
 
 
 def test_n3dsxl_artifact_dir_stays_under_artifact_root(tmp_path: Path) -> None:

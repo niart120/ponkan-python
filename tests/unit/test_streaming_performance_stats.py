@@ -1,4 +1,4 @@
-from py3dscapture.streaming.stats import PerformanceStats, StreamStats
+from ponkan.streaming.stats import PerformanceStats, StreamStats
 
 
 def test_performance_stats_include_smoke_gate_fields() -> None:

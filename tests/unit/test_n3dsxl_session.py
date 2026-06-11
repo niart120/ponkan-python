@@ -3,9 +3,9 @@ from typing import cast
 
 import pytest
 
-from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, N3DSXLDevice, RejectedDevice
-from py3dscapture.errors import UnsupportedDevice
-from py3dscapture.transport.libusb_backend import UsbDeviceInfo
+from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate, N3DSXLDevice, RejectedDevice
+from ponkan.errors import UnsupportedDevice
+from ponkan.transport.libusb_backend import UsbDeviceInfo
 
 
 class _FakeHandle:

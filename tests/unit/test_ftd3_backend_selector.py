@@ -1,7 +1,7 @@
-from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate
-from py3dscapture.errors import DeviceOpenError
-from py3dscapture.transport.ftd3_backend import BackendKind, open_ftd3_transport
-from py3dscapture.transport.libusb_backend import UsbDeviceInfo
+from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate
+from ponkan.errors import DeviceOpenError
+from ponkan.transport.ftd3_backend import BackendKind, open_ftd3_transport
+from ponkan.transport.libusb_backend import UsbDeviceInfo
 
 
 class _FakeLibusbHandle:

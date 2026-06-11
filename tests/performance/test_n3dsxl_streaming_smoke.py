@@ -4,16 +4,16 @@ from typing import TYPE_CHECKING, Literal, cast
 
 import pytest
 
-from py3dscapture.artifacts import n3dsxl_artifact_dir, write_json_artifact
-from py3dscapture.hardware_gate import hardware_approved
-from py3dscapture.protocol.n3dsxl import N3DSXLProtocol
-from py3dscapture.streaming.engine import StreamingEngine
-from py3dscapture.tools.stream_n3dsxl import run_streaming_smoke
-from py3dscapture.transport.d3xx_backend import D3xxBackend
-from py3dscapture.transport.d3xx_streaming import D3xxAsyncBackend
+from ponkan.artifacts import n3dsxl_artifact_dir, write_json_artifact
+from ponkan.hardware_gate import hardware_approved
+from ponkan.protocol.n3dsxl import N3DSXLProtocol
+from ponkan.streaming.engine import StreamingEngine
+from ponkan.tools.stream_n3dsxl import run_streaming_smoke
+from ponkan.transport.d3xx_backend import D3xxBackend
+from ponkan.transport.d3xx_streaming import D3xxAsyncBackend
 
 if TYPE_CHECKING:
-    from py3dscapture.protocol.n3dsxl import N3DSXLPipe
+    from ponkan.protocol.n3dsxl import N3DSXLPipe
 
 
 def _open_d3xx_streaming_engine() -> tuple[

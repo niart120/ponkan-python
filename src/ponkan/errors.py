@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 class CaptureError(Exception):
-    """Base exception for py3dscapture failures.
+    """Base exception for ponkan failures.
 
     Catch this when callers want to handle package-level failures without
     matching individual USB, decode, or optional-dependency errors.

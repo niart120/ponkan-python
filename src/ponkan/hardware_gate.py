@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
-from py3dscapture.protocol.sizes import (
+from ponkan.protocol.sizes import (
     ACCEPTED_N3DSXL_PRODUCT_IDS,
     ACCEPTED_N3DSXL_PRODUCT_STRINGS,
     N3DSXL_VENDOR_ID,

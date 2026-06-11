@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from py3dscapture.streaming.stats import StreamStats
-from py3dscapture.tools import stream_n3dsxl
+from ponkan.streaming.stats import StreamStats
+from ponkan.tools import stream_n3dsxl
 
 
 class _FakeBackend:
