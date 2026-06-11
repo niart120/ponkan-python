@@ -61,8 +61,8 @@ After the project and trusted publisher are ready, pushing a version tag starts
 the PyPI publish job:
 
 ```console
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 The workflow builds the distribution once, stores it as a workflow artifact, and
