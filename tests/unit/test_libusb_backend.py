@@ -1,6 +1,6 @@
 # ruff: noqa: N802
 
-from py3dscapture.transport.libusb_backend import (
+from ponkan.transport.libusb_backend import (
     UsbDeviceInfo,
     _matches_usb1_device,
     _usb1_device_info,

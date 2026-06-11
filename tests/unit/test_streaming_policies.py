@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from py3dscapture.image.frame import CaptureFrame
-from py3dscapture.streaming.policies import BoundedFrameQueue, put_frame_with_policy
-from py3dscapture.streaming.stats import StreamStats
+from ponkan.image.frame import CaptureFrame
+from ponkan.streaming.policies import BoundedFrameQueue, put_frame_with_policy
+from ponkan.streaming.stats import StreamStats
 
 
 def _frame(value: int) -> CaptureFrame:

@@ -8,10 +8,10 @@ from dataclasses import dataclass
 from threading import Event, Lock, Thread
 from typing import TYPE_CHECKING, Protocol, cast
 
-from py3dscapture.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT, capture_size
-from py3dscapture.streaming.buffers import RawFrameSlot
-from py3dscapture.transport.d3xx_backend import D3XX_DEFAULT_TIMEOUT_MS, D3xxBackendError
-from py3dscapture.transport.d3xx_native import (
+from ponkan.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT, capture_size
+from ponkan.streaming.buffers import RawFrameSlot
+from ponkan.transport.d3xx_backend import D3XX_DEFAULT_TIMEOUT_MS, D3xxBackendError
+from ponkan.transport.d3xx_native import (
     FT_IO_INCOMPLETE,
     FT_IO_PENDING,
     FT_OK,
@@ -19,10 +19,10 @@ from py3dscapture.transport.d3xx_native import (
     NativeOverlapped,
     NativeTransferResult,
 )
-from py3dscapture.transport.libusb_async import AsyncTransferCallback
+from ponkan.transport.libusb_async import AsyncTransferCallback
 
 if TYPE_CHECKING:
-    from py3dscapture.transport.d3xx_native import D3xxNativeHandleProvider
+    from ponkan.transport.d3xx_native import D3xxNativeHandleProvider
 
 NativeBufferFactory = Callable[[int], ctypes.Array[ctypes.c_char]]
 
@@ -167,7 +167,7 @@ class D3xxNativeFastPathBackend:
         self._native_api.set_stream_pipe(self._pipe, self._read_size)
         self._pump = Thread(
             target=self._completion_pump,
-            name="py3dscapture-d3xx-native-stream",
+            name="ponkan-d3xx-native-stream",
         )
         self._pump.start()
 

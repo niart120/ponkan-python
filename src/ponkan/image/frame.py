@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Literal, Protocol, cast
 import numpy as np
 from numpy.typing import NDArray
 
-from py3dscapture.errors import DecodeError, OptionalDependencyError
-from py3dscapture.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS
+from ponkan.errors import DecodeError, OptionalDependencyError
+from ponkan.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS
 
 ColorSpace = Literal["RGB", "BGR"]
 ScreenName = Literal["top", "bottom", "top_right"]

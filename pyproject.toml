@@ -54,10 +54,10 @@ Issues = "https://github.com/niart120/ponkan-python/issues"
 Repository = "https://github.com/niart120/ponkan-python.git"
 
 [project.scripts]
-py3dscapture-capture-raw = "py3dscapture.tools.capture_raw:main"
-py3dscapture-list-devices = "py3dscapture.tools.list_devices:main"
-py3dscapture-raw-to-png = "py3dscapture.tools.raw_to_png:main"
-py3dscapture-stream-n3dsxl = "py3dscapture.tools.stream_n3dsxl:main"
+ponkan-capture-raw = "ponkan.tools.capture_raw:main"
+ponkan-list-devices = "ponkan.tools.list_devices:main"
+ponkan-raw-to-png = "ponkan.tools.raw_to_png:main"
+ponkan-stream-n3dsxl = "ponkan.tools.stream_n3dsxl:main"
 
 [dependency-groups]
 dev = [
@@ -76,7 +76,7 @@ build-backend = "hatchling.build"
 cache-dir = ".uv-cache"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/py3dscapture"]
+packages = ["src/ponkan"]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -133,7 +133,7 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"src/py3dscapture/tools/**/*.py" = ["T201"]
+"src/ponkan/tools/**/*.py" = ["T201"]
 "tests/**/*.py" = ["D100", "D103", "S101"]
 
 [tool.ruff.lint.pydocstyle]
@@ -143,7 +143,7 @@ convention = "google"
 strict = true
 
 [tool.ruff.lint.isort]
-known-first-party = ["py3dscapture"]
+known-first-party = ["ponkan"]
 
 [tool.ty.environment]
 python-version = "3.12"

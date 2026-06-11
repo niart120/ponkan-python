@@ -1,4 +1,4 @@
-from py3dscapture.streaming.buffers import BufferPool
+from ponkan.streaming.buffers import BufferPool
 
 
 def test_raw_frame_slot_has_capture_sized_buffer() -> None:

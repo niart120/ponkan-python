@@ -6,12 +6,12 @@ from typing import Any, cast
 import numpy as np
 import pytest
 
-import py3dscapture.protocol.layout_3ds as layout_3ds
-from py3dscapture.errors import DecodeError, OptionalDependencyError
-from py3dscapture.image.frame import CaptureFrame
-from py3dscapture.protocol.layout_3ds import APPROVED_N3DSXL_2D_DECODER_ID, decode_rgb8_2d
-from py3dscapture.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS, video_size
-from py3dscapture.tools.raw_to_png import main as raw_to_png_main
+import ponkan.protocol.layout_3ds as layout_3ds
+from ponkan.errors import DecodeError, OptionalDependencyError
+from ponkan.image.frame import CaptureFrame
+from ponkan.protocol.layout_3ds import APPROVED_N3DSXL_2D_DECODER_ID, decode_rgb8_2d
+from ponkan.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS, video_size
+from ponkan.tools.raw_to_png import main as raw_to_png_main
 
 
 def _synthetic_ftd3_raw_2d() -> bytes:
@@ -88,7 +88,7 @@ def test_production_layout_module_exposes_no_probe_candidate_api() -> None:
 def test_production_source_has_no_legacy_candidate_branch() -> None:
     source_paths = [
         Path(layout_3ds.__file__),
-        Path("src/py3dscapture/streaming/engine.py"),
+        Path("src/ponkan/streaming/engine.py"),
     ]
 
     for source_path in source_paths:

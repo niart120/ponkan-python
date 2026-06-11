@@ -8,20 +8,20 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, Protocol, cast, overload
 
-from py3dscapture.errors import (
+from ponkan.errors import (
     DecodeError,
     DeviceNotFound,
     TransferOverflow,
     UnsupportedOperation,
 )
-from py3dscapture.image.frame import CaptureFrame, ColorSpace, RGB8Array
-from py3dscapture.streaming.policies import DropPolicy
-from py3dscapture.streaming.stats import StreamStats
+from ponkan.image.frame import CaptureFrame, ColorSpace, RGB8Array
+from ponkan.streaming.policies import DropPolicy
+from ponkan.streaming.stats import StreamStats
 
 if TYPE_CHECKING:
-    from py3dscapture.protocol.n3dsxl import N3DSXLPipe, N3DSXLSessionIdentity
-    from py3dscapture.transport.d3xx_streaming import D3xxStreamHandle
-    from py3dscapture.transport.libusb_async import AsyncTransferBackend
+    from ponkan.protocol.n3dsxl import N3DSXLPipe, N3DSXLSessionIdentity
+    from ponkan.transport.d3xx_streaming import D3xxStreamHandle
+    from ponkan.transport.libusb_async import AsyncTransferBackend
 
 CaptureSource = int | str
 CaptureBackend = Literal["auto", "libusb", "d3xx", "d3xx-native"]
@@ -373,13 +373,13 @@ def _open_d3xx_engine(config: CaptureConfig, *, native: bool) -> CaptureReaderEn
 
 
 def _new_d3xx_backend() -> _D3xxBackend:
-    from py3dscapture.transport.d3xx_backend import D3xxBackend  # noqa: PLC0415
+    from ponkan.transport.d3xx_backend import D3xxBackend  # noqa: PLC0415
 
     return D3xxBackend()
 
 
 def _new_n3dsxl_protocol(handle: _D3xxHandle) -> _N3DSXLConnectProtocol:
-    from py3dscapture.protocol.n3dsxl import N3DSXLProtocol  # noqa: PLC0415
+    from ponkan.protocol.n3dsxl import N3DSXLProtocol  # noqa: PLC0415
 
     return N3DSXLProtocol(
         cast("N3DSXLSessionIdentity", handle),
@@ -388,13 +388,13 @@ def _new_n3dsxl_protocol(handle: _D3xxHandle) -> _N3DSXLConnectProtocol:
 
 
 def _new_d3xx_backend_async(handle: _D3xxHandle) -> object:
-    from py3dscapture.transport.d3xx_streaming import D3xxAsyncBackend  # noqa: PLC0415
+    from ponkan.transport.d3xx_streaming import D3xxAsyncBackend  # noqa: PLC0415
 
     return D3xxAsyncBackend(cast("D3xxStreamHandle", handle))
 
 
 def _new_d3xx_native_backend(handle: _D3xxHandle, config: CaptureConfig) -> object:
-    from py3dscapture.transport.d3xx_native_streaming import (  # noqa: PLC0415
+    from ponkan.transport.d3xx_native_streaming import (  # noqa: PLC0415
         D3xxNativeFastPathBackend,
     )
 
@@ -402,7 +402,7 @@ def _new_d3xx_native_backend(handle: _D3xxHandle, config: CaptureConfig) -> obje
 
 
 def _new_streaming_engine(async_backend: object, config: CaptureConfig) -> CaptureReaderEngine:
-    from py3dscapture.streaming.engine import StreamingEngine  # noqa: PLC0415
+    from ponkan.streaming.engine import StreamingEngine  # noqa: PLC0415
 
     return StreamingEngine(
         cast("AsyncTransferBackend", async_backend),

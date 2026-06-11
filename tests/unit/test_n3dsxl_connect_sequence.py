@@ -1,18 +1,18 @@
 # ruff: noqa: N802
 import pytest
 
-import py3dscapture.protocol.n3dsxl as n3dsxl_module
-from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, N3DSXLDevice
-from py3dscapture.errors import Ftd3CommandContext, Ftd3CommandError, UnsupportedOperation
-from py3dscapture.protocol.n3dsxl import N3DSXL_CFG_WAIT_MS, N3DSXLProtocol
-from py3dscapture.protocol.sizes import (
+import ponkan.protocol.n3dsxl as n3dsxl_module
+from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate, N3DSXLDevice
+from ponkan.errors import Ftd3CommandContext, Ftd3CommandError, UnsupportedOperation
+from ponkan.protocol.n3dsxl import N3DSXL_CFG_WAIT_MS, N3DSXLProtocol
+from ponkan.protocol.sizes import (
     N3DSXL_BULK_IN_ENDPOINT,
     N3DSXL_BULK_OUT_ENDPOINT,
     capture_size,
     video_size,
 )
-from py3dscapture.transport.d3xx_backend import D3xxHandle
-from py3dscapture.transport.libusb_backend import UsbDeviceInfo
+from ponkan.transport.d3xx_backend import D3xxHandle
+from ponkan.transport.libusb_backend import UsbDeviceInfo
 
 
 class _UnusedHandle:

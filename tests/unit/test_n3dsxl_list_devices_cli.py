@@ -1,6 +1,6 @@
-from py3dscapture.devices.n3dsxl_ftd3 import list_n3dsxl_devices
-from py3dscapture.tools.list_devices import format_device_listing
-from py3dscapture.transport.libusb_backend import UsbDeviceInfo
+from ponkan.devices.n3dsxl_ftd3 import list_n3dsxl_devices
+from ponkan.tools.list_devices import format_device_listing
+from ponkan.transport.libusb_backend import UsbDeviceInfo
 
 
 class _UnusedHandle:

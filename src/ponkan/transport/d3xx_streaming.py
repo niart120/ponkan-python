@@ -5,10 +5,10 @@ from concurrent.futures import Future, ThreadPoolExecutor, wait
 from threading import Event, Lock
 from typing import Protocol
 
-from py3dscapture.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT
-from py3dscapture.streaming.buffers import RawFrameSlot
-from py3dscapture.transport.d3xx_backend import D3XX_DEFAULT_TIMEOUT_MS, D3xxBackendError
-from py3dscapture.transport.libusb_async import AsyncTransferCallback
+from ponkan.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT
+from ponkan.streaming.buffers import RawFrameSlot
+from ponkan.transport.d3xx_backend import D3XX_DEFAULT_TIMEOUT_MS, D3xxBackendError
+from ponkan.transport.libusb_async import AsyncTransferCallback
 
 
 class D3xxAsyncBackendConfigError(ValueError):
@@ -95,7 +95,7 @@ class D3xxAsyncBackend:
         self._timeout_ms = timeout_ms
         self._executor = ThreadPoolExecutor(
             max_workers=max_workers,
-            thread_name_prefix="py3dscapture-d3xx-stream",
+            thread_name_prefix="ponkan-d3xx-stream",
         )
         self._cancel_requested = Event()
         self._lock = Lock()

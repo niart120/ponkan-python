@@ -4,17 +4,17 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-from py3dscapture.capture import save_raw_capture
-from py3dscapture.devices.n3dsxl_ftd3 import list_n3dsxl_devices
-from py3dscapture.protocol.n3dsxl import N3DSXLProtocol
-from py3dscapture.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT
-from py3dscapture.transport.d3xx_backend import D3xxBackend, D3xxDeviceCandidate, D3xxDeviceInfo
-from py3dscapture.transport.ftd3_backend import open_ftd3_transport
-from py3dscapture.transport.libusb_backend import Usb1Backend
+from ponkan.capture import save_raw_capture
+from ponkan.devices.n3dsxl_ftd3 import list_n3dsxl_devices
+from ponkan.protocol.n3dsxl import N3DSXLProtocol
+from ponkan.protocol.sizes import N3DSXL_BULK_IN_ENDPOINT
+from ponkan.transport.d3xx_backend import D3xxBackend, D3xxDeviceCandidate, D3xxDeviceInfo
+from ponkan.transport.ftd3_backend import open_ftd3_transport
+from ponkan.transport.libusb_backend import Usb1Backend
 
 if TYPE_CHECKING:
-    from py3dscapture.protocol.n3dsxl import N3DSXLPipe
-    from py3dscapture.transport.ftd3_backend import D3xxFallbackBackend
+    from ponkan.protocol.n3dsxl import N3DSXLPipe
+    from ponkan.transport.ftd3_backend import D3xxFallbackBackend
 
 pytestmark = pytest.mark.requires_n3dsxl
 

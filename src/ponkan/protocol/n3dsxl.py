@@ -3,16 +3,16 @@
 from time import sleep
 from typing import Protocol
 
-from py3dscapture.capture import RawCapture
-from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate
-from py3dscapture.errors import UnsupportedDevice, UnsupportedOperation
-from py3dscapture.protocol.sizes import (
+from ponkan.capture import RawCapture
+from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate
+from ponkan.errors import UnsupportedDevice, UnsupportedOperation
+from ponkan.protocol.sizes import (
     N3DSXL_BULK_IN_ENDPOINT,
     N3DSXL_BULK_OUT_ENDPOINT,
     capture_size,
     video_size,
 )
-from py3dscapture.transport.ftd3_pipe import FTD3_COMMAND_TIMEOUT_MS
+from ponkan.transport.ftd3_pipe import FTD3_COMMAND_TIMEOUT_MS
 
 N3DSXL_CFG_WAIT_MS = 200
 N3DSXL_RAW_FRAME_READ_ATTEMPTS = 8

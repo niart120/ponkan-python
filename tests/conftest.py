@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from py3dscapture.hardware_gate import (
+from ponkan.hardware_gate import (
     manual_visual_tests_enabled,
     performance_tests_enabled,
     requires_n3dsxl_tests_enabled,

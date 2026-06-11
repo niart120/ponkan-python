@@ -37,7 +37,7 @@ HARDWARE_COMMAND_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"(?i)(?:^|[;&|]\s*)uv\s+run\s+pytest\b[^\r\n;&|]*requires_n3dsxl"),
     re.compile(r"(?i)(?:^|[;&|]\s*)uv\s+run\s+pytest\b[^\r\n;&|]*tests[/\\]performance"),
     re.compile(
-        r"(?i)(?:^|[;&|]\s*)uv\s+run\s+python\s+-m\s+py3dscapture\.tools\.(?:capture_raw|stream_n3dsxl)\b"
+        r"(?i)(?:^|[;&|]\s*)uv\s+run\s+python\s+-m\s+ponkan\.tools\.(?:capture_raw|stream_n3dsxl)\b"
     ),
 )
 

@@ -3,9 +3,9 @@
 from struct import pack
 from typing import Final
 
-from py3dscapture.devices.n3dsxl_ftd3 import N3DSXLDevice
-from py3dscapture.errors import Ftd3CommandContext, Ftd3CommandError, UnsupportedDevice
-from py3dscapture.protocol.sizes import N3DSXL_FTD3_COMMAND_PIPE_ID
+from ponkan.devices.n3dsxl_ftd3 import N3DSXLDevice
+from ponkan.errors import Ftd3CommandContext, Ftd3CommandError, UnsupportedDevice
+from ponkan.protocol.sizes import N3DSXL_FTD3_COMMAND_PIPE_ID
 
 FTD3_COMMAND_CREATE_PIPE_ID: Final = 0x82
 FTD3_COMMAND_TIMEOUT_MS: Final = 500

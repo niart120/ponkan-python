@@ -6,13 +6,13 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
-from py3dscapture.artifacts import write_json_artifact
-from py3dscapture.streaming.engine import StreamingEngine
-from py3dscapture.streaming.stats import PerformanceStats, StreamingBackendKind
-from py3dscapture.transport.libusb_async import LibusbAsyncBackend
+from ponkan.artifacts import write_json_artifact
+from ponkan.streaming.engine import StreamingEngine
+from ponkan.streaming.stats import PerformanceStats, StreamingBackendKind
+from ponkan.transport.libusb_async import LibusbAsyncBackend
 
 if TYPE_CHECKING:
-    from py3dscapture.streaming.policies import DropPolicy
+    from ponkan.streaming.policies import DropPolicy
 
 
 def run_streaming_smoke(

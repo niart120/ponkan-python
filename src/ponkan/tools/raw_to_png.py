@@ -9,9 +9,9 @@ from typing import Literal
 
 import numpy as np
 
-from py3dscapture.image.frame import CaptureFrame
-from py3dscapture.protocol.layout_3ds import APPROVED_N3DSXL_2D_DECODER_ID, decode_rgb8_2d
-from py3dscapture.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS
+from ponkan.image.frame import CaptureFrame
+from ponkan.protocol.layout_3ds import APPROVED_N3DSXL_2D_DECODER_ID, decode_rgb8_2d
+from ponkan.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS
 
 ProbeCandidateId = Literal[
     "legacy_top_first_transpose",

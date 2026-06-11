@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from py3dscapture import CaptureOutput, open_capture
-from py3dscapture.artifacts import n3dsxl_artifact_dir, write_json_artifact
-from py3dscapture.hardware_gate import hardware_approved
+from ponkan import CaptureOutput, open_capture
+from ponkan.artifacts import n3dsxl_artifact_dir, write_json_artifact
+from ponkan.hardware_gate import hardware_approved
 
 
 @pytest.mark.requires_n3dsxl

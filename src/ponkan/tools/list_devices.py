@@ -1,7 +1,7 @@
 """List N3DSXL USB device candidates."""
 
-from py3dscapture.devices.n3dsxl_ftd3 import DeviceListing, list_n3dsxl_devices
-from py3dscapture.transport.libusb_backend import LibusbBackend, Usb1Backend
+from ponkan.devices.n3dsxl_ftd3 import DeviceListing, list_n3dsxl_devices
+from ponkan.transport.libusb_backend import LibusbBackend, Usb1Backend
 
 
 def format_device_listing(listing: DeviceListing) -> str:

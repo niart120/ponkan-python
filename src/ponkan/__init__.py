@@ -8,8 +8,8 @@ submodules.
 
 from importlib.metadata import PackageNotFoundError, version
 
-from py3dscapture.capture import CaptureConfig, CaptureOutput, CaptureReader, open_capture
-from py3dscapture.protocol.sizes import (
+from ponkan.capture import CaptureConfig, CaptureOutput, CaptureReader, open_capture
+from ponkan.protocol.sizes import (
     ACCEPTED_N3DSXL_PRODUCT_IDS,
     ACCEPTED_N3DSXL_PRODUCT_STRINGS,
     N3DSXL_VENDOR_ID,

@@ -79,7 +79,7 @@ uv run pytest tests/unit/test_n3dsxl_constants.py
 確認:
 
 ```bash
-uv run python -m py3dscapture.tools.list_devices
+uv run python -m ponkan.tools.list_devices
 ```
 
 ゲート:
@@ -178,7 +178,7 @@ uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_connect.py
 確認:
 
 ```bash
-uv run python -m py3dscapture.tools.capture_raw --model new_3ds_xl --out tests/fixtures/n3dsxl/raw_2d_001.bin
+uv run python -m ponkan.tools.capture_raw --model new_3ds_xl --out tests/fixtures/n3dsxl/raw_2d_001.bin
 ```
 
 ゲート:
@@ -203,7 +203,7 @@ uv run python -m py3dscapture.tools.capture_raw --model new_3ds_xl --out tests/f
 確認:
 
 ```bash
-uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.bin --metadata tests/fixtures/n3dsxl/raw_2d_001.json --out tests/fixtures/n3dsxl/
+uv run python -m ponkan.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.bin --metadata tests/fixtures/n3dsxl/raw_2d_001.json --out tests/fixtures/n3dsxl/
 ```
 
 ゲート:
@@ -234,7 +234,7 @@ uv run python -m py3dscapture.tools.raw_to_png tests/fixtures/n3dsxl/raw_2d_001.
 
 ```bash
 uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_streaming.py
-uv run python -m py3dscapture.tools.stream_n3dsxl --duration 10 --stats
+uv run python -m ponkan.tools.stream_n3dsxl --duration 10 --stats
 ```
 
 ゲート:
@@ -254,7 +254,7 @@ uv run python -m py3dscapture.tools.stream_n3dsxl --duration 10 --stats
 
 ```bash
 uv run pytest -m "requires_n3dsxl and performance" tests/performance/test_n3dsxl_streaming_smoke.py
-uv run python -m py3dscapture.tools.stream_n3dsxl --duration 60 --noop-consumer --stats
+uv run python -m ponkan.tools.stream_n3dsxl --duration 60 --noop-consumer --stats
 ```
 
 ゲート:

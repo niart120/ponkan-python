@@ -5,14 +5,14 @@ import queue
 import time
 from collections.abc import AsyncIterator, Callable, Iterator
 
-from py3dscapture.errors import DecodeError
-from py3dscapture.image.frame import CaptureFrame
-from py3dscapture.protocol.layout_3ds import decode_rgb8_2d
-from py3dscapture.protocol.sizes import capture_size, video_size
-from py3dscapture.streaming.buffers import BufferPool, RawFrameResult, RawFrameSlot
-from py3dscapture.streaming.policies import BoundedFrameQueue, DropPolicy, put_frame_with_policy
-from py3dscapture.streaming.stats import StreamStats, StreamTimingCollector, TimingSummary
-from py3dscapture.transport.libusb_async import AsyncTransferBackend
+from ponkan.errors import DecodeError
+from ponkan.image.frame import CaptureFrame
+from ponkan.protocol.layout_3ds import decode_rgb8_2d
+from ponkan.protocol.sizes import capture_size, video_size
+from ponkan.streaming.buffers import BufferPool, RawFrameResult, RawFrameSlot
+from ponkan.streaming.policies import BoundedFrameQueue, DropPolicy, put_frame_with_policy
+from ponkan.streaming.stats import StreamStats, StreamTimingCollector, TimingSummary
+from ponkan.transport.libusb_async import AsyncTransferBackend
 
 Decoder = Callable[[bytes], CaptureFrame]
 

@@ -3,10 +3,10 @@ from dataclasses import dataclass
 
 import pytest
 
-import py3dscapture.transport.d3xx_backend as d3xx_backend
-from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate
-from py3dscapture.errors import OptionalDependencyError
-from py3dscapture.transport.d3xx_backend import D3xxBackend
+import ponkan.transport.d3xx_backend as d3xx_backend
+from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate
+from ponkan.errors import OptionalDependencyError
+from ponkan.transport.d3xx_backend import D3xxBackend
 
 
 @dataclass(frozen=True, slots=True)

@@ -3,9 +3,9 @@ import time
 
 import pytest
 
-from py3dscapture.streaming.buffers import RawFrameSlot
-from py3dscapture.transport.d3xx_backend import D3xxBackendError
-from py3dscapture.transport.d3xx_streaming import (
+from ponkan.streaming.buffers import RawFrameSlot
+from ponkan.transport.d3xx_backend import D3xxBackendError
+from ponkan.transport.d3xx_streaming import (
     D3xxAsyncBackend,
     D3xxAsyncBackendConfigError,
 )

@@ -9,10 +9,10 @@ from importlib import import_module
 from types import ModuleType
 from typing import Any, Literal, Protocol, cast
 
-from py3dscapture.devices.n3dsxl_ftd3 import DeviceCandidate, classify_n3dsxl_device
-from py3dscapture.errors import CaptureError, OptionalDependencyError
-from py3dscapture.protocol.sizes import N3DSXL_VENDOR_ID
-from py3dscapture.transport.libusb_backend import UsbDeviceInfo
+from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate, classify_n3dsxl_device
+from ponkan.errors import CaptureError, OptionalDependencyError
+from ponkan.protocol.sizes import N3DSXL_VENDOR_ID
+from ponkan.transport.libusb_backend import UsbDeviceInfo
 
 FT_OK = 0
 D3XX_OPEN_BY_SERIAL_NUMBER = 0x01

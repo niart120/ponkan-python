@@ -4,15 +4,15 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-from py3dscapture.capture import save_raw_capture
-from py3dscapture.devices.n3dsxl_ftd3 import list_n3dsxl_devices
-from py3dscapture.protocol.n3dsxl import N3DSXLProtocol
-from py3dscapture.transport.d3xx_backend import D3xxBackend
-from py3dscapture.transport.ftd3_backend import open_ftd3_transport
-from py3dscapture.transport.libusb_backend import Usb1Backend
+from ponkan.capture import save_raw_capture
+from ponkan.devices.n3dsxl_ftd3 import list_n3dsxl_devices
+from ponkan.protocol.n3dsxl import N3DSXLProtocol
+from ponkan.transport.d3xx_backend import D3xxBackend
+from ponkan.transport.ftd3_backend import open_ftd3_transport
+from ponkan.transport.libusb_backend import Usb1Backend
 
 if TYPE_CHECKING:
-    from py3dscapture.protocol.n3dsxl import N3DSXLPipe
+    from ponkan.protocol.n3dsxl import N3DSXLPipe
 
 
 @pytest.mark.requires_n3dsxl

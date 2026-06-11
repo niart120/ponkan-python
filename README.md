@@ -38,7 +38,7 @@ pip install "ponkan-python[d3xx]"
 高レベル API では、new 3DS XL capture board を開いて `read()` で RGB8 `numpy.ndarray` を取得できます。
 
 ```python
-from py3dscapture import CaptureOutput, open_capture
+from ponkan import CaptureOutput, open_capture
 
 with open_capture(output=CaptureOutput.BOTH_VERTICAL) as cap:
     image = cap.read()
@@ -49,7 +49,7 @@ with open_capture(output=CaptureOutput.BOTH_VERTICAL) as cap:
 上画面だけを読む場合は `CaptureOutput.TOP` を指定します。OpenCV へ渡す場合は `colorspace="BGR"` を指定できます。
 
 ```python
-from py3dscapture import CaptureOutput, open_capture
+from ponkan import CaptureOutput, open_capture
 
 with open_capture(output=CaptureOutput.TOP, colorspace="BGR") as cap:
     top_bgr = cap.read()
@@ -58,7 +58,7 @@ with open_capture(output=CaptureOutput.TOP, colorspace="BGR") as cap:
 3DS 固有の上画面・下画面・sequence などが必要な場合は `read_frame()` を使います。
 
 ```python
-from py3dscapture import open_capture
+from ponkan import open_capture
 
 with open_capture() as cap:
     frame = cap.read_frame()
@@ -74,10 +74,10 @@ API の詳細は [API Reference](https://github.com/niart120/ponkan-python/blob/
 インストール後は次の console scripts を利用できます。
 
 ```console
-py3dscapture-list-devices
-py3dscapture-capture-raw --out captures/n3dsxl/raw_2d_001.bin
-py3dscapture-raw-to-png captures/n3dsxl/raw_2d_001.bin --metadata captures/n3dsxl/raw_2d_001.json --out captures/n3dsxl/png
-py3dscapture-stream-n3dsxl --duration 10 --stats
+ponkan-list-devices
+ponkan-capture-raw --out captures/n3dsxl/raw_2d_001.bin
+ponkan-raw-to-png captures/n3dsxl/raw_2d_001.bin --metadata captures/n3dsxl/raw_2d_001.json --out captures/n3dsxl/png
+ponkan-stream-n3dsxl --duration 10 --stats
 ```
 
 実機へ N3DSXL command を送る操作は、事前に device identity と安全境界を確認してから実行してください。

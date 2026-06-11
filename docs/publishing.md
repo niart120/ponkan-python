@@ -7,7 +7,7 @@ has a matching trusted publisher.
 ## Package Metadata
 
 - Distribution name: `ponkan-python`
-- Import package: `py3dscapture`
+- Import package: `ponkan`
 - Python support: `>=3.12, <3.14`
 - License expression: `MIT`
 - License files: `LICENSE`, `NOTICE.md`
@@ -73,12 +73,12 @@ publishes the same artifact to the selected package index.
 After upload, verify installation in a clean environment:
 
 ```console
-uvx --from ponkan-python py3dscapture-list-devices
+uvx --from ponkan-python ponkan-list-devices
 ```
 
 For optional features:
 
 ```console
-uvx --from "ponkan-python[image]" py3dscapture-raw-to-png --help
-uvx --from "ponkan-python[d3xx]" py3dscapture-list-devices
+uvx --from "ponkan-python[image]" ponkan-raw-to-png --help
+uvx --from "ponkan-python[d3xx]" ponkan-list-devices
 ```
