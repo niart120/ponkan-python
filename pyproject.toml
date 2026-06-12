@@ -1,6 +1,6 @@
 [project]
 name = "ponkan-python"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Python capture library focused on new 3DS XL capture board frame acquisition."
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [
