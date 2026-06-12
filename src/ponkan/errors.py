@@ -103,11 +103,31 @@ class DecodeError(CaptureError):
     """
 
 
-class OptionalDependencyError(CaptureError):
-    """Raised when an optional adapter dependency is missing.
+class DependencyUnavailableError(CaptureError):
+    """Raised when a runtime dependency required by a selected path is missing.
 
-    Optional extras currently include image conversion dependencies and the D3XX
-    backend dependency.
+    This covers platform-gated normal dependencies as well as more specific
+    optional-extra dependencies.
+    """
+
+    @classmethod
+    def for_backend_dependency(
+        cls,
+        dependency: str,
+        backend: str,
+    ) -> "DependencyUnavailableError":
+        """Create an error for a dependency required by one backend."""
+        return cls(
+            f"{dependency} is required for the {backend} backend. "
+            "Install ponkan-python with dependencies for this platform, or select a "
+            "backend supported by this environment."
+        )
+
+
+class OptionalDependencyError(DependencyUnavailableError):
+    """Raised when a dependency provided by an optional extra is missing.
+
+    Optional extras currently include image conversion dependencies.
     """
 
     def __init__(self, dependency: str, extra: str) -> None:

@@ -5,7 +5,7 @@ import pytest
 
 import ponkan.transport.d3xx_backend as d3xx_backend
 from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate
-from ponkan.errors import OptionalDependencyError
+from ponkan.errors import DependencyUnavailableError
 from ponkan.transport.d3xx_backend import D3xxBackend
 
 
@@ -222,7 +222,7 @@ def test_d3xx_stream_pipe_read_uses_native_stream_read_api() -> None:
     assert read_data == b"stream"
 
 
-def test_pyd3xx_binding_missing_reports_optional_dependency(
+def test_pyd3xx_binding_missing_reports_dependency_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def missing_module(module_name: str) -> object:
@@ -231,5 +231,9 @@ def test_pyd3xx_binding_missing_reports_optional_dependency(
 
     monkeypatch.setattr(d3xx_backend, "import_module", missing_module)
 
-    with pytest.raises(OptionalDependencyError):
+    with pytest.raises(DependencyUnavailableError) as exc_info:
         d3xx_backend.load_pyd3xx_binding()
+
+    message = str(exc_info.value)
+    assert "PyD3XX is required for the Windows D3XX backend" in message
+    assert "d3xx extra" not in message

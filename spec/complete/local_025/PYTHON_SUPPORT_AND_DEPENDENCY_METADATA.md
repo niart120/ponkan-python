@@ -72,11 +72,11 @@
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | PyD3XX missing error が `DependencyUnavailableError` になる | unit | 3.1 | `tests/unit/test_d3xx_backend.py` |
-| todo | PyD3XX missing error が `d3xx` extra を案内しない | unit | 3.1 | `tests/unit/test_d3xx_backend.py` |
-| todo | Pillow missing error は `image` extra 案内を維持する | unit | 3.1 | 既存 test / manual path の確認 |
-| todo | lock metadata に `requires-python = ">=3.12"` が反映される | integration | 3.1 | `uv lock` 後に確認 |
-| todo | package metadata の optional extras が `image` / `opencv` のみになる | integration | 3.1 | `uv lock` または build metadata で確認 |
+| green | PyD3XX missing error が `DependencyUnavailableError` になる | unit | 3.1 | `tests/unit/test_d3xx_backend.py` |
+| green | PyD3XX missing error が `d3xx` extra を案内しない | unit | 3.1 | `tests/unit/test_d3xx_backend.py` |
+| green | Pillow missing error は `image` extra 案内を維持する | unit | 3.1 | `tests/unit/test_layout_3ds_decoder.py` |
+| green | lock metadata に `requires-python = ">=3.12"` が反映される | integration | 3.1 | `uv.lock` line 3 |
+| green | package metadata の optional extras が `image` / `opencv` のみになる | integration | 3.1 | `uv.lock` `provides-extras = ["image", "opencv"]` |
 
 ### 3.3 設計方針
 
@@ -169,10 +169,39 @@ git diff --check
 
 ## 6. 実装チェックリスト
 
-- [ ] `pyproject.toml` の `requires-python` と dependencies / optional dependencies を更新する。
-- [ ] `uv lock` を実行して `uv.lock` を更新する。
-- [ ] README / docs の install command と dependency 説明を更新する。
-- [ ] `DependencyUnavailableError` を追加し、PyD3XX missing error を通常依存化後の実態に合わせる。
-- [ ] unit test を更新する。
-- [ ] 検証コマンドを実行し、結果を仕様書へ反映する。
-- [ ] レビュー完了。
+- [x] `pyproject.toml` の `requires-python` と dependencies / optional dependencies を更新する。
+- [x] `uv lock` を実行して `uv.lock` を更新する。
+- [x] README / docs の install command と dependency 説明を更新する。
+- [x] `DependencyUnavailableError` を追加し、PyD3XX missing error を通常依存化後の実態に合わせる。
+- [x] unit test を更新する。
+- [x] 検証コマンドを実行し、結果を仕様書へ反映する。
+- [x] レビュー完了。
+
+## 7. 実装結果
+
+### 7.1 変更結果
+
+| 項目 | 結果 |
+| ---- | ---- |
+| Python metadata | `requires-python = ">=3.12"` に変更し、Python 3.14+ を install metadata だけでは拒否しない。 |
+| PyD3XX dependency | `pyd3xx>=1.1.4; sys_platform == 'win32'` を通常 dependency に移動した。 |
+| optional extras | `d3xx` extra を削除し、`image` / `opencv` のみを残した。 |
+| error surface | `DependencyUnavailableError` を追加し、PyD3XX missing path は `OptionalDependencyError` ではなくこの例外を送出する。 |
+| docs | README / API docs / publishing smoke から `ponkan-python[d3xx]` を削除した。 |
+
+### 7.2 Gate 結果
+
+| gate | 結果 | evidence |
+| ---- | ---- | -------- |
+| lock refresh | pass | `uv lock`: Resolved 17 packages。`uv.lock` は `requires-python = ">=3.12"`、`pyd3xx` は `sys_platform == 'win32'` marker、`provides-extras = ["image", "opencv"]`。 |
+| targeted unit | pass | `uv run pytest tests/unit/test_d3xx_backend.py tests/unit/test_layout_3ds_decoder.py -q`: 19 passed, 1 warning。 |
+| unit | pass | `uv run pytest tests/unit -q`: 124 passed, 1 warning。 |
+| format | pass | `uv run ruff format --check .`: 70 files already formatted。 |
+| lint | pass | `uv run ruff check .`: All checks passed。 |
+| type | pass | `uv run ty check --no-progress`: All checks passed。 |
+| docs grep | pass | `rg -n "ponkan-python\\[d3xx\\]|d3xx extra" README.md docs pyproject.toml`: no matches。 |
+| lock grep | pass | `rg -n "extra == 'd3xx'" uv.lock`: no matches。 |
+| whitespace | pass | `git diff --check`: no output。 |
+| hardware | not applicable | 実機 command scope はない。 |
+
+`uv run ...` 実行時に `.venv\Lib\site-packages\ponkan_python-0.1.0.dist-info` の `RECORD` missing による uninstall warning が出たが、各 command は成功した。これは既存 editable install 周辺の環境 warning であり、本 Work Unit の gate failure ではない。

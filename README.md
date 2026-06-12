@@ -20,17 +20,16 @@
 
 ## Installation
 
-Python 3.12 / 3.13 を対象にしています。
+Python 3.12 以上を対象にしています。現在の検証基準は Python 3.12 / 3.13 です。
 
 ```console
 pip install ponkan-python
 ```
 
-PNG 変換には Pillow extra、FTDI D3XX backend には D3XX extra を追加します。
+Windows の FTDI D3XX backend では、通常依存として PyD3XX を利用します。PNG 変換には Pillow extra を追加します。
 
 ```console
 pip install "ponkan-python[image]"
-pip install "ponkan-python[d3xx]"
 ```
 
 ## Usage

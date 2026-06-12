@@ -9,7 +9,7 @@ authors = [
 maintainers = [
     { name = "niart120", email = "38847256+niart120@users.noreply.github.com" }
 ]
-requires-python = ">=3.12, <3.14"
+requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE", "NOTICE.md"]
 keywords = [
@@ -34,6 +34,7 @@ classifiers = [
 dependencies = [
     "libusb1>=3.3.1",
     "numpy>=2.0",
+    "pyd3xx>=1.1.4; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
@@ -42,9 +43,6 @@ image = [
 ]
 opencv = [
     "opencv-python>=4.10",
-]
-d3xx = [
-    "pyd3xx>=1.1.4",
 ]
 
 [project.urls]
