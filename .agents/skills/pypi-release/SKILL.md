@@ -53,7 +53,7 @@ upload は手元の `twine upload` ではなく、`.github/workflows/publish.yml
 2. `pyproject.toml` の project version を更新する。
 3. `uv lock` で `uv.lock` を同期する。
 4. `docs/publishing.md` の例、release note draft、必要な docs を更新する。
-5. local gates を実行する。
+5. stale distribution artifact を削除し、local gates を実行する。`dist/.gitignore` は残し、過去 version の wheel / sdist は削除する。
 
 ```console
 uv sync --dev
@@ -62,12 +62,13 @@ uv run ruff format --check .
 uv run ruff check .
 uv run ty check --no-progress
 uv run pytest tests/unit
+Remove-Item -ErrorAction SilentlyContinue dist\ponkan_python-*.whl, dist\ponkan_python-*.tar.gz
 uv build
-uvx --from twine twine check dist\*
+uvx --from twine twine check dist\ponkan_python-X.Y.Z-py3-none-any.whl dist\ponkan_python-X.Y.Z.tar.gz
 git diff --check
 ```
 
-6. wheel content を確認する。最低限 `ponkan/__init__.py` と `ponkan/py.typed` が wheel に含まれることを確認する。
+6. wheel content を candidate version 固定で確認する。`next(Path("dist").glob("*.whl"))` のような曖昧な選択は、古い artifact を誤検査するため使わない。最低限 `ponkan/__init__.py` と `ponkan/py.typed` が wheel に含まれ、`py3dscapture/` が含まれないことを確認する。
 7. PR 作成、merge、default branch 同期、branch cleanup は `pr-merge-cleanup` に委譲する。
 
 ## TestPyPI

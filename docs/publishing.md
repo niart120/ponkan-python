@@ -65,16 +65,20 @@ uv run ruff format --check .
 uv run ruff check .
 uv run ty check --no-progress
 uv run pytest tests/unit
+Remove-Item -ErrorAction SilentlyContinue dist\ponkan_python-*.whl, dist\ponkan_python-*.tar.gz
 uv build
-uvx --from twine twine check dist\*
+uvx --from twine twine check dist\ponkan_python-X.Y.Z-py3-none-any.whl dist\ponkan_python-X.Y.Z.tar.gz
 git diff --check
 ```
 
-The build should create both an sdist and a wheel under `dist/`. Check the wheel
-contains the import package and typing marker:
+The cleanup keeps `dist/.gitignore` and removes stale wheel / sdist artifacts
+from earlier releases. The build should create both an sdist and a wheel for the
+candidate version under `dist/`. Check the candidate wheel by exact path; do not
+use `next(Path("dist").glob("*.whl"))`, because stale artifacts can make that
+select an older release.
 
 ```console
-uv run python -c "import pathlib, zipfile; wheel=next(pathlib.Path('dist').glob('*.whl')); names=set(zipfile.ZipFile(wheel).namelist()); assert 'ponkan/__init__.py' in names; assert 'ponkan/py.typed' in names"
+uv run python -c "import pathlib, zipfile; wheel=pathlib.Path('dist/ponkan_python-X.Y.Z-py3-none-any.whl'); assert wheel.exists(); names=set(zipfile.ZipFile(wheel).namelist()); assert 'ponkan/__init__.py' in names; assert 'ponkan/py.typed' in names; assert not any(name.startswith('py3dscapture/') for name in names)"
 ```
 
 ## TestPyPI
