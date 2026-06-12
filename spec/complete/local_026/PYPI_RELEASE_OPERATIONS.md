@@ -59,11 +59,11 @@
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_026/PYPI_RELEASE_OPERATIONS.md` | 新規 | 本仕様を追加する。 |
-| `.agents/skills/pypi-release/SKILL.md` | 新規予定 | PyPI release の preflight / version bump / publish / smoke workflow を skill 化する。 |
-| `.agents/skills/pypi-release/agents/openai.yaml` | 新規予定 | skill UI metadata を追加する。 |
-| `docs/publishing.md` | 修正予定 | release preflight、TestPyPI、本番 publish、GitHub Release / smoke check、stop conditions を更新する。 |
-| `AGENTS.md` | 修正予定 | 主要 skill 一覧に `pypi-release` を追加する。 |
+| `spec/complete/local_026/PYPI_RELEASE_OPERATIONS.md` | 完了移動 | 本仕様と実装結果を記録する。 |
+| `.agents/skills/pypi-release/SKILL.md` | 新規 | PyPI release の preflight / version bump / publish / smoke workflow を skill 化する。 |
+| `.agents/skills/pypi-release/agents/openai.yaml` | 新規 | skill UI metadata を追加する。 |
+| `docs/publishing.md` | 修正 | release preflight、TestPyPI、本番 publish、GitHub Release / smoke check、stop conditions を更新する。 |
+| `AGENTS.md` | 修正 | 主要 skill 一覧に `pypi-release` を追加し、Python support 表記を package metadata と合わせる。 |
 | `.github/workflows/publish.yml` | 修正なし予定 | 現行の tag-driven Trusted Publishing workflow は維持する。必要な改善が見つかった場合のみ別 Work Unit とする。 |
 | `pyproject.toml` | 修正なし予定 | release version bump は実際の release Work Unit で行う。本仕様整備では変更しない。 |
 | `uv.lock` | 修正なし予定 | release version bump は実際の release Work Unit で行う。本仕様整備では変更しない。 |
@@ -88,12 +88,12 @@
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | `pypi-release` skill frontmatter が valid | skill validation | 3.1 | `quick_validate.py .agents/skills/pypi-release` |
-| todo | `docs/publishing.md` と `pyproject.toml` の Python support 表記が一致する | docs regression | 3.1 | grep または manual check |
-| todo | local release check に `uv lock --check`、`uv build`、`twine check` が含まれる | docs regression | 3.1 | `docs/publishing.md` |
-| todo | post-publish smoke が `==X.Y.Z` pin を使う | docs regression | 3.1 | `docs/publishing.md` |
-| todo | `AGENTS.md` の skill 一覧に `pypi-release` が含まれる | docs regression | 2 | project skill discovery |
-| todo | release docs から古い `>=3.12, <3.14` 表記が消える | docs regression | 1.3 | local_025 と整合 |
+| green | `pypi-release` skill frontmatter が valid | skill validation | 3.1 | `quick_validate.py .agents/skills/pypi-release` |
+| green | `docs/publishing.md` と `pyproject.toml` の Python support 表記が一致する | docs regression | 3.1 | `>=3.12` に統一 |
+| green | local release check に `uv lock --check`、`uv build`、`twine check` が含まれる | docs regression | 3.1 | `docs/publishing.md` |
+| green | post-publish smoke が `==X.Y.Z` pin を使う | docs regression | 3.1 | `docs/publishing.md` |
+| green | `AGENTS.md` の skill 一覧に `pypi-release` が含まれる | docs regression | 2 | project skill discovery |
+| green | release docs から古い `>=3.12, <3.14` 表記が消える | docs regression | 1.3 | local_025 と整合 |
 
 ### 3.3 設計方針
 
@@ -223,18 +223,49 @@ git diff --check
 
 ## 6. 実装チェックリスト
 
-- [ ] `.agents/skills/pypi-release/SKILL.md` を作成する。
-- [ ] `.agents/skills/pypi-release/agents/openai.yaml` を作成する。
-- [ ] `AGENTS.md` の主要 skill 一覧へ `pypi-release` を追加する。
-- [ ] `docs/publishing.md` の Python support drift を修正する。
-- [ ] `docs/publishing.md` に release preflight、version policy、tag stop conditions、`twine check`、version-pinned smoke を追加する。
-- [ ] release note / GitHub Release の扱いを `docs/publishing.md` と `pypi-release` skill に明記する。
-- [ ] `quick_validate.py` で `pypi-release` skill を検証する。
-- [ ] format / lint / type / unit / grep / diff check を実行する。
-- [ ] 実装結果と gate 結果を本仕様へ反映する。
-- [ ] レビュー完了。
+- [x] `.agents/skills/pypi-release/SKILL.md` を作成する。
+- [x] `.agents/skills/pypi-release/agents/openai.yaml` を作成する。
+- [x] `AGENTS.md` の主要 skill 一覧へ `pypi-release` を追加する。
+- [x] `docs/publishing.md` の Python support drift を修正する。
+- [x] `docs/publishing.md` に release preflight、version policy、tag stop conditions、`twine check`、version-pinned smoke を追加する。
+- [x] release note / GitHub Release の扱いを `docs/publishing.md` と `pypi-release` skill に明記する。
+- [x] `quick_validate.py` で `pypi-release` skill を検証する。
+- [x] format / lint / type / unit / grep / diff check を実行する。
+- [x] 実装結果と gate 結果を本仕様へ反映する。
+- [x] レビュー完了。
 
-## 7. 参照
+## 7. 実装結果
+
+### 7.1 変更結果
+
+| 項目 | 結果 |
+| ---- | ---- |
+| `pypi-release` skill | PyPI release の inputs、preflight、version policy、release PR、TestPyPI、production publish、post-publish smoke、stop conditions、report 形式を定義した。 |
+| skill metadata | `agents/openai.yaml` に display name、short description、default prompt を追加した。 |
+| publishing docs | Python support drift を `>=3.12` に修正し、release flow、version policy、preflight、stop conditions、version-pinned smoke、release report を追加した。 |
+| AGENTS | 主要 skill 一覧に `pypi-release` を追加し、Python support 表記を `>=3.12` へ揃えた。 |
+| workflow | `.github/workflows/publish.yml` は現行の build / publish job 分離と Trusted Publishing が仕様に合うため変更しなかった。 |
+
+### 7.2 Gate 結果
+
+| gate | 結果 | evidence |
+| ---- | ---- | -------- |
+| skill validation | pass | `uv run python -X utf8 C:\Users\train\.codex\skills\.system\skill-creator\scripts\quick_validate.py .agents\skills\pypi-release`: Skill is valid。 |
+| docs drift grep | pass | `rg -n ">=3\.12, <3\.14|ponkan-python\[d3xx\]" docs AGENTS.md .agents`: no matches。 |
+| docs content grep | pass | `rg -n "uv lock --check|twine check|==X\.Y\.Z|pypi-release|GitHub Release|Stop Conditions" docs\publishing.md .agents\skills\pypi-release\SKILL.md AGENTS.md`: expected matches。 |
+| placeholder grep | pass | `rg -n "TODO|\[TODO|Structuring This Skill|Resources \(optional\)" .agents\skills\pypi-release`: no matches。 |
+| format | pass | `uv run ruff format --check .`: 70 files already formatted。 |
+| lint | pass | `uv run ruff check .`: All checks passed。 |
+| type | pass | `uv run ty check --no-progress`: All checks passed。 |
+| unit | pass | `uv run pytest tests/unit`: 124 passed。 |
+| diff check | pass | `git diff --check`: no output。 |
+| hardware | not applicable | 実機 command scope はない。 |
+
+### 7.3 Completion Notes
+
+本 Work Unit は release 手順と skill の整備であり、実際の PyPI version bump、release PR、tag push、publish は行わない。production publish は `pypi-release` skill の stop conditions に従い、release Work Unit で別途実行する。
+
+## 8. 参照
 
 | 参照 | 用途 |
 | ---- | ---- |
