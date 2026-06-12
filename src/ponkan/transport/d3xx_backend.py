@@ -10,7 +10,7 @@ from types import ModuleType
 from typing import Any, Literal, Protocol, cast
 
 from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate, classify_n3dsxl_device
-from ponkan.errors import CaptureError, OptionalDependencyError
+from ponkan.errors import CaptureError, DependencyUnavailableError
 from ponkan.protocol.sizes import N3DSXL_VENDOR_ID
 from ponkan.transport.libusb_backend import UsbDeviceInfo
 
@@ -481,13 +481,13 @@ class D3xxHandle:
 
 
 def load_pyd3xx_binding() -> D3xxBinding:
-    """Import the optional PyD3XX module.
+    """Import the PyD3XX module used by the Windows D3XX backend.
 
     Returns:
         Imported module cast to the D3XX binding protocol.
 
     Raises:
-        OptionalDependencyError: Neither supported PyD3XX module name can be
+        DependencyUnavailableError: Neither supported PyD3XX module name can be
             imported.
     """
     for module_name in PYD3XX_MODULE_NAMES:
@@ -495,7 +495,7 @@ def load_pyd3xx_binding() -> D3xxBinding:
             return cast("D3xxBinding", import_module(module_name))
         except ImportError:
             continue
-    raise OptionalDependencyError("PyD3XX", "d3xx")
+    raise DependencyUnavailableError.for_backend_dependency("PyD3XX", "Windows D3XX")
 
 
 class D3xxBackend:
@@ -506,15 +506,15 @@ class D3xxBackend:
     """
 
     def __init__(self, binding: D3xxBinding | None = None) -> None:
-        """Create a backend using an injected or optional PyD3XX binding.
+        """Create a backend using an injected or installed PyD3XX binding.
 
         Args:
             binding: Optional test or real PyD3XX binding. When omitted, the
-                optional dependency is imported lazily.
+                installed dependency is imported lazily.
 
         Raises:
-            OptionalDependencyError: ``binding`` is omitted and PyD3XX is not
-                installed.
+            DependencyUnavailableError: ``binding`` is omitted and PyD3XX is not
+                installed or not supported in the current environment.
         """
         self._binding = binding or load_pyd3xx_binding()
 

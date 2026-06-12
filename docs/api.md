@@ -5,17 +5,16 @@ acquisition. The current package is focused on 2D N3DSXL video capture and does
 not provide GUI, audio playback, recording, old DS, Optimize, Nisetro, or IS
 device support.
 
-## Installation Extras
+## Installation
 
 ```console
 pip install ponkan-python
 pip install "ponkan-python[image]"
-pip install "ponkan-python[d3xx]"
 ```
 
 Use the `image` extra when calling `CaptureFrame.to_pillow()` or the
-`ponkan-raw-to-png` command. Use the `d3xx` extra when selecting the D3XX
-backend.
+`ponkan-raw-to-png` command. On Windows, the D3XX backend uses PyD3XX as a
+normal platform-gated dependency.
 
 ## Top-Level Imports
 
@@ -229,4 +228,5 @@ All package-level failures inherit from `CaptureError`.
 | `UnsupportedOperation` | Requested behavior is outside current MVP scope. |
 | `TransferOverflow` | Transfer length exceeds the accepted capture size. |
 | `DecodeError` | Raw bytes or decoded frame data cannot be interpreted. |
-| `OptionalDependencyError` | Optional dependency such as Pillow or PyD3XX is missing. |
+| `DependencyUnavailableError` | A runtime dependency required by the selected backend is unavailable. |
+| `OptionalDependencyError` | Optional dependency such as Pillow is missing. |

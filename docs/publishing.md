@@ -80,5 +80,8 @@ For optional features:
 
 ```console
 uvx --from "ponkan-python[image]" ponkan-raw-to-png --help
-uvx --from "ponkan-python[d3xx]" ponkan-list-devices
 ```
+
+On Windows, the D3XX backend dependency is installed through normal platform
+metadata. Use `uvx --from ponkan-python ponkan-list-devices` for the D3XX
+smoke check.
