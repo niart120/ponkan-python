@@ -46,6 +46,7 @@ NyX の初期実装は physical device selection を scope 外にして `open_ca
 ### 1.5 着手条件
 
 - [x] `local_028` の profile registry が利用可能である。
+- [x] `local_030` の `CaptureReason` が利用可能である。
 - [ ] 現行 `DeviceCandidate` / `RejectedDevice` / `DeviceListing` と `D3xxBackend.iter_device_candidates()` の責務を確認する。
 - [ ] `src/ponkan/tools/list_devices.py` の出力を public discovery model へ寄せる方針を決める。
 

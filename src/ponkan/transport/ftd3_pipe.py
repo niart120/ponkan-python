@@ -162,7 +162,7 @@ class Ftd3Pipe:
             UnsupportedDevice: ``session`` is not an ``N3DSXLDevice``.
         """
         if not isinstance(session, N3DSXLDevice):
-            raise UnsupportedDevice
+            raise UnsupportedDevice(profile="n3dsxl")
         self.session = session
         self._next_command_id = first_command_id
 

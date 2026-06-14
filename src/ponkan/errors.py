@@ -1,6 +1,23 @@
 """Project exception hierarchy."""
 
 from dataclasses import dataclass
+from typing import ClassVar, Literal
+
+CaptureReason = Literal[
+    "available",
+    "missing_package",
+    "missing_driver",
+    "missing_runtime",
+    "unsupported_platform",
+    "unsupported_backend",
+    "unsupported_profile",
+    "device_not_found",
+    "device_rejected",
+    "open_failed",
+    "read_failed",
+    "decode_failed",
+    "unknown",
+]
 
 
 class CaptureError(Exception):
@@ -10,6 +27,52 @@ class CaptureError(Exception):
     matching individual USB, decode, or optional-dependency errors.
     """
 
+    DEFAULT_CODE: ClassVar[str] = "capture_error"
+    DEFAULT_REASON: ClassVar[CaptureReason | None] = None
+    DEFAULT_RECOVERABLE: ClassVar[bool] = False
+
+    code: str
+    profile: str | None
+    backend: str | None
+    reason: CaptureReason | None
+    recoverable: bool
+    remediation: str | None
+
+    def __init__(
+        self,
+        message: str | None = None,
+        *,
+        code: str | None = None,
+        profile: str | None = None,
+        backend: str | None = None,
+        reason: CaptureReason | None = None,
+        recoverable: bool | None = None,
+        remediation: str | None = None,
+    ) -> None:
+        """Create a package error with machine-readable context."""
+        if message is None:
+            super().__init__()
+        else:
+            super().__init__(message)
+        self.code = self.DEFAULT_CODE if code is None else code
+        self.profile = profile
+        self.backend = backend
+        self.reason = self.DEFAULT_REASON if reason is None else reason
+        self.recoverable = self.DEFAULT_RECOVERABLE if recoverable is None else recoverable
+        self.remediation = remediation
+
+    def to_dict(self) -> dict[str, object]:
+        """Return JSON-friendly structured error fields."""
+        return {
+            "message": str(self),
+            "code": self.code,
+            "profile": self.profile,
+            "backend": self.backend,
+            "reason": self.reason,
+            "recoverable": self.recoverable,
+            "remediation": self.remediation,
+        }
+
 
 class UnsupportedDevice(CaptureError):  # noqa: N818
     """Raised when a USB device is not an accepted capture target.
@@ -18,9 +81,16 @@ class UnsupportedDevice(CaptureError):  # noqa: N818
     session API was not an accepted candidate.
     """
 
+    DEFAULT_CODE: ClassVar[str] = "device_rejected"
+    DEFAULT_REASON: ClassVar[CaptureReason | None] = "device_rejected"
+
 
 class DeviceNotFound(CaptureError):  # noqa: N818
     """Raised when no accepted capture device is visible to the selected backend."""
+
+    DEFAULT_CODE: ClassVar[str] = "device_not_found"
+    DEFAULT_REASON: ClassVar[CaptureReason | None] = "device_not_found"
+    DEFAULT_RECOVERABLE: ClassVar[bool] = True
 
 
 class DeviceOpenError(CaptureError):
@@ -29,6 +99,10 @@ class DeviceOpenError(CaptureError):
     This covers backend open failures, configuration selection failures,
     interface claim failures, and cleanup failures during close.
     """
+
+    DEFAULT_CODE: ClassVar[str] = "open_failed"
+    DEFAULT_REASON: ClassVar[CaptureReason | None] = "open_failed"
+    DEFAULT_RECOVERABLE: ClassVar[bool] = True
 
 
 class InterfaceClaimError(DeviceOpenError):
@@ -75,7 +149,12 @@ class Ftd3CommandError(CaptureError):
         Args:
             context: Structured command details captured at the failure point.
         """
-        super().__init__(context.command_name)
+        super().__init__(
+            context.command_name,
+            code="ftd3_command_failed",
+            reason="read_failed",
+            recoverable=True,
+        )
         self.context = context
 
 
@@ -86,6 +165,8 @@ class UnsupportedOperation(CaptureError):  # noqa: N818
     to 2D new 3DS XL frame acquisition.
     """
 
+    DEFAULT_CODE: ClassVar[str] = "unsupported_operation"
+
 
 class TransferOverflow(CaptureError):  # noqa: N818
     """Raised when a transfer length is outside the accepted capture bounds.
@@ -93,6 +174,9 @@ class TransferOverflow(CaptureError):  # noqa: N818
     The transport reported more bytes than the selected raw capture structure
     allows.
     """
+
+    DEFAULT_CODE: ClassVar[str] = "transfer_overflow"
+    DEFAULT_REASON: ClassVar[CaptureReason | None] = "read_failed"
 
 
 class DecodeError(CaptureError):
@@ -102,6 +186,9 @@ class DecodeError(CaptureError):
     color-space requests, and unsupported screen selection.
     """
 
+    DEFAULT_CODE: ClassVar[str] = "decode_failed"
+    DEFAULT_REASON: ClassVar[CaptureReason | None] = "decode_failed"
+
 
 class DependencyUnavailableError(CaptureError):
     """Raised when a runtime dependency required by a selected path is missing.
@@ -110,6 +197,10 @@ class DependencyUnavailableError(CaptureError):
     optional-extra dependencies.
     """
 
+    DEFAULT_CODE: ClassVar[str] = "dependency_unavailable"
+    DEFAULT_REASON: ClassVar[CaptureReason | None] = "missing_package"
+    DEFAULT_RECOVERABLE: ClassVar[bool] = True
+
     @classmethod
     def for_backend_dependency(
         cls,
@@ -117,10 +208,15 @@ class DependencyUnavailableError(CaptureError):
         backend: str,
     ) -> "DependencyUnavailableError":
         """Create an error for a dependency required by one backend."""
-        return cls(
-            f"{dependency} is required for the {backend} backend. "
+        remediation = (
             "Install ponkan-python with dependencies for this platform, or select a "
             "backend supported by this environment."
+        )
+        return cls(
+            f"{dependency} is required for the {backend} backend. {remediation}",
+            backend=backend,
+            reason="missing_package",
+            remediation=remediation,
         )
 
 
@@ -137,4 +233,5 @@ class OptionalDependencyError(DependencyUnavailableError):
             dependency: Human-readable dependency name.
             extra: Project extra that installs the dependency.
         """
-        super().__init__(f"Install {dependency} or use the {extra} extra.")
+        remediation = f"Install {dependency} or use the {extra} extra."
+        super().__init__(remediation, reason="missing_package", remediation=remediation)

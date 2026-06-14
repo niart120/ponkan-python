@@ -258,6 +258,28 @@ the project hardware safety policy.
 
 All package-level failures inherit from `CaptureError`.
 
+Every `CaptureError` exposes machine-readable context while preserving the
+existing exception class hierarchy and `str(error)` message:
+
+| Field | Meaning |
+| --- | --- |
+| `code` | Stable error category such as `"device_not_found"` or `"decode_failed"`. |
+| `profile` | Capture profile context when known, such as `"n3dsxl"`. |
+| `backend` | Backend context when known, such as `"d3xx"` or `"d3xx-native"`. |
+| `reason` | Shared discovery/error reason such as `"missing_package"` or `"open_failed"`. |
+| `recoverable` | Whether reconnect, install, driver, or settings changes may recover. |
+| `remediation` | Short user-facing recovery guidance when available. |
+
+```python
+from ponkan.errors import CaptureError
+
+try:
+    ...
+except CaptureError as exc:
+    technical_log = exc.to_dict()
+    status_code = exc.code
+```
+
 | Error | Typical cause |
 | --- | --- |
 | `UnsupportedDevice` | Device identity did not pass the N3DSXL safety boundary. |
@@ -269,3 +291,4 @@ All package-level failures inherit from `CaptureError`.
 | `DecodeError` | Raw bytes or decoded frame data cannot be interpreted. |
 | `DependencyUnavailableError` | A runtime dependency required by the selected backend is unavailable. |
 | `OptionalDependencyError` | Optional dependency such as Pillow is missing. |
+| `UnknownCaptureProfile` | A profile id or alias is not in the runtime profile registry. |

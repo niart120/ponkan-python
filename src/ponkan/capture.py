@@ -348,7 +348,11 @@ def _validate_colorspace(colorspace: str) -> None:
 
 def _open_hardware_engine(config: CaptureConfig) -> CaptureReaderEngine:
     if config.backend == "libusb":
-        raise UnsupportedOperation
+        raise UnsupportedOperation(
+            profile="n3dsxl",
+            backend=config.backend,
+            reason="unsupported_backend",
+        )
     native = config.backend == "d3xx-native"
     return _open_d3xx_engine(config, native=native)
 
@@ -357,7 +361,7 @@ def _open_d3xx_engine(config: CaptureConfig, *, native: bool) -> CaptureReaderEn
     backend = _new_d3xx_backend()
     candidates = backend.iter_device_candidates()
     if not candidates:
-        raise DeviceNotFound
+        raise DeviceNotFound(profile="n3dsxl", backend=config.backend)
     d3xx_candidate = candidates[0]
     handle = backend.open(d3xx_candidate)
     try:

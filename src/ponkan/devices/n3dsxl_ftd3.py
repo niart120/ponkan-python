@@ -162,7 +162,7 @@ class N3DSXLDevice:
                 final close fails through the backend.
         """
         if not isinstance(candidate, DeviceCandidate):
-            raise UnsupportedDevice
+            raise UnsupportedDevice(profile="n3dsxl")
         handle = backend.open(candidate.info)
         claimed_interfaces: list[int] = []
         try:
