@@ -1,6 +1,6 @@
 # N3DSXL MVP Work Unit Index 仕様書
 
-更新日: 2026-06-14
+更新日: 2026-06-15
 
 ## 1. 概要
 
@@ -63,7 +63,7 @@
 | `spec/complete/local_022/D3XX_NATIVE_FAST_PATH_BACKEND.md` | 完了済み follow-up | native D3XX API に近い opt-in fast path backend の実装、非対象、test list、hardware gate を定義する。 |
 | `spec/complete/local_023/HIGH_LEVEL_CAPTURE_READ_API.md` | 完了済み follow-up | `open_capture()`、`CaptureReader.read()`、`CaptureOutput` の高レベル API を定義する。local gate と実機 high-level E2E は完了。 |
 | `spec/complete/local_027/NYX_CAPTURE_API_HANDOFF.md` | 完了済み入力資料 | Project NyX から見た ponkan-python 連携要求と優先順位を保持する。 |
-| `spec/wip/local_028/CAPTURE_PROFILE_REGISTRY.md` | WIP follow-up | 実装済み capture profile の public metadata contract を定義する。 |
+| `spec/complete/local_028/CAPTURE_PROFILE_REGISTRY.md` | 完了済み follow-up | 実装済み capture profile の public metadata contract を定義する。 |
 | `spec/wip/local_029/CAPTURE_DEVICE_DISCOVERY_REDESIGN.md` | WIP follow-up | backend resolution を含む device discovery redesign を定義する。 |
 | `spec/wip/local_030/STRUCTURED_CAPTURE_ERRORS.md` | WIP follow-up | machine-readable error fields と canonical reason code を定義する。 |
 | `spec/wip/local_031/CAPTURE_LAYOUT_METADATA.md` | WIP follow-up | screen / output / coordinate layout metadata を定義する。 |
@@ -114,12 +114,12 @@ Work Unit は次の依存順に扱う。
 
 ### 3.4 NyX 連携 WIP Input and Follow-up Candidates
 
-Project NyX からの申し送りを受けた profile-driven capture API 群は、完了済み入力資料 `local_027` と、`local_028` から `local_032` の WIP 仕様として扱う。`local_027` は非規範の入力資料専用であり、実装対象の仕様は `local_028` 以降で 1 項番 1 仕様に分ける。入力資料内の未採用案は、後続仕様に明示された場合だけ実装候補として扱う。実装 Work Unit は `local_028` 以降から 1 件ずつ選ぶ。
+Project NyX からの申し送りを受けた profile-driven capture API 群は、完了済み入力資料 `local_027`、完了済み runtime profile registry `local_028`、および `local_029` から `local_032` の WIP 仕様として扱う。`local_027` は非規範の入力資料専用であり、実装対象の仕様は `local_028` 以降で 1 項番 1 仕様に分ける。入力資料内の未採用案は、後続仕様に明示された場合だけ実装候補として扱う。実装 Work Unit は `local_029` 以降から 1 件ずつ選ぶ。
 
 | 順序 | ディレクトリ | 仕様書 | 主な目的 | 依存 | 実機要否 | 現在状態 |
 | ---- | ------------ | ------ | -------- | ---- | -------- | -------- |
 | 14 | `complete/local_027` | `NYX_CAPTURE_API_HANDOFF.md` | Project NyX からの上流向け申し送り | なし | 不要 | input complete |
-| 15 | `wip/local_028` | `CAPTURE_PROFILE_REGISTRY.md` | 実装済み profile metadata registry | `complete/local_023` | 不要 | WIP |
+| 15 | `complete/local_028` | `CAPTURE_PROFILE_REGISTRY.md` | 実装済み profile metadata registry | `complete/local_023` | 不要 | 完了 |
 | 16 | `wip/local_029` | `CAPTURE_DEVICE_DISCOVERY_REDESIGN.md` | backend resolution を含む device discovery redesign | `local_028` | listing E2E で必要 | WIP |
 | 17 | `wip/local_030` | `STRUCTURED_CAPTURE_ERRORS.md` | structured error model | `local_029` | 不要 | WIP |
 | 18 | `wip/local_031` | `CAPTURE_LAYOUT_METADATA.md` | screen / output layout metadata | `local_028` | 不要 | WIP |
@@ -143,7 +143,7 @@ Main Agent は、この仕様群を使う作業開始時に次を提示する。
 
 ```text
 Agentic SDD bootstrap:
-- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_027/*, spec/wip/local_028/* ... spec/wip/local_032/*
+- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_028/*, spec/wip/local_029/* ... spec/wip/local_032/*
 - Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <spec file + TDD item>
@@ -247,6 +247,8 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | `complete/local_021` | D3XX timing measurement complete | none |
 | `complete/local_022` | D3XX native fast path backend complete | default adoption deferred; Phase 2 direct slot write deferred |
 | `complete/local_023` | high-level read API complete | none |
+| `complete/local_027` | NyX capture API handoff input complete | implementation scope delegated to local_028+ |
+| `complete/local_028` | capture profile registry complete | none |
 
 ### 7.2 Gate Results
 

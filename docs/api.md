@@ -27,15 +27,54 @@ from ponkan import (
     N3DSXL_VENDOR_ID,
     CaptureConfig,
     CaptureOutput,
+    CaptureProfile,
     CaptureReader,
     CaptureSizes,
     capture_sizes,
+    get_capture_profile,
+    list_capture_profiles,
     open_capture,
 )
 ```
 
 `__version__` is read from installed package metadata. In an editable source
 tree without installed metadata it falls back to `"0.0.0"`.
+
+## Capture Profiles
+
+The profile registry describes implemented capture targets without enumerating,
+opening, or sending commands to USB devices.
+
+```python
+from ponkan import get_capture_profile, list_capture_profiles
+
+profiles = list_capture_profiles()
+n3dsxl = get_capture_profile("n3dsxl")
+same_profile = get_capture_profile("new_3ds_xl")
+```
+
+`list_capture_profiles()` returns an immutable tuple of `CaptureProfile`
+metadata. The initial runtime registry contains only `n3dsxl`; future devices
+such as old 3DS, classic DS, Optimize, Nisetro, and IS-family devices are not
+returned before their source audit and implementation gates are complete.
+
+`CaptureProfile` fields are stable metadata for UI and adapter selection:
+
+| Field | N3DSXL value | Notes |
+| --- | --- | --- |
+| `id` | `"n3dsxl"` | Stable profile id for settings. |
+| `aliases` | `("new_3ds_xl",)` | Compatibility with the existing model name. |
+| `family` | `"3ds"` | Device family grouping. |
+| `support_status` | `"stable"` | Runtime profiles are `"stable"` or `"experimental"`. |
+| `default_output` | `"both_vertical"` | Matches `CaptureConfig.output`. |
+| `default_colorspace` | `"RGB"` | Package default channel order. |
+| `supported_colorspaces` | `("RGB", "BGR")` | Use `"BGR"` explicitly for OpenCV consumers. |
+| `native_fps` | `59.8` | Initial observed N3DSXL streaming rate. |
+| `screen_layout` | `"3ds_dual_screen"` | Layout metadata id for later lookup. |
+| `supported_outputs` | `("top", "bottom", "both_vertical")` | Matches current `CaptureOutput` values. |
+
+`get_capture_profile()` accepts the stable id or alias and raises
+`UnknownCaptureProfile`, a `CaptureError` subclass, for unknown profile ids.
 
 ## High-Level Capture
 

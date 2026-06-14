@@ -1,6 +1,6 @@
 # Capture Profile Registry 仕様書
 
-更新日: 2026-06-14
+更新日: 2026-06-15
 
 ## 1. 概要
 
@@ -39,15 +39,15 @@
 
 ### 1.5 着手条件
 
-- [ ] 現行 `ponkan.__init__` の public export と `docs/api.md` を確認する。
-- [ ] N3DSXL の現行 default output、colorspace、backend、layout、native FPS 観測値を既存 complete spec から確認する。
-- [ ] profile metadata は実機 command を送らない pure data API として設計する。
+- [x] 現行 `ponkan.__init__` の public export と `docs/api.md` を確認する。
+- [x] N3DSXL の現行 default output、colorspace、backend、layout、native FPS 観測値を既存 complete spec から確認する。
+- [x] profile metadata は実機 command を送らない pure data API として設計する。
 
 ## 2. 対象ファイル
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_028/CAPTURE_PROFILE_REGISTRY.md` | 新規 | profile registry の public contract を定義する。 |
+| `spec/complete/local_028/CAPTURE_PROFILE_REGISTRY.md` | 完了済み | profile registry の public contract を定義する。 |
 | `src/ponkan/profiles.py` | 新規 | `CaptureProfile`、`SupportStatus`、`list_capture_profiles()`、`get_capture_profile()` を定義する。 |
 | `src/ponkan/__init__.py` | 修正 | profile registry API を package root から export する。 |
 | `docs/api.md` | 修正 | profile registry と support status の利用例を追記する。 |
@@ -71,12 +71,12 @@
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | `list_capture_profiles()` は immutable tuple を返す | new behavior | 3.1 | 呼び出しごとに破壊的変更されない |
-| todo | `n3dsxl` profile の必須 metadata が仕様通りである | contract | 3.1 | id、family、model、status、outputs |
-| todo | `new_3ds_xl` alias は `n3dsxl` に解決される | compatibility | 3.1 | 既存 API 用語との接続 |
-| todo | unknown profile は明示的な error を返す | edge | 3.1 | 文字列解析不要 |
-| todo | registry API は backend import や device open を行わない | safety | 3.1 | monkeypatch / fake import で確認 |
-| todo | package root から profile API を import できる | public surface | 2 | `from ponkan import list_capture_profiles` |
+| green | `list_capture_profiles()` は immutable tuple を返す | new behavior | 3.1 | 呼び出しごとに破壊的変更されない |
+| green | `n3dsxl` profile の必須 metadata が仕様通りである | contract | 3.1 | id、family、model、status、outputs |
+| green | `new_3ds_xl` alias は `n3dsxl` に解決される | compatibility | 3.1 | 既存 API 用語との接続 |
+| green | unknown profile は明示的な error を返す | edge | 3.1 | 文字列解析不要 |
+| green | registry API は backend import や device open を行わない | safety | 3.1 | monkeypatch / fake import で確認 |
+| green | package root から profile API を import できる | public surface | 2 | `from ponkan import list_capture_profiles` |
 
 ### 3.3 設計方針
 
@@ -173,10 +173,10 @@ uv run pytest tests/unit
 
 ## 6. 実装チェックリスト
 
-- [ ] `CaptureProfile` と `SupportStatus` を定義する。
-- [ ] N3DSXL profile の metadata を固定する。
-- [ ] future / unsupported device を runtime registry に混ぜないことを固定する。
-- [ ] `list_capture_profiles()` と `get_capture_profile()` を実装する。
-- [ ] package root export を追加する。
-- [ ] docs/api に利用例と UI filtering 指針を追加する。
-- [ ] unit test と static gate を実行する。
+- [x] `CaptureProfile` と `SupportStatus` を定義する。
+- [x] N3DSXL profile の metadata を固定する。
+- [x] future / unsupported device を runtime registry に混ぜないことを固定する。
+- [x] `list_capture_profiles()` と `get_capture_profile()` を実装する。
+- [x] package root export を追加する。
+- [x] docs/api に利用例と UI filtering 指針を追加する。
+- [x] unit test と static gate を実行する。
