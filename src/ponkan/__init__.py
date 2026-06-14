@@ -14,6 +14,13 @@ from ponkan.devices.discovery import (
     CaptureDeviceInfo,
     list_capture_devices,
 )
+from ponkan.layouts import (
+    CaptureLayout,
+    CompositeOutputInfo,
+    ScreenInfo,
+    get_capture_layout,
+    list_capture_layouts,
+)
 from ponkan.profiles import CaptureProfile, get_capture_profile, list_capture_profiles
 from ponkan.protocol.sizes import (
     ACCEPTED_N3DSXL_PRODUCT_IDS,
@@ -35,14 +42,19 @@ __all__ = [
     "CaptureConfig",
     "CaptureDeviceDiscovery",
     "CaptureDeviceInfo",
+    "CaptureLayout",
     "CaptureOutput",
     "CaptureProfile",
     "CaptureReader",
     "CaptureSizes",
+    "CompositeOutputInfo",
+    "ScreenInfo",
     "__version__",
     "capture_sizes",
+    "get_capture_layout",
     "get_capture_profile",
     "list_capture_devices",
+    "list_capture_layouts",
     "list_capture_profiles",
     "open_capture",
 ]

@@ -16,6 +16,7 @@ from ponkan.errors import (
     UnsupportedOperation,
 )
 from ponkan.image.frame import CaptureFrame, ColorSpace, RGB8Array
+from ponkan.layouts import get_capture_layout
 from ponkan.streaming.policies import DropPolicy
 from ponkan.streaming.stats import StreamStats
 
@@ -38,6 +39,7 @@ _OUTPUT_QUEUE_SIZE_CONFIG_ERROR = "output_queue_size must be positive"
 _POLL_INTERVAL_CONFIG_ERROR = "poll_interval must be positive"
 _RAW_SLOTS_CONFIG_ERROR = "raw_slots must be positive"
 _READ_TIMEOUT_CONFIG_ERROR = "read_timeout must be non-negative or None"
+_N3DSXL_LAYOUT_ID = "3ds_dual_screen"
 
 
 class _ReadTimeoutUnset:
@@ -337,9 +339,11 @@ def _validate_config(config: CaptureConfig) -> None:
 
 
 def _coerce_output(output: CaptureOutput | str) -> CaptureOutput:
-    if isinstance(output, CaptureOutput):
-        return output
-    return CaptureOutput(output)
+    selected = output if isinstance(output, CaptureOutput) else CaptureOutput(output)
+    supported_outputs = {item.id for item in get_capture_layout(_N3DSXL_LAYOUT_ID).outputs}
+    if selected.value not in supported_outputs:
+        raise ValueError
+    return selected
 
 
 def _validate_colorspace(colorspace: str) -> None:

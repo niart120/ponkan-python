@@ -66,7 +66,7 @@
 | `spec/complete/local_028/CAPTURE_PROFILE_REGISTRY.md` | 完了済み follow-up | 実装済み capture profile の public metadata contract を定義する。 |
 | `spec/complete/local_029/CAPTURE_DEVICE_DISCOVERY_REDESIGN.md` | 完了済み follow-up | backend resolution を含む device discovery redesign を定義する。 |
 | `spec/complete/local_030/STRUCTURED_CAPTURE_ERRORS.md` | 完了済み follow-up | machine-readable error fields と canonical reason code を定義する。 |
-| `spec/wip/local_031/CAPTURE_LAYOUT_METADATA.md` | WIP follow-up | screen / output / coordinate layout metadata を定義する。 |
+| `spec/complete/local_031/CAPTURE_LAYOUT_METADATA.md` | 完了済み follow-up | screen / output / coordinate layout metadata を定義する。 |
 | `spec/wip/local_032/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | WIP follow-up | future profile の source audit gate を定義する。 |
 
 ## 3. 振る舞い仕様と設計方針
@@ -114,7 +114,7 @@ Work Unit は次の依存順に扱う。
 
 ### 3.4 NyX 連携 WIP Input and Follow-up Candidates
 
-Project NyX からの申し送りを受けた profile-driven capture API 群は、完了済み入力資料 `local_027`、完了済み runtime profile registry `local_028`、完了済み device discovery `local_029`、完了済み structured errors `local_030`、および `local_031` / `local_032` の WIP 仕様として扱う。`local_027` は非規範の入力資料専用であり、実装対象の仕様は `local_028` 以降で 1 項番 1 仕様に分ける。入力資料内の未採用案は、後続仕様に明示された場合だけ実装候補として扱う。実装 Work Unit は残る WIP から 1 件ずつ選ぶ。
+Project NyX からの申し送りを受けた profile-driven capture API 群は、完了済み入力資料 `local_027`、完了済み runtime profile registry `local_028`、完了済み device discovery `local_029`、完了済み structured errors `local_030`、完了済み layout metadata `local_031`、および `local_032` の WIP 仕様として扱う。`local_027` は非規範の入力資料専用であり、実装対象の仕様は `local_028` 以降で 1 項番 1 仕様に分ける。入力資料内の未採用案は、後続仕様に明示された場合だけ実装候補として扱う。実装 Work Unit は残る WIP から 1 件ずつ選ぶ。
 
 | 順序 | ディレクトリ | 仕様書 | 主な目的 | 依存 | 実機要否 | 現在状態 |
 | ---- | ------------ | ------ | -------- | ---- | -------- | -------- |
@@ -122,7 +122,7 @@ Project NyX からの申し送りを受けた profile-driven capture API 群は�
 | 15 | `complete/local_028` | `CAPTURE_PROFILE_REGISTRY.md` | 実装済み profile metadata registry | `complete/local_023` | 不要 | 完了 |
 | 16 | `complete/local_030` | `STRUCTURED_CAPTURE_ERRORS.md` | structured error model | `local_028` | 不要 | 完了 |
 | 17 | `complete/local_029` | `CAPTURE_DEVICE_DISCOVERY_REDESIGN.md` | backend resolution を含む device discovery redesign | `local_028`, `local_030` | listing E2E は任意 | 完了 |
-| 18 | `wip/local_031` | `CAPTURE_LAYOUT_METADATA.md` | screen / output layout metadata | `local_028` | 不要 | WIP |
+| 18 | `complete/local_031` | `CAPTURE_LAYOUT_METADATA.md` | screen / output layout metadata | `local_028` | 不要 | 完了 |
 | 19 | `wip/local_032` | `CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | future profile の source audit gate | `local_028` | 不要 | WIP |
 
 Main Agent は上から順に、次を満たす最小単位を選ぶ。
@@ -143,7 +143,7 @@ Main Agent は、この仕様群を使う作業開始時に次を提示する。
 
 ```text
 Agentic SDD bootstrap:
-- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_030/*, spec/wip/local_031/*, spec/wip/local_032/*
+- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_031/*, spec/wip/local_032/*
 - Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <spec file + TDD item>
@@ -251,6 +251,7 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | `complete/local_028` | capture profile registry complete | none |
 | `complete/local_029` | capture device discovery redesign complete | hardware listing smoke not run |
 | `complete/local_030` | structured capture errors complete | discovery model consumption deferred to local_029 |
+| `complete/local_031` | capture layout metadata complete | hardware not required |
 
 ### 7.2 Gate Results
 

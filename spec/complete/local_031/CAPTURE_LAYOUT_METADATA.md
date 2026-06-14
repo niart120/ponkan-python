@@ -37,14 +37,14 @@ profile ごとの screen list、screen size、default composite、supported outp
 ### 1.5 着手条件
 
 - [x] `local_028` の `CaptureProfile.screen_layout` が定義済みである。
-- [ ] 現行 N3DSXL `CaptureFrame` shape と `CaptureOutput` の shape を確認する。
-- [ ] layout metadata は画像 buffer を生成しない pure data API とする。
+- [x] 現行 N3DSXL `CaptureFrame` shape と `CaptureOutput` の shape を確認する。
+- [x] layout metadata は画像 buffer を生成しない pure data API とする。
 
 ## 2. 対象ファイル
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_031/CAPTURE_LAYOUT_METADATA.md` | 新規 | layout metadata の仕様を定義する。 |
+| `spec/complete/local_031/CAPTURE_LAYOUT_METADATA.md` | 完了済み | layout metadata の仕様を定義する。 |
 | `src/ponkan/layouts.py` | 新規 | `CaptureLayout`、`ScreenInfo`、`CompositeOutputInfo` を定義する。 |
 | `src/ponkan/profiles.py` | 修正 | profile と layout metadata を接続する。 |
 | `src/ponkan/capture.py` | 修正 | `CaptureOutput` validation を layout metadata と整合させる。 |
@@ -70,11 +70,11 @@ profile ごとの screen list、screen size、default composite、supported outp
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | N3DSXL layout は top/bottom screen metadata を持つ | contract | 3.1 | size 検証 |
-| todo | `both_vertical` composite size が `width=400`, `height=480`, `ndarray_shape=(480, 400, 3)` である | contract | 3.1 | existing `to_mosaic` と一致 |
-| todo | `CaptureOutput` values が supported outputs と一致する | regression | 3.1 | enum / metadata drift 防止 |
-| todo | profile layout id から layout を取得できる | integration | 3.1 | local_028 連携 |
-| todo | unknown layout は error | edge | 3.1 | typo 検知 |
+| green | N3DSXL layout は top/bottom screen metadata を持つ | contract | 3.1 | size 検証 |
+| green | `both_vertical` composite size が `width=400`, `height=480`, `ndarray_shape=(480, 400, 3)` である | contract | 3.1 | existing `to_mosaic` と一致 |
+| green | `CaptureOutput` values が supported outputs と一致する | regression | 3.1 | enum / metadata drift 防止 |
+| green | profile layout id から layout を取得できる | integration | 3.1 | local_028 連携 |
+| green | unknown layout は explicit error | edge | 3.1 | typo 検知 |
 
 ### 3.3 設計方針
 
@@ -86,6 +86,7 @@ layout metadata は「frame をどう返すか」の contract であり、decode
 
 ```python
 from dataclasses import dataclass
+from collections.abc import Mapping
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,7 +119,7 @@ class CaptureLayout:
     display_name: str
     screens: tuple[ScreenInfo, ...]
     outputs: tuple[CompositeOutputInfo, ...]
-    aspect_hints: dict[str, object]
+    aspect_hints: Mapping[str, object]
 ```
 
 N3DSXL layout:
@@ -165,9 +166,27 @@ uv run pytest tests/unit
 
 ## 6. 実装チェックリスト
 
-- [ ] layout metadata 型を定義する。
-- [ ] N3DSXL `3ds_dual_screen` layout を実装する。
-- [ ] profile metadata と layout metadata を接続する。
-- [ ] `CaptureOutput` と supported outputs の drift を test する。
-- [ ] docs/api に layout metadata の使い方を追加する。
-- [ ] local gate を実行する。
+- [x] layout metadata 型を定義する。
+- [x] N3DSXL `3ds_dual_screen` layout を実装する。
+- [x] profile metadata と layout metadata を接続する。
+- [x] `CaptureOutput` と supported outputs の drift を test する。
+- [x] docs/api に layout metadata の使い方を追加する。
+- [x] local gate を実行する。
+
+## 7. 実装結果
+
+### 7.1 Gate Results
+
+| gate | result | evidence |
+| ---- | ------ | -------- |
+| Red | pass | `uv run pytest tests/unit/test_capture_layout_metadata.py -q`: `ModuleNotFoundError: No module named 'ponkan.layouts'`。 |
+| Layout unit | pass | `uv run pytest tests/unit/test_capture_layout_metadata.py -q`: 6 passed。 |
+| Related unit | pass | `uv run pytest tests/unit/test_capture_layout_metadata.py tests/unit/test_package.py tests/unit/test_high_level_capture_read_api.py -q`: 26 passed。 |
+| Static | pass | `uv run ruff format --check .`、`uv run ruff check .`、`uv run ty check --no-progress`。 |
+| Full unit | pass | `uv run pytest tests/unit`: 152 passed。 |
+| Diff | pass | `git diff --check`。 |
+| Hardware | not required | pure metadata API のため device access / command 送信はない。 |
+
+### 7.2 Deferred
+
+3D `top_right` layout、old 3DS / classic DS / other device family の layout は `local_032` の source audit gate 後に別 Work Unit で扱う。
