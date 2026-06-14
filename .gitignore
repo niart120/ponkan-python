@@ -19,3 +19,6 @@ htmlcov/
 artifacts/
 captures/
 *.log
+
+# Local scratch notes
+tmp/
