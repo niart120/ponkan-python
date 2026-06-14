@@ -1,6 +1,6 @@
 # Capture Layout Metadata 仕様書
 
-更新日: 2026-06-14
+更新日: 2026-06-15
 
 ## 1. 概要
 
@@ -36,7 +36,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 
 ### 1.5 着手条件
 
-- [ ] `local_028` の `CaptureProfile.screen_layout` が定義済みである。
+- [x] `local_028` の `CaptureProfile.screen_layout` が定義済みである。
 - [ ] 現行 N3DSXL `CaptureFrame` shape と `CaptureOutput` の shape を確認する。
 - [ ] layout metadata は画像 buffer を生成しない pure data API とする。
 

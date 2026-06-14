@@ -1,6 +1,6 @@
 # Capture Profile Roadmap and Source Audit 仕様書
 
-更新日: 2026-06-14
+更新日: 2026-06-15
 
 ## 1. 概要
 
@@ -35,7 +35,7 @@ profile registry に未検証 device を安易に追加すると、利用側 UI 
 
 ### 1.5 着手条件
 
-- [ ] `local_028` の support status 定義がある。
+- [x] `local_028` の support status 定義がある。
 - [ ] `cc3dsfs-source-audit` skill を使う前提で原典調査の記録先を決める。
 - [ ] N3DSXL 以外を今回実装しない scope を確認する。
 
