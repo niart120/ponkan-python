@@ -9,6 +9,11 @@ submodules.
 from importlib.metadata import PackageNotFoundError, version
 
 from ponkan.capture import CaptureConfig, CaptureOutput, CaptureReader, open_capture
+from ponkan.devices.discovery import (
+    CaptureDeviceDiscovery,
+    CaptureDeviceInfo,
+    list_capture_devices,
+)
 from ponkan.profiles import CaptureProfile, get_capture_profile, list_capture_profiles
 from ponkan.protocol.sizes import (
     ACCEPTED_N3DSXL_PRODUCT_IDS,
@@ -28,6 +33,8 @@ __all__ = [
     "ACCEPTED_N3DSXL_PRODUCT_STRINGS",
     "N3DSXL_VENDOR_ID",
     "CaptureConfig",
+    "CaptureDeviceDiscovery",
+    "CaptureDeviceInfo",
     "CaptureOutput",
     "CaptureProfile",
     "CaptureReader",
@@ -35,6 +42,7 @@ __all__ = [
     "__version__",
     "capture_sizes",
     "get_capture_profile",
+    "list_capture_devices",
     "list_capture_profiles",
     "open_capture",
 ]
