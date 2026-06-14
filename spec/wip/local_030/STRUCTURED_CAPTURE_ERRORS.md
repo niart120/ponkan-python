@@ -6,7 +6,7 @@
 
 ### 1.1 目的
 
-`CaptureError` hierarchy に `code`、`profile`、`backend`、`reason`、`recoverable`、`remediation` を持たせ、GUI や adapter が例外メッセージ文字列を解析せずに user log / status bar / technical log を分けられるようにする。
+`CaptureError` hierarchy に `code`、`profile`、`backend`、`reason`、`recoverable`、`remediation` を持たせ、GUI や adapter が例外メッセージ文字列を解析せずに user log / status bar / technical log を分けられるようにする。`reason` は `local_029` の discovery reason と共通 enum にする。
 
 ### 1.2 用語定義
 
@@ -14,6 +14,7 @@
 | ---- | ---- |
 | error code | 例外種別を機械的に識別する stable string。例: `device_not_found`。 |
 | reason | 同じ error code 内で原因を絞る string。例: `missing_driver`。 |
+| capture reason | discovery と error で共有する stable reason enum。`available` は discovery success 専用で、error では使わない。 |
 | recoverable | retry、設定変更、device 接続で復旧し得るかを示す bool。 |
 | remediation | UI や CLI が表示できる短い復旧案内。 |
 | structured context | backend や profile など、呼び出し側が分岐に使う属性。 |
@@ -45,7 +46,7 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
 | `spec/wip/local_030/STRUCTURED_CAPTURE_ERRORS.md` | 新規 | structured error model の仕様を定義する。 |
-| `src/ponkan/errors.py` | 修正 | `CaptureError` common fields と subclass default を追加する。 |
+| `src/ponkan/errors.py` | 修正 | `CaptureReason`、`CaptureError` common fields、subclass default を追加する。 |
 | `src/ponkan/capture.py` | 修正 | profile / backend context を例外生成時に渡す。 |
 | `src/ponkan/devices/discovery.py` | 修正 | discovery reason と error reason の命名を揃える。 |
 | `src/ponkan/devices/n3dsxl_ftd3.py` | 修正 | rejected / unreadable / open failure context を structured にする。 |
@@ -60,12 +61,13 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 | -------- | ---------- | -------- | ---- |
 | base error | `CaptureError(...)` | common fields を持つ | message は従来通り str で見える |
 | device not found | device 候補なし | `code="device_not_found"`, `recoverable=True` | source は表示し未接続 status にできる |
-| unsupported profile | unknown profile | `code="unsupported_profile"` | 通常 UI 非表示 |
+| unsupported profile | unknown profile | `code="unsupported_profile"`, `reason="unsupported_profile"` | 通常 UI 非表示 |
 | missing package | PyD3XX missing | `code="dependency_unavailable"`, `reason="missing_package"` | remediation 付き |
 | device rejected | VID/PID/product string 不一致 | `code="device_rejected"` | safety warning |
 | read failed | streaming read error | `code="read_failed"` | reconnect candidate |
 | decode failed | raw decode error | `code="decode_failed"` | technical log |
 | FTD3 context | command failure | 既存 `context` を維持し common fields も持つ | backward compatible |
+| discovery との reason 共有 | backend / profile availability | `CaptureReason` を使う | `available` は discovery result 専用 |
 
 ### 3.2 TDD Test List
 
@@ -76,6 +78,7 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 | todo | `str(error)` は既存 message と互換 | regression | 3.1 | user-visible text |
 | todo | `DependencyUnavailableError.for_backend_dependency` は `reason="missing_package"` と backend context を持つ | diagnostics | 3.1 | backend field |
 | todo | `Ftd3CommandError.context` は維持される | regression | 3.1 | existing tests |
+| todo | discovery と error が同じ `CaptureReason` を参照する | contract | 3.1 | local_029 連携 |
 | todo | error fields は JSON log に変換しやすい | integration | 3.1 | `to_dict()` optional |
 
 ### 3.3 設計方針
@@ -84,14 +87,35 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 
 common fields は constructor kwargs で渡せるようにし、subclass は default `code` / `recoverable` を持つ。`Ftd3CommandError` の `context` は削除せず、common fields の `details` または `technical_context` として参照できるようにする。
 
+`code` は exception category、`reason` は availability / failure cause として分ける。例えば `DependencyUnavailableError` の `code` は `dependency_unavailable`、`reason` は `missing_package` / `missing_driver` / `missing_runtime` のいずれかにできる。discovery success の `available` は同じ enum に含めるが、`CaptureError.reason` では使わない。
+
 ## 4. 実装仕様
 
 ```python
+from typing import Literal
+
+CaptureReason = Literal[
+    "available",
+    "missing_package",
+    "missing_driver",
+    "missing_runtime",
+    "unsupported_platform",
+    "unsupported_backend",
+    "unsupported_profile",
+    "device_not_found",
+    "device_rejected",
+    "open_failed",
+    "read_failed",
+    "decode_failed",
+    "unknown",
+]
+
+
 class CaptureError(Exception):
     code: str
     profile: str | None
     backend: str | None
-    reason: str | None
+    reason: CaptureReason | None
     recoverable: bool
     remediation: str | None
 
@@ -102,7 +126,7 @@ class CaptureError(Exception):
         code: str | None = None,
         profile: str | None = None,
         backend: str | None = None,
-        reason: str | None = None,
+        reason: CaptureReason | None = None,
         recoverable: bool | None = None,
         remediation: str | None = None,
     ) -> None:
@@ -117,6 +141,7 @@ reason 候補:
 | `missing_driver` | driver guidance |
 | `missing_runtime` | backend runtime guidance |
 | `unsupported_platform` | disabled source |
+| `unsupported_backend` | backend selector guidance |
 | `unsupported_profile` | UI に出さない |
 | `device_not_found` | 未接続 status |
 | `device_rejected` | safety warning |
@@ -146,6 +171,7 @@ subclass default:
 | string | message compatibility | custom message | `str(error)` が message |
 | dependency error | backend context | `for_backend_dependency("PyD3XX", "d3xx")` | backend / reason / remediation |
 | FTD3 | context compatibility | `Ftd3CommandContext` | `context` が残る |
+| reason enum | discovery/error shared values | `CaptureReason` | local_029 と同じ reason を参照 |
 
 ### 統合テスト
 
@@ -167,6 +193,7 @@ uv run pytest tests/unit
 ## 6. 実装チェックリスト
 
 - [ ] `CaptureError` に common fields を追加する。
+- [ ] discovery と error で共有する `CaptureReason` を定義する。
 - [ ] subclass default code / recoverable を固定する。
 - [ ] dependency / backend / device path から profile / backend context を渡す。
 - [ ] `Ftd3CommandError.context` の互換を維持する。

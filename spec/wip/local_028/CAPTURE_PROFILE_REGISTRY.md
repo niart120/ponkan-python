@@ -6,7 +6,7 @@
 
 ### 1.1 目的
 
-`ponkan` に実装済み capture profile の公開 registry を追加し、利用側が N3DSXL 固定の `CaptureConfig` を直接解釈せずに、device family、support status、default output、default colorspace、native FPS、layout 種別を取得できるようにする。
+`ponkan` に実装済み capture profile の公開 registry を追加し、利用側が N3DSXL 固定の `CaptureConfig` を直接解釈せずに、device family、support status、default output、default colorspace、supported colorspaces、native FPS、layout 種別を取得できるようにする。
 
 ### 1.2 用語定義
 
@@ -18,6 +18,8 @@
 | family | `3ds` など、NyX などの利用側 UI が大分類として扱える device family。 |
 | provider | profile を提供する実装主体。ここでは `ponkan-python`。 |
 | native FPS | profile の実機 capture が自然に供給する FPS。N3DSXL では約 59.8fps の観測値を初期 metadata とする。 |
+| default colorspace | `CaptureConfig.colorspace` と一致する ponkan-python の既定 channel order。初期値は `RGB`。 |
+| consumer colorspace | NyX / OpenCV など利用側が明示指定できる channel order。NyX は `BGR` を明示する。 |
 
 ### 1.3 背景・問題
 
@@ -30,7 +32,7 @@
 | 指標 | 現状 | 目標 |
 | ---- | ---- | ---- |
 | profile 発見 | 利用側が docs / import surface / config を推測する | `list_capture_profiles()` で取得できる |
-| N3DSXL 表示判断 | 利用側が `new_3ds_xl` と package availability を独自解釈する | `support_status` と `supported_outputs` で UI 表示を判断できる |
+| N3DSXL 表示判断 | 利用側が `new_3ds_xl` と package availability を独自解釈する | `support_status`、`supported_outputs`、`supported_colorspaces` で UI 表示を判断できる |
 | 将来 profile | 利用側設定に device 固有項目が増える | profile metadata と layout / discovery contract に寄せる |
 | unsupported / future device | registry と roadmap の境界が曖昧 | runtime registry には含めず、`local_032` の source audit gate で扱う |
 | 実機安全 | registry 呼び出しから command 送信の有無が曖昧 | registry は USB device open も N3DSXL command 送信もしない |
@@ -103,6 +105,7 @@ class CaptureProfile:
     support_status: SupportStatus
     default_output: str
     default_colorspace: str
+    supported_colorspaces: tuple[str, ...]
     native_fps: float | None
     screen_layout: str
     supported_outputs: tuple[str, ...]
@@ -116,7 +119,15 @@ class CaptureProfile:
 
 | profile id | status | 根拠 | 備考 |
 | ---------- | ------ | ---- | ---- |
-| `n3dsxl` | `stable` | high-level read API、D3XX streaming、performance gate 済み | default output は `both_vertical` |
+| `n3dsxl` | `stable` | high-level read API、D3XX streaming、performance gate 済み | default output は `both_vertical`、default colorspace は `RGB` |
+
+N3DSXL profile の colorspace contract:
+
+| field | value | 根拠 |
+| ----- | ----- | ---- |
+| `default_colorspace` | `RGB` | 現行 `CaptureConfig.colorspace` と `CaptureFrame` 内部表現に合わせる |
+| `supported_colorspaces` | `("RGB", "BGR")` | `CaptureReader.read(..., colorspace=...)` と `CaptureFrame.to_ndarray(..., colorspace=...)` が両方を返せる |
+| NyX 利用時 | `colorspace="BGR"` を明示 | NyX / OpenCV 側 channel order に合わせる。ponkan-python の package default は変更しない |
 
 Public API:
 

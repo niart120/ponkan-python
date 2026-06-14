@@ -1,5 +1,7 @@
 # ponkan-python への申し送り事項
 
+状態: 完了済み入力資料。実装対象ではなく、`local_028` 以降の WIP 仕様に採用された内容だけを実装候補として扱う。
+
 Project NyX の capture source として `ponkan-python` を使う前提で、ponkan-python 側に欲しい仕様・API を整理する。今回は NyX 側の個別不満を列挙するのではなく、ponkan-python の現行リファレンス実装を前提に、NyX が将来扱い得る device/profile を増やしても一貫した contract になるように再構成する。
 
 この文書は申し送り用の入力資料であり、後続の `local_028` 以降の仕様書で採用された内容だけを実装対象とする。
@@ -85,6 +87,8 @@ CaptureProfile(
     supports_recording=False,
 )
 ```
+
+この例の `default_colorspace="BGR"` は NyX 側の利用希望を示す。ponkan-python 側の採用仕様では、package の既定 `CaptureConfig.colorspace="RGB"` を `default_colorspace` とし、NyX は `colorspace="BGR"` を明示して OpenCV / NyX runtime 側の channel order に合わせる。
 
 profile registry で表現したい family:
 

@@ -19,7 +19,7 @@ N3DSXL 以外の profile を ponkan-python に追加する前提条件を整理�
 
 ### 1.3 背景・問題
 
-`spec/wip/local_027/NYX_CAPTURE_API_HANDOFF.md` の申し送りでは、NyX 連携上は N3DSXL を初期 stable target とし、old 3DS は初期 spec に後続対象として設計枠がある一方、classic DS は現行実装・現行 spec に protocol 詳細が確認できないため別途 source audit が必要と整理されている。Optimize / Nisetro / IS 系 device は docs で非対応が明記されている。
+`spec/complete/local_027/NYX_CAPTURE_API_HANDOFF.md` の申し送りでは、NyX 連携上は N3DSXL を初期 stable target とし、old 3DS は初期 spec に後続対象として設計枠がある一方、classic DS は現行実装・現行 spec に protocol 詳細が確認できないため別途 source audit が必要と整理されている。Optimize / Nisetro / IS 系 device は docs で非対応が明記されている。
 
 profile registry に未検証 device を安易に追加すると、利用側 UI が「いつか対応するかもしれない device」を誤って通常表示する。この仕様は runtime API ではなく、future profile を追加する前の開発計画と source audit gate として扱う。
 

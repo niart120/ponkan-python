@@ -63,7 +63,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 | screen list | N3DSXL layout | `top` と `bottom` を含む | `top_right` は 3D unsupported の扱いを明記 |
 | output set | N3DSXL layout | `top`、`bottom`、`both_vertical` | `CaptureOutput` と一致 |
 | composite size | `both_vertical` | `width=400`, `height=480`, `ndarray_shape=(480, 400, 3)` | bottom centered |
-| colorspace default | N3DSXL profile | profile default と一致 | `RGB` / `BGR` |
+| colorspace default | N3DSXL profile | `default_colorspace="RGB"`、`supported_colorspaces=("RGB", "BGR")` | NyX は `BGR` を明示指定する |
 | unknown layout | typo | explicit error | fallback しない |
 
 ### 3.2 TDD Test List
@@ -131,6 +131,8 @@ N3DSXL layout:
 | default composite | `both_vertical` |
 | composite size | width 400, height 480 |
 | placement | top above bottom, bottom centered |
+| default colorspace | `RGB` |
+| supported colorspaces | `RGB`, `BGR` |
 
 ## 5. テスト方針
 
