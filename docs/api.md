@@ -84,6 +84,41 @@ returned before their source audit and implementation gates are complete.
 `get_capture_profile()` accepts the stable id or alias and raises
 `UnknownCaptureProfile`, a `CaptureError` subclass, for unknown profile ids.
 
+## Future Profile Roadmap
+
+The runtime profile registry intentionally returns only implemented profiles.
+The default list is `("n3dsxl",)`; future or unsupported device families are
+not exposed to normal UI selection before their source audit and implementation
+gates are complete.
+
+| target / family | roadmap state | runtime registry |
+| --- | --- | --- |
+| `n3dsxl` / `new_3ds_xl` | implemented | Returned by `list_capture_profiles()`. |
+| `old3ds` / `o3ds` | audit required | Not returned before source audit, spec, tests, and hardware gate planning. |
+| `classic_ds` | audit required | Not returned before protocol, identity, command, and layout audit. |
+| `optimize` | out of scope | Not returned. |
+| `nisetro` | out of scope | Not returned. |
+| `is_nitro` / `is_twl` / `partner_ctr` | out of scope | Not returned. |
+
+Source audit for a future runtime profile must record VID/PID, product string
+policy, command request values, endpoints/interfaces, raw capture structure,
+screen layout, safe listing behavior, and the first hardware gate plan. The
+audit record belongs in a dedicated source-audit Work Unit before runtime code
+or public profile metadata is added.
+
+runtime profile promotion:
+
+```text
+audit required -> audited:
+  identity / command / layout facts are recorded from cc3dsfs sources.
+
+audited -> experimental:
+  implementation exists and unit / characterization tests pass.
+
+experimental -> stable:
+  hardware E2E, performance / shutdown gates, docs, and public API tests pass.
+```
+
 ## Layout Metadata
 
 Layout metadata describes the screens and output shapes exposed by profile APIs.
