@@ -28,13 +28,18 @@ from ponkan import (
     CaptureConfig,
     CaptureDeviceDiscovery,
     CaptureDeviceInfo,
+    CaptureLayout,
     CaptureOutput,
     CaptureProfile,
     CaptureReader,
     CaptureSizes,
+    CompositeOutputInfo,
+    ScreenInfo,
     capture_sizes,
+    get_capture_layout,
     get_capture_profile,
     list_capture_devices,
+    list_capture_layouts,
     list_capture_profiles,
     open_capture,
 )
@@ -78,6 +83,42 @@ returned before their source audit and implementation gates are complete.
 
 `get_capture_profile()` accepts the stable id or alias and raises
 `UnknownCaptureProfile`, a `CaptureError` subclass, for unknown profile ids.
+
+## Layout Metadata
+
+Layout metadata describes the screens and output shapes exposed by profile APIs.
+It does not allocate image buffers, open devices, or decode frames.
+
+```python
+from ponkan import get_capture_layout, get_capture_profile
+
+profile = get_capture_profile("n3dsxl")
+layout = get_capture_layout(profile.screen_layout)
+both_vertical = next(output for output in layout.outputs if output.id == "both_vertical")
+preview_shape = both_vertical.ndarray_shape
+```
+
+`list_capture_layouts()` returns the implemented runtime layouts. The initial
+registry contains only `3ds_dual_screen`:
+
+| Field | N3DSXL value | Notes |
+| --- | --- | --- |
+| `id` | `"3ds_dual_screen"` | Stable layout id referenced by `CaptureProfile.screen_layout`. |
+| `screens` | `top`, `bottom` | `top_right` is not exposed while 3D capture is unsupported. |
+| `outputs` | `top`, `bottom`, `both_vertical` | Matches current `CaptureOutput` values. |
+| `aspect_hints["bottom_horizontal_offset"]` | `40` | Bottom screen is centered under the top screen. |
+
+`ScreenInfo.ndarray_shape` and `CompositeOutputInfo.ndarray_shape` expose the
+public `numpy.ndarray` shape as `(height, width, channels)`.
+
+| Output | Shape | Placement |
+| --- | --- | --- |
+| `top` | `(240, 400, 3)` | Single top screen. |
+| `bottom` | `(240, 320, 3)` | Single bottom screen. |
+| `both_vertical` | `(480, 400, 3)` | Top screen above centered bottom screen. |
+
+`get_capture_layout()` raises `UnknownCaptureLayout`, a `CaptureError`
+subclass with `code="unsupported_layout"`, for unknown layout ids.
 
 ## High-Level Capture
 
@@ -306,3 +347,4 @@ except CaptureError as exc:
 | `DependencyUnavailableError` | A runtime dependency required by the selected backend is unavailable. |
 | `OptionalDependencyError` | Optional dependency such as Pillow is missing. |
 | `UnknownCaptureProfile` | A profile id or alias is not in the runtime profile registry. |
+| `UnknownCaptureLayout` | A layout id is not in the runtime layout registry. |

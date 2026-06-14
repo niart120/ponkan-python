@@ -10,6 +10,11 @@ def test_package_imports() -> None:
     assert ponkan.N3DSXL_VENDOR_ID == 0x0403
     assert "capture_sizes" in ponkan.__all__
     assert "open_capture" in ponkan.__all__
+    assert "CaptureLayout" in ponkan.__all__
+    assert "CompositeOutputInfo" in ponkan.__all__
+    assert "ScreenInfo" in ponkan.__all__
+    assert "get_capture_layout" in ponkan.__all__
+    assert "list_capture_layouts" in ponkan.__all__
     assert ponkan.CaptureOutput.BOTH_VERTICAL == "both_vertical"
 
 
