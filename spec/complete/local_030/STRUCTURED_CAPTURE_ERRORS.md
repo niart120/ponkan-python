@@ -1,6 +1,6 @@
 # Structured Capture Errors 仕様書
 
-更新日: 2026-06-14
+更新日: 2026-06-15
 
 ## 1. 概要
 
@@ -37,18 +37,18 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 
 ### 1.5 着手条件
 
-- [ ] 現行 `src/ponkan/errors.py` の exception hierarchy を確認する。
-- [ ] `local_029` の device discovery reason と命名を合わせる。
-- [ ] 既存 unit test が例外メッセージに依存していないか確認する。
+- [x] 現行 `src/ponkan/errors.py` の exception hierarchy を確認する。
+- [x] `local_029` の device discovery reason と命名を合わせる。
+- [x] 既存 unit test が例外メッセージに依存していないか確認する。
 
 ## 2. 対象ファイル
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_030/STRUCTURED_CAPTURE_ERRORS.md` | 新規 | structured error model の仕様を定義する。 |
+| `spec/complete/local_030/STRUCTURED_CAPTURE_ERRORS.md` | 完了済み | structured error model の仕様を定義する。 |
 | `src/ponkan/errors.py` | 修正 | `CaptureReason`、`CaptureError` common fields、subclass default を追加する。 |
 | `src/ponkan/capture.py` | 修正 | profile / backend context を例外生成時に渡す。 |
-| `src/ponkan/devices/discovery.py` | 修正 | discovery reason と error reason の命名を揃える。 |
+| `src/ponkan/devices/discovery.py` | 後続 | `local_029` で新規作成時に `CaptureReason` を import して discovery reason と error reason を共有する。 |
 | `src/ponkan/devices/n3dsxl_ftd3.py` | 修正 | rejected / unreadable / open failure context を structured にする。 |
 | `docs/api.md` | 修正 | structured errors の扱いを追記する。 |
 | `tests/unit/test_structured_capture_errors.py` | 新規 | fields、string compatibility、subclass defaults を検証する。 |
@@ -73,13 +73,13 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | `CaptureError` は common fields を持つ | new behavior | 3.1 | default values |
-| todo | subclass は stable default `code` を持つ | contract | 3.1 | `DeviceNotFound` など |
-| todo | `str(error)` は既存 message と互換 | regression | 3.1 | user-visible text |
-| todo | `DependencyUnavailableError.for_backend_dependency` は `reason="missing_package"` と backend context を持つ | diagnostics | 3.1 | backend field |
-| todo | `Ftd3CommandError.context` は維持される | regression | 3.1 | existing tests |
-| todo | discovery と error が同じ `CaptureReason` を参照する | contract | 3.1 | local_029 連携 |
-| todo | error fields は JSON log に変換しやすい | integration | 3.1 | `to_dict()` optional |
+| green | `CaptureError` は common fields を持つ | new behavior | 3.1 | default values |
+| green | subclass は stable default `code` を持つ | contract | 3.1 | `DeviceNotFound` など |
+| green | `str(error)` は既存 message と互換 | regression | 3.1 | user-visible text |
+| green | `DependencyUnavailableError.for_backend_dependency` は `reason="missing_package"` と backend context を持つ | diagnostics | 3.1 | backend field |
+| green | `Ftd3CommandError.context` は維持される | regression | 3.1 | existing tests |
+| green | discovery と error が同じ `CaptureReason` を参照する | contract | 3.1 | local_029 連携 |
+| green | error fields は JSON log に変換しやすい | integration | 3.1 | `to_dict()` optional |
 
 ### 3.3 設計方針
 
@@ -192,10 +192,25 @@ uv run pytest tests/unit
 
 ## 6. 実装チェックリスト
 
-- [ ] `CaptureError` に common fields を追加する。
-- [ ] discovery と error で共有する `CaptureReason` を定義する。
-- [ ] subclass default code / recoverable を固定する。
-- [ ] dependency / backend / device path から profile / backend context を渡す。
-- [ ] `Ftd3CommandError.context` の互換を維持する。
-- [ ] docs/api に structured error の例を追加する。
-- [ ] unit test と static gate を実行する。
+- [x] `CaptureError` に common fields を追加する。
+- [x] discovery と error で共有する `CaptureReason` を定義する。
+- [x] subclass default code / recoverable を固定する。
+- [x] dependency / backend / device path から profile / backend context を渡す。
+- [x] `Ftd3CommandError.context` の互換を維持する。
+- [x] docs/api に structured error の例を追加する。
+- [x] unit test と static gate を実行する。
+
+## 7. 実装結果
+
+### 7.1 Gate Results
+
+| gate | result | evidence |
+| ---- | ------ | -------- |
+| Structured error unit | pass | `uv run pytest tests/unit/test_structured_capture_errors.py -q`: 8 passed。 |
+| Related unit | pass | `uv run pytest tests/unit/test_structured_capture_errors.py tests/unit/test_high_level_capture_read_api.py tests/unit/test_ftd3_pipe_payloads.py tests/unit/test_n3dsxl_session.py tests/unit/test_n3dsxl_connect_sequence.py -q`: 45 passed。 |
+| Static | pass | `uv run ruff format --check .`、`uv run ruff check .`、`uv run ty check --no-progress`。 |
+| Hardware | not applicable | 例外 metadata の追加のみで、USB command は送信しない。 |
+
+### 7.2 Deferred To `local_029`
+
+`src/ponkan/devices/discovery.py` は `local_029` の対象として新規作成する。今回の完了条件は、discovery が import する共有 reason enum として `ponkan.errors.CaptureReason` を確定することに留めた。

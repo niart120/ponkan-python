@@ -35,7 +35,11 @@ class UnknownCaptureProfile(CaptureError):  # noqa: N818
 
     def __init__(self, profile: str) -> None:
         """Create an error for an unknown capture profile id or alias."""
-        super().__init__(f"unknown capture profile: {profile}")
+        super().__init__(
+            f"unknown capture profile: {profile}",
+            code="unsupported_profile",
+            reason="unsupported_profile",
+        )
 
 
 _N3DSXL_PROFILE = CaptureProfile(

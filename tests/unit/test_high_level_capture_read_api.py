@@ -273,13 +273,21 @@ def test_explicit_d3xx_native_uses_native_backend_without_fallback(
 def test_default_opener_reports_device_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(capture_module, "_new_d3xx_backend", lambda: _FakeD3xxBackend(()))
 
-    with pytest.raises(DeviceNotFound):
+    with pytest.raises(DeviceNotFound) as exc_info:
         open_capture(backend="d3xx")
+
+    assert exc_info.value.profile == "n3dsxl"
+    assert exc_info.value.backend == "d3xx"
+    assert exc_info.value.reason == "device_not_found"
 
 
 def test_explicit_libusb_backend_is_not_silently_mapped_to_d3xx() -> None:
-    with pytest.raises(UnsupportedOperation):
+    with pytest.raises(UnsupportedOperation) as exc_info:
         open_capture(backend="libusb")
+
+    assert exc_info.value.profile == "n3dsxl"
+    assert exc_info.value.backend == "libusb"
+    assert exc_info.value.reason == "unsupported_backend"
 
 
 def test_opencv_property_api_is_not_added() -> None:

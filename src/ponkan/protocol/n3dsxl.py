@@ -135,7 +135,7 @@ class N3DSXLProtocol:
                 ``DeviceCandidate``.
         """
         if not isinstance(device.candidate, DeviceCandidate):
-            raise UnsupportedDevice
+            raise UnsupportedDevice(profile="n3dsxl")
         self.device = device
         self.pipe = pipe
 
@@ -151,7 +151,7 @@ class N3DSXLProtocol:
             Ftd3CommandError: Any FTD3 setup command or transfer fails.
         """
         if mode_3d:
-            raise UnsupportedOperation
+            raise UnsupportedOperation(profile="n3dsxl")
 
         self.pipe.create_pipe()
         self._drain_data()
@@ -181,7 +181,7 @@ class N3DSXLProtocol:
             TransferOverflow: The backend reports more than the 2D capture size.
         """
         if mode_3d:
-            raise UnsupportedOperation
+            raise UnsupportedOperation(profile="n3dsxl")
         transfer_size = capture_size(mode_3d=False)
         expected_video_size = video_size(mode_3d=False)
         payload = b""
