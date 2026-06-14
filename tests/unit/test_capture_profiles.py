@@ -2,6 +2,7 @@ import builtins
 import importlib
 import sys
 from dataclasses import FrozenInstanceError
+from pathlib import Path
 from types import ModuleType
 from typing import Any
 
@@ -12,6 +13,18 @@ from ponkan.profiles import (
     UnknownCaptureProfile,
     get_capture_profile,
     list_capture_profiles,
+)
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_ROADMAP_TARGETS = (
+    "old3ds",
+    "o3ds",
+    "classic_ds",
+    "optimize",
+    "nisetro",
+    "is_nitro",
+    "is_twl",
+    "partner_ctr",
 )
 
 
@@ -56,8 +69,26 @@ def test_future_profiles_are_not_returned_before_source_audit() -> None:
     profile_ids = {profile.id for profile in list_capture_profiles()}
 
     assert profile_ids == {"n3dsxl"}
-    assert "old3ds" not in profile_ids
-    assert "classic_ds" not in profile_ids
+    assert all(target not in profile_ids for target in _ROADMAP_TARGETS)
+
+
+def test_profile_roadmap_docs_require_source_audit_before_runtime_promotion() -> None:
+    docs = (_PROJECT_ROOT / "docs" / "api.md").read_text(encoding="utf-8")
+    spec = (
+        _PROJECT_ROOT
+        / "spec"
+        / "complete"
+        / "local_032"
+        / "CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md"
+    ).read_text(encoding="utf-8")
+
+    for target in _ROADMAP_TARGETS:
+        assert target in docs
+        assert target in spec
+    assert "source audit" in docs
+    assert "runtime profile promotion" in docs
+    assert "audit required -> audited" in spec
+    assert "experimental -> stable" in spec
 
 
 def test_package_root_exports_profile_registry_api() -> None:

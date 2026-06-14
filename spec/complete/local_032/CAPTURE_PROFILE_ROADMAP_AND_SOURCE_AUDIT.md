@@ -36,16 +36,16 @@ profile registry に未検証 device を安易に追加すると、利用側 UI 
 ### 1.5 着手条件
 
 - [x] `local_028` の support status 定義がある。
-- [ ] `cc3dsfs-source-audit` skill を使う前提で原典調査の記録先を決める。
-- [ ] N3DSXL 以外を今回実装しない scope を確認する。
+- [x] `cc3dsfs-source-audit` skill を使う前提で原典調査の記録先を決める。
+- [x] N3DSXL 以外を今回実装しない scope を確認する。
 
 ## 2. 対象ファイル
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_032/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | 新規 | profile roadmap と source audit gate を定義する。 |
+| `spec/complete/local_032/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | 完了済み | profile roadmap と source audit gate を定義する。 |
 | `docs/api.md` | 修正 | N3DSXL 以外の非対象と source audit 前提を明記する。 |
-| `spec/wip/local_0xx/*` | 新規 | old3DS / classic DS などを実装する場合の個別 source audit spec。 |
+| `tests/unit/test_capture_profiles.py` | 修正 | future profile を source audit 前に runtime registry へ出さない scope guard を固定する。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -63,16 +63,18 @@ profile registry に未検証 device を安易に追加すると、利用側 UI 
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | default profile list は N3DSXL 以外を返さない | contract | 3.1 | UI safety |
-| todo | old3DS / classic DS 実装開始には source audit spec が必要 | scope guard | 3.1 | 実装なし |
-| todo | out-of-scope device は runtime registry に追加しない | scope guard | 3.1 | docs と一致 |
-| todo | runtime profile 昇格には gate evidence が必要 | documentation | 3.1 | spec checklist |
+| green | default profile list は N3DSXL 以外を返さない | contract | 3.1 | UI safety |
+| green | old3DS / classic DS 実装開始には source audit spec が必要 | scope guard | 3.1 | 実装なし |
+| green | out-of-scope device は runtime registry に追加しない | scope guard | 3.1 | docs と一致 |
+| green | runtime profile 昇格には gate evidence が必要 | documentation | 3.1 | spec checklist |
 
 ### 3.3 設計方針
 
 roadmap は開発計画と source audit gate のために使う。runtime registry や通常 UI には露出しない。
 
 old 3DS は初期 spec に参照領域があるが、実装開始前に source audit spec を別途作成する。classic DS / DS Lite 相当は現行実装・現行 spec で protocol 詳細が確認できないため、source audit なしに registry へ予約しない。
+
+source audit の記録先は、対象ごとの dedicated Work Unit とする。作業開始時は `spec/wip/local_0xx/<TARGET>_SOURCE_AUDIT.md` に作成し、VID/PID、product string、command、endpoint/interface、raw capture structure、layout、safe listing、first hardware gate plan を原典 path / URL とともに記録する。runtime profile 追加は、その source audit Work Unit が完了してから別 Work Unit として扱う。
 
 ## 4. 実装仕様
 
@@ -143,9 +145,27 @@ uv run pytest tests/unit
 
 ## 6. 実装チェックリスト
 
-- [ ] roadmap matrix を docs に明記する。
-- [ ] old3DS / classic DS の audit requirements を docs に明記する。
-- [ ] classic DS を source audit 前に通常 profile として返さないことを test する。
-- [ ] out-of-scope device family を docs と一致させる。
-- [ ] runtime profile promotion rule を docs に追加する。
-- [ ] local gate を実行する。
+- [x] roadmap matrix を docs に明記する。
+- [x] old3DS / classic DS の audit requirements を docs に明記する。
+- [x] classic DS を source audit 前に通常 profile として返さないことを test する。
+- [x] out-of-scope device family を docs と一致させる。
+- [x] runtime profile promotion rule を docs に追加する。
+- [x] local gate を実行する。
+
+## 7. 実装結果
+
+### 7.1 Gate Results
+
+| gate | result | evidence |
+| ---- | ------ | -------- |
+| Red | pass | `uv run pytest tests/unit/test_capture_profiles.py -q`: complete spec 未配置で 1 failed。 |
+| Profile unit | pass | `uv run pytest tests/unit/test_capture_profiles.py -q`: 8 passed。 |
+| Static | pass | `uv run ruff format --check .`、`uv run ruff check .`、`uv run ty check --no-progress`。 |
+| Full unit | pass | `uv run pytest tests/unit`: 153 passed。 |
+| Diff | pass | `git diff --check`。 |
+| Hardware | not required | runtime profile / device access / command 送信は追加しない。 |
+| Source audit | not run | 今回は source audit gate 定義のみ。原典 source/include 調査は将来 target ごとの dedicated Work Unit で実行する。 |
+
+### 7.2 Deferred
+
+old3DS、classic DS、Optimize、Nisetro、IS 系 device の runtime profile 追加は行わない。将来追加する場合は、対象ごとの source audit Work Unit を先に完了し、別 PR で runtime registry へ昇格する。
