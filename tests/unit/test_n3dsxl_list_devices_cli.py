@@ -1,3 +1,4 @@
+from ponkan.devices.discovery import list_capture_devices
 from ponkan.devices.n3dsxl_ftd3 import list_n3dsxl_devices
 from ponkan.tools.list_devices import format_device_listing
 from ponkan.transport.libusb_backend import UsbDeviceInfo
@@ -55,11 +56,16 @@ def test_list_devices_classifies_without_opening() -> None:
 
 
 def test_format_device_listing_shows_candidate_and_rejected_reason() -> None:
-    listing = list_n3dsxl_devices(_FakeBackend())
+    discovery = list_capture_devices(
+        backend="libusb",
+        include_rejected=True,
+        _libusb_backend=_FakeBackend(),
+    )
 
-    output = format_device_listing(listing)
+    output = format_device_listing(discovery)
 
     assert "N3DSXL" in output
     assert "product=- product_status=unreadable" in output
     assert "0x0403:0x601f" in output
+    assert "device_rejected" in output
     assert "unsupported_product_string" in output

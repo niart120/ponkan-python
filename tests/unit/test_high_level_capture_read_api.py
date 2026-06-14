@@ -270,6 +270,42 @@ def test_explicit_d3xx_native_uses_native_backend_without_fallback(
     assert backend.handle.closed
 
 
+def test_default_auto_uses_d3xx_native_backend_on_windows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import ponkan.devices.discovery as discovery_module  # noqa: PLC0415
+
+    backend = _FakeD3xxBackend()
+    protocol = _FakeProtocol()
+    native_calls: list[tuple[object, int]] = []
+
+    monkeypatch.setattr(discovery_module.sys, "platform", "win32")
+    monkeypatch.setattr(capture_module, "_new_d3xx_backend", lambda: backend)
+    monkeypatch.setattr(capture_module, "_new_n3dsxl_protocol", lambda _handle: protocol)
+    monkeypatch.setattr(
+        capture_module,
+        "_new_d3xx_backend_async",
+        lambda _handle: pytest.fail("auto should not use sequential d3xx"),
+    )
+
+    def new_native_backend(handle: object, config: CaptureConfig) -> object:
+        native_calls.append((handle, config.raw_slots))
+        return object()
+
+    def new_engine(async_backend: object, config: CaptureConfig) -> _FakeEngine:
+        _ = async_backend, config
+        return _FakeEngine([_frame()])
+
+    monkeypatch.setattr(capture_module, "_new_d3xx_native_backend", new_native_backend)
+    monkeypatch.setattr(capture_module, "_new_streaming_engine", new_engine)
+
+    reader = open_capture()
+
+    assert isinstance(reader, CaptureReader)
+    assert native_calls == [(backend.handle, 2)]
+    assert protocol.connected_modes == [False]
+
+
 def test_default_opener_reports_device_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(capture_module, "_new_d3xx_backend", lambda: _FakeD3xxBackend(()))
 

@@ -47,17 +47,17 @@ NyX の初期実装は physical device selection を scope 外にして `open_ca
 
 - [x] `local_028` の profile registry が利用可能である。
 - [x] `local_030` の `CaptureReason` が利用可能である。
-- [ ] 現行 `DeviceCandidate` / `RejectedDevice` / `DeviceListing` と `D3xxBackend.iter_device_candidates()` の責務を確認する。
-- [ ] `src/ponkan/tools/list_devices.py` の出力を public discovery model へ寄せる方針を決める。
+- [x] 現行 `DeviceCandidate` / `RejectedDevice` / `DeviceListing` と `D3xxBackend.iter_device_candidates()` の責務を確認する。
+- [x] `src/ponkan/tools/list_devices.py` の出力を public discovery model へ寄せる方針を決める。
 
 ## 2. 対象ファイル
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_029/CAPTURE_DEVICE_DISCOVERY_REDESIGN.md` | 新規 | backend resolution を含む device discovery redesign を定義する。 |
+| `spec/complete/local_029/CAPTURE_DEVICE_DISCOVERY_REDESIGN.md` | 完了済み | backend resolution を含む device discovery redesign を定義する。 |
 | `src/ponkan/devices/discovery.py` | 新規 | `CaptureDeviceInfo`、discovery reason、backend preference 解決を定義する。 |
-| `src/ponkan/devices/n3dsxl_ftd3.py` | 修正 | N3DSXL 固有の descriptor classification を shared discovery model へ接続し、session/open 責務を分離する。 |
-| `src/ponkan/transport/d3xx_backend.py` | 修正 | D3XX descriptor enumeration を discovery から再利用できる境界へ整理する。 |
+| `src/ponkan/devices/n3dsxl_ftd3.py` | 既存利用 | N3DSXL 固有の descriptor classification を discovery adapter から再利用する。 |
+| `src/ponkan/transport/d3xx_backend.py` | 既存利用 | `iter_devices()` の descriptor enumeration を discovery から再利用する。 |
 | `src/ponkan/capture.py` | 修正 | `backend="auto"` の resolver を discovery / high-level open で共有し、Windows では `d3xx-native` を既定にする。 |
 | `src/ponkan/tools/list_devices.py` | 修正 | CLI listing を public discovery model の表示に変更する。 |
 | `src/ponkan/__init__.py` | 修正 | `list_capture_devices`、`CaptureDeviceDiscovery`、`CaptureDeviceInfo` を export する。 |
@@ -90,18 +90,18 @@ NyX の初期実装は physical device selection を scope 外にして `open_ca
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | `backend="auto"` は high-level open と同じ既定 backend policy を使う | contract | 3.1 | policy drift 防止 |
-| todo | Windows auto は `d3xx-native` に解決される | behavior | 3.1 | D3XX sequential path の不安定観測に基づく |
-| todo | Windows auto は native unavailable 時に `d3xx` へ silent fallback しない | safety | 3.1 | 明示指定のみ許可 |
-| todo | PyD3XX missing が `reason="missing_package"` になる | diagnostics | 3.1 | import monkeypatch |
-| todo | backend 不足時も single discovery result object で返る | contract | 3.1 | 空 tuple / 例外 / 疑似 device に分散しない |
-| todo | accepted N3DSXL candidate が `CaptureDeviceInfo` になる | new behavior | 3.1 | fake descriptor |
-| todo | rejected product string が reason 付き info になる | diagnostics | 3.1 | include_rejected |
-| todo | product string unreadable が product status として残る | safety | 3.1 | connection status には混ぜない |
-| todo | device id が backend prefix を持つ | contract | 3.1 | `d3xx:` / `libusb:` |
-| todo | discovery は command を送らない | safety | 3.1 | fake protocol spy |
-| todo | CLI listing は public discovery model を表示する | integration | 3.1 | duplicate classification 防止 |
-| todo | unknown profile は error | edge | 3.1 | typo 検知 |
+| green | `backend="auto"` は high-level open と同じ既定 backend policy を使う | contract | 3.1 | policy drift 防止 |
+| green | Windows auto は `d3xx-native` に解決される | behavior | 3.1 | D3XX sequential path の不安定観測に基づく |
+| green | Windows auto は native unavailable 時に `d3xx` へ silent fallback しない | safety | 3.1 | 明示指定のみ許可 |
+| green | PyD3XX missing が `reason="missing_package"` になる | diagnostics | 3.1 | import monkeypatch |
+| green | backend 不足時も single discovery result object で返る | contract | 3.1 | 空 tuple / 例外 / 疑似 device に分散しない |
+| green | accepted N3DSXL candidate が `CaptureDeviceInfo` になる | new behavior | 3.1 | fake descriptor |
+| green | rejected product string が reason 付き info になる | diagnostics | 3.1 | include_rejected |
+| green | product string unreadable が product status として残る | safety | 3.1 | connection status には混ぜない |
+| green | device id が backend prefix を持つ | contract | 3.1 | `d3xx:` / `libusb:` |
+| green | discovery は command を送らない | safety | 3.1 | fake protocol spy |
+| green | CLI listing は public discovery model を表示する | integration | 3.1 | duplicate classification 防止 |
+| green | unknown profile は unsupported result object を返す | edge | 3.1 | typo 検知 |
 
 ### 3.3 設計方針
 
@@ -218,11 +218,28 @@ Hardware listing は N3DSXL command を送らないが、実機に触れるた�
 
 ## 6. 実装チェックリスト
 
-- [ ] `CaptureDeviceInfo` と discovery reason を定義する。
-- [ ] backend preference 解決を discovery に統合する。
-- [ ] Windows の `backend="auto"` を `d3xx-native` に解決し、`d3xx` へ silent fallback しない。
-- [ ] N3DSXL `DeviceListing` から public info への mapping を実装する。
-- [ ] CLI listing を public discovery model へ寄せる。
-- [ ] rejected / unreadable / id stability / backend reason を unit test で固定する。
-- [ ] docs/api に discovery の command scope と backend reason を明記する。
-- [ ] local gate を実行する。
+- [x] `CaptureDeviceInfo` と discovery reason を定義する。
+- [x] backend preference 解決を discovery に統合する。
+- [x] Windows の `backend="auto"` を `d3xx-native` に解決し、`d3xx` へ silent fallback しない。
+- [x] N3DSXL `DeviceListing` から public info への mapping を実装する。
+- [x] CLI listing を public discovery model へ寄せる。
+- [x] rejected / unreadable / id stability / backend reason を unit test で固定する。
+- [x] docs/api に discovery の command scope と backend reason を明記する。
+- [x] local gate を実行する。
+
+## 7. 実装結果
+
+### 7.1 Gate Results
+
+| gate | result | evidence |
+| ---- | ------ | -------- |
+| Discovery unit | pass | `uv run pytest tests/unit/test_capture_device_discovery.py -q`: 6 passed。 |
+| Related unit | pass | `uv run pytest tests/unit/test_capture_device_discovery.py tests/unit/test_n3dsxl_list_devices_cli.py tests/unit/test_high_level_capture_read_api.py tests/unit/test_package.py -q`: 28 passed。 |
+| Full unit | pass | `uv run pytest tests/unit`: 146 passed。 |
+| Static | pass | `uv run ruff format --check .`、`uv run ruff check .`、`uv run ty check --no-progress`。 |
+| Diff | pass | `git diff --check`。 |
+| Hardware listing | not run | Discovery は command を送らないが、実機接続状態に触れるため PR 後の任意 gate とする。 |
+
+### 7.2 Deferred
+
+実機 descriptor listing は command 送信を伴わないが、今回の PR は fake backend による contract 固定までとした。実機での `ponkan-list-devices` smoke は、必要な device identity と artifact 方針を示した上で別途実行する。

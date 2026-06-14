@@ -26,12 +26,15 @@ from ponkan import (
     ACCEPTED_N3DSXL_PRODUCT_STRINGS,
     N3DSXL_VENDOR_ID,
     CaptureConfig,
+    CaptureDeviceDiscovery,
+    CaptureDeviceInfo,
     CaptureOutput,
     CaptureProfile,
     CaptureReader,
     CaptureSizes,
     capture_sizes,
     get_capture_profile,
+    list_capture_devices,
     list_capture_profiles,
     open_capture,
 )
@@ -95,7 +98,7 @@ Arguments:
 | --- | --- | --- | --- |
 | `source` | `int` or `str` | `0` | `0` and `"new_3ds_xl"` are accepted. |
 | `config` | `CaptureConfig` or `None` | `None` | Base configuration. Explicit keyword overrides win. |
-| `backend` | one of `auto`, `libusb`, `d3xx`, `d3xx-native` | `None` | Backend preference. `auto` currently resolves to D3XX. |
+| `backend` | one of `auto`, `libusb`, `d3xx`, `d3xx-native` | `None` | Backend preference. On Windows, `auto` resolves to `d3xx-native`. |
 | `output` | `CaptureOutput`, `str`, or `None` | `None` | Default layout returned by `read()`. |
 | `colorspace` | `RGB`, `BGR`, or `None` | `None` | Default channel order returned by `read()`. |
 | `read_timeout` | `float` or `None` | unchanged | Default timeout in seconds. |
@@ -120,7 +123,7 @@ open_capture(...) as cap:` so `close()` is called even when reads fail.
 | --- | --- | --- |
 | `source` | `0` | Source selector. |
 | `model` | `"new_3ds_xl"` | Only new 3DS XL is supported. |
-| `backend` | `"auto"` | `"d3xx"` and `"d3xx-native"` require the `d3xx` extra. |
+| `backend` | `"auto"` | On Windows this resolves to `"d3xx-native"`. `"d3xx"` and `"d3xx-native"` require the `d3xx` extra. |
 | `mode_3d` | `False` | `True` is rejected in the current MVP. |
 | `output` | `CaptureOutput.BOTH_VERTICAL` | Default layout for `read()`. |
 | `colorspace` | `"RGB"` | `"BGR"` is useful for OpenCV. |
@@ -200,20 +203,31 @@ unless `force=True` is provided.
 ## Device Discovery
 
 ```python
-from ponkan.devices.n3dsxl_ftd3 import list_n3dsxl_devices
-from ponkan.transport.libusb_backend import Usb1Backend
+from ponkan import list_capture_devices
 
-listing = list_n3dsxl_devices(Usb1Backend())
+discovery = list_capture_devices(profile="n3dsxl", backend="auto")
 ```
 
-The discovery layer does not send N3DSXL commands. It only classifies USB
-descriptors:
+The discovery layer does not send N3DSXL commands. It only classifies
+descriptors and reports backend availability:
 
-| Type | Meaning |
+| Field | Meaning |
 | --- | --- |
-| `DeviceCandidate` | Accepted VID/PID and accepted or unreadable product string. |
-| `RejectedDevice` | FTDI-family device rejected before commands may be sent. |
-| `DeviceListing` | Tuple groups of candidates and rejected devices. |
+| `profile_id` | Resolved profile id such as `"n3dsxl"`. |
+| `backend_preference` | Caller preference such as `"auto"` or `"libusb"`. |
+| `resolved_backend` | Concrete backend used for enumeration. Windows `"auto"` resolves to `"d3xx-native"`. |
+| `backend_status` | `"available"`, `"unavailable"`, or `"unsupported"`. |
+| `reason` | Shared `CaptureReason` such as `"available"`, `"device_not_found"`, or `"missing_package"`. |
+| `devices` | Tuple of `CaptureDeviceInfo` descriptors. |
+
+`include_rejected=True` includes FTDI-family devices rejected by the N3DSXL
+safety boundary. Rejected devices are useful for diagnostics but should not be
+offered as normal capture targets.
+
+Each `CaptureDeviceInfo` includes a stable-or-best-effort `id`, backend,
+VID/PID, serial number, product string status, connection status, reason, and
+optional remediation. Serial-backed ids are marked with `id_stability="stable"`;
+bus/address ids are session-scoped.
 
 Accepted device identity is constrained by `N3DSXL_VENDOR_ID`,
 `ACCEPTED_N3DSXL_PRODUCT_IDS`, and `ACCEPTED_N3DSXL_PRODUCT_STRINGS`.

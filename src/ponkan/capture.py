@@ -8,6 +8,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, Protocol, cast, overload
 
+from ponkan.devices.discovery import resolve_backend_preference
 from ponkan.errors import (
     DecodeError,
     DeviceNotFound,
@@ -347,21 +348,27 @@ def _validate_colorspace(colorspace: str) -> None:
 
 
 def _open_hardware_engine(config: CaptureConfig) -> CaptureReaderEngine:
-    if config.backend == "libusb":
+    resolved_backend = resolve_backend_preference(config.backend)
+    if resolved_backend == "libusb":
         raise UnsupportedOperation(
             profile="n3dsxl",
-            backend=config.backend,
+            backend=resolved_backend,
             reason="unsupported_backend",
         )
-    native = config.backend == "d3xx-native"
-    return _open_d3xx_engine(config, native=native)
+    native = resolved_backend == "d3xx-native"
+    return _open_d3xx_engine(config, native=native, resolved_backend=resolved_backend)
 
 
-def _open_d3xx_engine(config: CaptureConfig, *, native: bool) -> CaptureReaderEngine:
+def _open_d3xx_engine(
+    config: CaptureConfig,
+    *,
+    native: bool,
+    resolved_backend: str,
+) -> CaptureReaderEngine:
     backend = _new_d3xx_backend()
     candidates = backend.iter_device_candidates()
     if not candidates:
-        raise DeviceNotFound(profile="n3dsxl", backend=config.backend)
+        raise DeviceNotFound(profile="n3dsxl", backend=resolved_backend)
     d3xx_candidate = candidates[0]
     handle = backend.open(d3xx_candidate)
     try:
