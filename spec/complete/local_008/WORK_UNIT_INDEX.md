@@ -1,6 +1,6 @@
 # N3DSXL MVP Work Unit Index 仕様書
 
-更新日: 2026-06-10
+更新日: 2026-06-14
 
 ## 1. 概要
 
@@ -62,6 +62,15 @@
 | `spec/complete/local_021/D3XX_STREAMING_LATENCY_MEASUREMENT.md` | 完了済み follow-up | D3XX streaming の opt-in timing collection と fast path 判断基準を追加する。 |
 | `spec/complete/local_022/D3XX_NATIVE_FAST_PATH_BACKEND.md` | 完了済み follow-up | native D3XX API に近い opt-in fast path backend の実装、非対象、test list、hardware gate を定義する。 |
 | `spec/complete/local_023/HIGH_LEVEL_CAPTURE_READ_API.md` | 完了済み follow-up | `open_capture()`、`CaptureReader.read()`、`CaptureOutput` の高レベル API を定義する。local gate と実機 high-level E2E は完了。 |
+| `spec/wip/local_027/NYX_CAPTURE_API_HANDOFF.md` | WIP 入力資料 | Project NyX から見た ponkan-python 連携要求と優先順位を保持する。 |
+| `spec/wip/local_027/CAPTURE_PROFILE_REGISTRY.md` | WIP follow-up | profile registry と support status の public contract を定義する。 |
+| `spec/wip/local_028/BACKEND_CAPABILITY_RESOLUTION.md` | WIP follow-up | lightweight backend capability / resolver API を定義する。 |
+| `spec/wip/local_029/PROFILE_PRESET_OPEN_CAPTURE.md` | WIP follow-up | profile preset と simplified `open_capture(profile=...)` を定義する。 |
+| `spec/wip/local_030/CAPTURE_FRAME_PACING.md` | WIP follow-up | `target_fps`、delivery pacing、diagnostics を定義する。 |
+| `spec/wip/local_031/CAPTURE_DEVICE_LISTING_API.md` | WIP follow-up | profile 横断 device listing API を定義する。 |
+| `spec/wip/local_032/STRUCTURED_CAPTURE_ERRORS.md` | WIP follow-up | machine-readable error fields と reason code を定義する。 |
+| `spec/wip/local_033/CAPTURE_LAYOUT_METADATA.md` | WIP follow-up | screen / output / coordinate layout metadata を定義する。 |
+| `spec/wip/local_034/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | WIP follow-up | profile support status と source audit gate を定義する。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -106,6 +115,21 @@ Work Unit は次の依存順に扱う。
 | 12 | `complete/local_022` | `D3XX_NATIVE_FAST_PATH_BACKEND.md` | Step 7-8 follow-up | native backend smoke で必要 | D3XX acquisition / overlapped read / buffer lifetime | 完了、opt-in native backend implemented、hardware timing / performance complete、default adoption deferred |
 | 13 | `complete/local_023` | `HIGH_LEVEL_CAPTURE_READ_API.md` | API follow-up | high-level E2E で必要 | 追加なし | 完了、hardware high-level E2E complete |
 
+### 3.4 NyX 連携 WIP Follow-up Candidates
+
+Project NyX からの申し送りを受けた profile-driven capture API 群は、`local_027` から `local_034` の WIP 仕様として扱う。未実装のため `complete` へ移動せず、実装 Work Unit を 1 件ずつ選ぶ。
+
+| 順序 | ディレクトリ | 仕様書 | 主な目的 | 依存 | 実機要否 | 現在状態 |
+| ---- | ------------ | ------ | -------- | ---- | -------- | -------- |
+| 14 | `wip/local_027` | `CAPTURE_PROFILE_REGISTRY.md` | profile / support status registry | `complete/local_023` | 不要 | WIP |
+| 15 | `wip/local_028` | `BACKEND_CAPABILITY_RESOLUTION.md` | backend capability / resolver | `local_027` | 不要 | WIP |
+| 16 | `wip/local_029` | `PROFILE_PRESET_OPEN_CAPTURE.md` | profile-driven open API | `local_027`, `local_028` | smoke で必要 | WIP |
+| 17 | `wip/local_030` | `CAPTURE_FRAME_PACING.md` | target FPS / pacing diagnostics | `local_027`, `local_029` | performance smoke で必要 | WIP |
+| 18 | `wip/local_031` | `CAPTURE_DEVICE_LISTING_API.md` | profile 横断 device listing | `local_027`, `local_028` | listing E2E で必要 | WIP |
+| 19 | `wip/local_032` | `STRUCTURED_CAPTURE_ERRORS.md` | structured error model | `local_028` | 不要 | WIP |
+| 20 | `wip/local_033` | `CAPTURE_LAYOUT_METADATA.md` | screen / output layout metadata | `local_027` | 不要 | WIP |
+| 21 | `wip/local_034` | `CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | future profile support と source audit gate | `local_027` | 不要 | WIP |
+
 Main Agent は上から順に、次を満たす最小単位を選ぶ。
 
 ```text
@@ -124,7 +148,7 @@ Main Agent は、この仕様群を使う作業開始時に次を提示する。
 
 ```text
 Agentic SDD bootstrap:
-- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_022/*
+- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_023/*, spec/wip/local_027/* ... spec/wip/local_034/*
 - Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <spec file + TDD item>

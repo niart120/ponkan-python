@@ -44,7 +44,7 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_033/STRUCTURED_CAPTURE_ERRORS.md` | 新規 | structured error model の仕様を定義する。 |
+| `spec/wip/local_032/STRUCTURED_CAPTURE_ERRORS.md` | 新規 | structured error model の仕様を定義する。 |
 | `src/ponkan/errors.py` | 修正 | `CaptureError` common fields と subclass default を追加する。 |
 | `src/ponkan/capture.py` | 修正 | profile / backend context を例外生成時に渡す。 |
 | `src/ponkan/backends.py` | 修正 | capability reason と error reason を共通化する。 |
