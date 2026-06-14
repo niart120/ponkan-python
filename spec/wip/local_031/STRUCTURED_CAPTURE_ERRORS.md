@@ -44,7 +44,7 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_033/STRUCTURED_CAPTURE_ERRORS.md` | 新規 | structured error model の仕様を定義する。 |
+| `spec/wip/local_031/STRUCTURED_CAPTURE_ERRORS.md` | 新規 | structured error model の仕様を定義する。 |
 | `src/ponkan/errors.py` | 修正 | `CaptureError` common fields と subclass default を追加する。 |
 | `src/ponkan/capture.py` | 修正 | profile / backend context を例外生成時に渡す。 |
 | `src/ponkan/backends.py` | 修正 | capability reason と error reason を共通化する。 |
@@ -61,7 +61,7 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 | base error | `CaptureError(...)` | common fields を持つ | message は従来通り str で見える |
 | device not found | device 候補なし | `code="device_not_found"`, `recoverable=True` | source は表示し未接続 status にできる |
 | unsupported profile | unknown profile | `code="unsupported_profile"` | 通常 UI 非表示 |
-| backend dependency missing | PyD3XX missing | `reason="backend_dependency_missing"` | remediation 付き |
+| missing package | PyD3XX missing | `code="dependency_unavailable"`, `reason="missing_package"` | remediation 付き |
 | device rejected | VID/PID/product string 不一致 | `code="device_rejected"` | safety warning |
 | read failed | streaming read error | `code="read_failed"` | reconnect candidate |
 | decode failed | raw decode error | `code="decode_failed"` | technical log |
@@ -74,7 +74,7 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 | todo | `CaptureError` は common fields を持つ | new behavior | 3.1 | default values |
 | todo | subclass は stable default `code` を持つ | contract | 3.1 | `DeviceNotFound` など |
 | todo | `str(error)` は既存 message と互換 | regression | 3.1 | user-visible text |
-| todo | `DependencyUnavailableError.for_backend_dependency` は backend context を持つ | diagnostics | 3.1 | backend field |
+| todo | `DependencyUnavailableError.for_backend_dependency` は `reason="missing_package"` と backend context を持つ | diagnostics | 3.1 | backend field |
 | todo | `Ftd3CommandError.context` は維持される | regression | 3.1 | existing tests |
 | todo | error fields は JSON log に変換しやすい | integration | 3.1 | `to_dict()` optional |
 
@@ -113,8 +113,9 @@ reason 候補:
 
 | reason | 利用側の扱い |
 | ------ | ------------ |
-| `package_missing` | capture source hidden / install guidance |
-| `backend_dependency_missing` | backend / driver guidance |
+| `missing_package` | backend package guidance |
+| `missing_driver` | driver guidance |
+| `missing_runtime` | backend runtime guidance |
 | `unsupported_platform` | disabled source |
 | `unsupported_profile` | UI に出さない |
 | `device_not_found` | 未接続 status |

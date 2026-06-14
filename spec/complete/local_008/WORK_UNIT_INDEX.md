@@ -63,14 +63,12 @@
 | `spec/complete/local_022/D3XX_NATIVE_FAST_PATH_BACKEND.md` | 完了済み follow-up | native D3XX API に近い opt-in fast path backend の実装、非対象、test list、hardware gate を定義する。 |
 | `spec/complete/local_023/HIGH_LEVEL_CAPTURE_READ_API.md` | 完了済み follow-up | `open_capture()`、`CaptureReader.read()`、`CaptureOutput` の高レベル API を定義する。local gate と実機 high-level E2E は完了。 |
 | `spec/wip/local_027/NYX_CAPTURE_API_HANDOFF.md` | WIP 入力資料 | Project NyX から見た ponkan-python 連携要求と優先順位を保持する。 |
-| `spec/wip/local_028/CAPTURE_PROFILE_REGISTRY.md` | WIP follow-up | profile registry と support status の public contract を定義する。 |
-| `spec/wip/local_029/BACKEND_CAPABILITY_RESOLUTION.md` | WIP follow-up | lightweight backend capability / resolver API を定義する。 |
-| `spec/wip/local_030/PROFILE_PRESET_OPEN_CAPTURE.md` | deferred | profile preset と simplified `open_capture(profile=...)` は過剰仕様として白紙化する。 |
-| `spec/wip/local_031/CAPTURE_FRAME_PACING.md` | deferred | `target_fps` / delivery pacing は利用側 sampling で代替し、白紙化する。 |
-| `spec/wip/local_032/CAPTURE_DEVICE_LISTING_API.md` | WIP follow-up | profile 横断 device listing API を定義する。 |
-| `spec/wip/local_033/STRUCTURED_CAPTURE_ERRORS.md` | WIP follow-up | machine-readable error fields と reason code を定義する。 |
-| `spec/wip/local_034/CAPTURE_LAYOUT_METADATA.md` | WIP follow-up | screen / output / coordinate layout metadata を定義する。 |
-| `spec/wip/local_035/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | WIP follow-up | profile support status と source audit gate を定義する。 |
+| `spec/wip/local_028/CAPTURE_PROFILE_REGISTRY.md` | WIP follow-up | 実装済み capture profile の public metadata contract を定義する。 |
+| `spec/wip/local_029/BACKEND_CAPABILITY_RESOLUTION.md` | WIP follow-up | backend runtime capability / resolver API を定義する。 |
+| `spec/wip/local_030/CAPTURE_DEVICE_LISTING_API.md` | WIP follow-up | profile 横断 device listing API を定義する。 |
+| `spec/wip/local_031/STRUCTURED_CAPTURE_ERRORS.md` | WIP follow-up | machine-readable error fields と canonical reason code を定義する。 |
+| `spec/wip/local_032/CAPTURE_LAYOUT_METADATA.md` | WIP follow-up | screen / output / coordinate layout metadata を定義する。 |
+| `spec/wip/local_033/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | WIP follow-up | future profile の source audit gate を定義する。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -117,19 +115,17 @@ Work Unit は次の依存順に扱う。
 
 ### 3.4 NyX 連携 WIP Input and Follow-up Candidates
 
-Project NyX からの申し送りを受けた profile-driven capture API 群は、`local_027` から `local_035` の WIP 仕様として扱う。`local_027` は入力資料専用とし、実装対象の仕様は `local_028` 以降で 1 項番 1 仕様に分ける。未実装のため `complete` へ移動せず、実装 Work Unit を 1 件ずつ選ぶ。
+Project NyX からの申し送りを受けた profile-driven capture API 群は、`local_027` から `local_033` の WIP 仕様として扱う。`local_027` は非規範の入力資料専用とし、実装対象の仕様は `local_028` 以降で 1 項番 1 仕様に分ける。入力資料内の未採用案は、後続仕様に明示された場合だけ実装候補として扱う。未実装のため `complete` へ移動せず、実装 Work Unit を 1 件ずつ選ぶ。
 
 | 順序 | ディレクトリ | 仕様書 | 主な目的 | 依存 | 実機要否 | 現在状態 |
 | ---- | ------------ | ------ | -------- | ---- | -------- | -------- |
 | 14 | `wip/local_027` | `NYX_CAPTURE_API_HANDOFF.md` | Project NyX からの上流向け申し送り | なし | 不要 | input |
-| 15 | `wip/local_028` | `CAPTURE_PROFILE_REGISTRY.md` | profile / support status registry | `complete/local_023` | 不要 | WIP |
+| 15 | `wip/local_028` | `CAPTURE_PROFILE_REGISTRY.md` | 実装済み profile metadata registry | `complete/local_023` | 不要 | WIP |
 | 16 | `wip/local_029` | `BACKEND_CAPABILITY_RESOLUTION.md` | backend capability / resolver | `local_028` | 不要 | WIP |
-| 17 | `wip/local_030` | `PROFILE_PRESET_OPEN_CAPTURE.md` | profile preset / `open_capture(profile=...)` は実装しない | なし | 不要 | deferred、白紙化 |
-| 18 | `wip/local_031` | `CAPTURE_FRAME_PACING.md` | `target_fps` / pacing API は実装しない | なし | 不要 | deferred、白紙化 |
-| 19 | `wip/local_032` | `CAPTURE_DEVICE_LISTING_API.md` | profile 横断 device listing | `local_028`, `local_029` | listing E2E で必要 | WIP |
-| 20 | `wip/local_033` | `STRUCTURED_CAPTURE_ERRORS.md` | structured error model | `local_029` | 不要 | WIP |
-| 21 | `wip/local_034` | `CAPTURE_LAYOUT_METADATA.md` | screen / output layout metadata | `local_028` | 不要 | WIP |
-| 22 | `wip/local_035` | `CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | future profile support と source audit gate | `local_028` | 不要 | WIP |
+| 17 | `wip/local_030` | `CAPTURE_DEVICE_LISTING_API.md` | profile 横断 device listing | `local_028`, `local_029` | listing E2E で必要 | WIP |
+| 18 | `wip/local_031` | `STRUCTURED_CAPTURE_ERRORS.md` | structured error model | `local_029` | 不要 | WIP |
+| 19 | `wip/local_032` | `CAPTURE_LAYOUT_METADATA.md` | screen / output layout metadata | `local_028` | 不要 | WIP |
+| 20 | `wip/local_033` | `CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | future profile の source audit gate | `local_028` | 不要 | WIP |
 
 Main Agent は上から順に、次を満たす最小単位を選ぶ。
 
@@ -149,7 +145,7 @@ Main Agent は、この仕様群を使う作業開始時に次を提示する。
 
 ```text
 Agentic SDD bootstrap:
-- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_023/*, spec/wip/local_027/* ... spec/wip/local_035/*
+- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_023/*, spec/wip/local_027/* ... spec/wip/local_033/*
 - Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <spec file + TDD item>

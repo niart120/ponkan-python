@@ -44,7 +44,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_034/CAPTURE_LAYOUT_METADATA.md` | 新規 | layout metadata の仕様を定義する。 |
+| `spec/wip/local_032/CAPTURE_LAYOUT_METADATA.md` | 新規 | layout metadata の仕様を定義する。 |
 | `src/ponkan/layouts.py` | 新規 | `CaptureLayout`、`ScreenInfo`、`CompositeOutputInfo` を定義する。 |
 | `src/ponkan/profiles.py` | 修正 | profile と layout metadata を接続する。 |
 | `src/ponkan/capture.py` | 修正 | `CaptureOutput` validation を layout metadata と整合させる。 |
@@ -62,7 +62,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 | profile から layout を辿る | `get_capture_profile("n3dsxl").screen_layout` | layout id が取得できる | `local_028` と整合 |
 | screen list | N3DSXL layout | `top` と `bottom` を含む | `top_right` は 3D unsupported の扱いを明記 |
 | output set | N3DSXL layout | `top`、`bottom`、`both_vertical` | `CaptureOutput` と一致 |
-| composite size | `both_vertical` | `(480, 400, 3)` | bottom centered |
+| composite size | `both_vertical` | `width=400`, `height=480`, `ndarray_shape=(480, 400, 3)` | bottom centered |
 | colorspace default | N3DSXL profile | profile default と一致 | `RGB` / `BGR` |
 | unknown layout | typo | explicit error | fallback しない |
 
@@ -71,7 +71,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
 | todo | N3DSXL layout は top/bottom screen metadata を持つ | contract | 3.1 | size 検証 |
-| todo | `both_vertical` composite size が `(480, 400)` である | contract | 3.1 | existing `to_mosaic` と一致 |
+| todo | `both_vertical` composite size が `width=400`, `height=480`, `ndarray_shape=(480, 400, 3)` である | contract | 3.1 | existing `to_mosaic` と一致 |
 | todo | `CaptureOutput` values が supported outputs と一致する | regression | 3.1 | enum / metadata drift 防止 |
 | todo | profile layout id から layout を取得できる | integration | 3.1 | local_028 連携 |
 | todo | unknown layout は error | edge | 3.1 | typo 検知 |
@@ -139,7 +139,7 @@ N3DSXL layout:
 | テスト対象 | 検証内容 | 入力例 | 期待結果 |
 | ---------- | -------- | ------ | -------- |
 | `get_capture_layout` | N3DSXL layout | `3ds_dual_screen` | top/bottom metadata |
-| composite | both vertical | layout output | size `(400, 480)` |
+| composite | both vertical | layout output | `width=400`, `height=480`, `ndarray_shape=(480, 400, 3)` |
 | enum consistency | `CaptureOutput` | values | layout supported outputs と一致 |
 | profile connection | `n3dsxl` | profile layout id | layout を取得できる |
 | unknown | invalid id | `bogus` | error |

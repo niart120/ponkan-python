@@ -15,14 +15,14 @@
 | backend preference | 利用者が指定する backend 候補。`auto`、`d3xx`、`d3xx-native`、`libusb`。 |
 | resolved backend | `auto` などの preference から実際に選ばれる backend。 |
 | capability check | device command を送らずに、package / backend module / driver / lightweight enumeration の状態を調べる処理。 |
-| unavailable reason | `missing_package`、`missing_driver`、`missing_runtime`、`unsupported_platform`、`device_not_found` などの機械判定用理由。 |
+| unavailable reason | `missing_package`、`missing_driver`、`missing_runtime`、`unsupported_platform`、`unsupported_backend` などの機械判定用理由。 |
 | remediation | 利用者に提示できる短い復旧案内。 |
 
 ### 1.3 背景・問題
 
-現行の利用側は `importlib.util.find_spec("ponkan")` で package availability だけを判定できる。しかし、実際に capture source を使えるかは D3XX binding、Windows driver service、platform、backend choice、device visibility に依存する。`open_capture()` まで進めると N3DSXL command boundary に近づくため、GUI menu 構築や設定画面ではより軽量な判定が必要である。
+現行の利用側は `importlib.util.find_spec("ponkan")` で package availability だけを判定できる。しかし、実際に capture source を使えるかは D3XX binding、Windows driver service、platform、backend choice に依存する。physical device visibility は `local_030` の listing API が扱う。`open_capture()` まで進めると N3DSXL command boundary に近づくため、GUI menu 構築や設定画面ではより軽量な backend runtime 判定が必要である。
 
-この仕様では、backend capability API は N3DSXL command を送らない。device enumeration を行う場合も descriptor 取得までに留め、明示的な open / connect は `open_capture()` の責務とする。
+この仕様では、backend capability API は N3DSXL command を送らず、physical device enumeration も行わない。device descriptor の列挙は `local_030` に分離し、明示的な open / connect は `open_capture()` の責務とする。
 
 ### 1.4 期待効果
 
@@ -31,7 +31,7 @@
 | package 判定 | import 可否のみ | backend ごとの availability を返す |
 | `auto` の説明 | docs を読む必要がある | `resolve_backend("auto")` で resolved backend を得る |
 | driver mismatch | `open_capture()` 失敗まで不明 | capability と reason で事前に warning できる |
-| UI 表示 | source を隠すか warning かを利用側が推測 | `available` と `reason` で分岐できる |
+| backend 表示 | backend を有効にするか warning にするかを利用側が推測 | `available` と `reason` で分岐できる |
 | 実機安全 | capability check の command scope が曖昧 | command 送信なしを contract にする |
 
 ### 1.5 着手条件
@@ -64,8 +64,8 @@
 | capability 一覧を返す | `get_backend_capabilities(profile="n3dsxl")` | backend ごとの availability を返す | command 送信なし |
 | missing dependency | PyD3XX import 不可 | `available=False`, `reason="missing_package"` | remediation 付き |
 | unsupported platform | backend が OS 非対応 | `reason="unsupported_platform"` | platform 判定 |
-| device not found | lightweight enumeration で候補なし | `reason="device_not_found"` | enumeration を実施する mode のみ |
 | command を送らない | capability check | N3DSXL connect / stream setup を実行しない | safety boundary |
+| listing と分離する | capability check | physical device enumeration は実行しない | device presence は `local_030` |
 
 ### 3.2 TDD Test List
 
@@ -75,12 +75,12 @@
 | todo | 明示 `d3xx-native` は fallback しない | safety | 3.1 | unavailable でも resolved は明示 backend |
 | todo | unsupported backend は reason を返す | edge | 3.1 | `libusb` high-level path |
 | todo | dependency missing を structured reason にする | error | 3.1 | import monkeypatch |
-| todo | capability check は N3DSXL command を送らない | safety | 3.1 | fake backend spy |
+| todo | capability check は N3DSXL command や device enumeration を実行しない | safety | 3.1 | fake backend spy |
 | todo | package root export が成立する | public surface | 2 | `from ponkan import resolve_backend` |
 
 ### 3.3 設計方針
 
-capability API は「起動時や設定画面で安全に呼べる診断」とする。`open_capture()` の代替ではないため、device を開いて command sequence を流す確認はしない。device presence を含める場合も descriptor enumeration までに留める。
+capability API は「起動時や設定画面で安全に呼べる backend runtime 診断」とする。`open_capture()` や `list_capture_devices()` の代替ではないため、device を開かず、descriptor enumeration も行わず、command sequence も流さない。
 
 `auto` の resolver は利用者ログに出せるようにするが、backend 選択ポリシーを不用意に変えない。Windows で `auto` を将来 `d3xx-native` 優先へ変える場合は、この仕様の実装とは別に release note / migration note を必要条件とする。
 
@@ -98,7 +98,6 @@ BackendAvailabilityReason = Literal[
     "missing_runtime",
     "unsupported_platform",
     "unsupported_backend",
-    "device_not_found",
     "unknown",
 ]
 
@@ -140,12 +139,11 @@ def resolve_backend(
 def get_backend_capabilities(
     *,
     profile: str = "n3dsxl",
-    include_device_presence: bool = False,
 ) -> tuple[BackendCapability, ...]:
     ...
 ```
 
-`include_device_presence=False` では import / platform / runtime check までに留める。`True` の場合も N3DSXL command は送らず、device descriptor enumeration だけを行う。
+capability check は import / platform / runtime check までに留める。device descriptor enumeration は `list_capture_devices()` の責務とする。
 
 ## 5. テスト方針
 
@@ -157,7 +155,7 @@ def get_backend_capabilities(
 | resolver | explicit native | `d3xx-native` | fallback しない |
 | resolver | invalid backend | `bogus` | `ValueError` または `CaptureError` |
 | capability | missing dependency | import failure | reason が `missing_package` |
-| capability | unsupported high-level libusb | `libusb` | `available=False` |
+| capability | unsupported high-level libusb | `libusb` | `available=False`, `reason="unsupported_backend"` |
 | safety | command spy | fake protocol | connect が呼ばれない |
 
 ### 統合テスト

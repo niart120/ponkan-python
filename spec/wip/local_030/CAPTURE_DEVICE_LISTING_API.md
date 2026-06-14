@@ -6,7 +6,7 @@
 
 ### 1.1 目的
 
-profile 横断の `list_capture_devices()` を追加し、利用側が複数台接続、device selection、accepted / rejected / unsupported / unreadable product string の判定を文字列解析なしで扱えるようにする。
+profile 横断の `list_capture_devices()` を追加し、利用側が複数台接続、device selection、accepted / rejected / unsupported device と product string unreadable の判定を文字列解析なしで扱えるようにする。
 
 ### 1.2 用語定義
 
@@ -14,7 +14,7 @@ profile 横断の `list_capture_devices()` を追加し、利用側が複数台�
 | ---- | ---- |
 | capture device info | public API が返す device descriptor の正規化データ。 |
 | device id | 利用側が設定に保存できる stable identifier。backend と serial / descriptor 情報から作る。 |
-| connection status | `available`、`rejected`、`unsupported`、`unreadable` などの device state。 |
+| connection status | `available`、`rejected`、`unsupported`、`unknown` の device visibility state。product string の読取結果は含めない。 |
 | product string status | `accepted`、`unreadable`、`rejected` など、N3DSXL safety boundary の判断材料。 |
 
 ### 1.3 背景・問題
@@ -29,7 +29,7 @@ profile 横断の `list_capture_devices()` を追加し、利用側が複数台�
 | ---- | ---- | ---- |
 | device selection | high-level open の既定選択のみ | `list_capture_devices()` で候補を表示できる |
 | rejected device | CLI 文字列や low-level 型依存 | structured reason を返す |
-| safety boundary | product string unreadable の扱いが API ごとに散る | `product_string_status` と `connection_status` に集約 |
+| safety boundary | product string unreadable の扱いが API ごとに散る | `product_string_status` に集約し、connection visibility と分ける |
 | profile 追加 | profile ごとに別 API | 同じ listing API で扱う |
 | command scope | listing と open の境界が曖昧 | listing は command 送信なし |
 
@@ -43,7 +43,7 @@ profile 横断の `list_capture_devices()` を追加し、利用側が複数台�
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_032/CAPTURE_DEVICE_LISTING_API.md` | 新規 | profile 横断 listing API の仕様を定義する。 |
+| `spec/wip/local_030/CAPTURE_DEVICE_LISTING_API.md` | 新規 | profile 横断 listing API の仕様を定義する。 |
 | `src/ponkan/devices/base.py` | 新規 | `CaptureDeviceInfo` と共通 listing 型を定義する。 |
 | `src/ponkan/devices/n3dsxl_ftd3.py` | 修正 | N3DSXL listing を public info に変換する adapter を追加する。 |
 | `src/ponkan/capture.py` | 修正 | `device_id` 指定 open を後続で接続できるように config field を検討する。 |
@@ -59,7 +59,7 @@ profile 横断の `list_capture_devices()` を追加し、利用側が複数台�
 | -------- | ---------- | -------- | ---- |
 | N3DSXL を列挙する | `list_capture_devices(profile="n3dsxl")` | accepted devices を返す | command 送信なし |
 | rejected を含める | `include_rejected=True` | unsupported PID/product string も reason 付きで返す | diagnostics 用 |
-| unreadable product string | accepted VID/PID で product unreadable | `product_string_status="unreadable"` | open は別途 safety boundary |
+| unreadable product string | accepted VID/PID で product unreadable | `connection_status="available"`, `product_string_status="unreadable"` | open は別途 safety boundary |
 | device id を作る | serial あり | `d3xx:<serial>` など backend prefix 付き ID | stability best effort |
 | serial なし | descriptor のみ | backend / bus / address などで一時 ID | stable でないことを metadata に出す |
 | backend auto | `backend="auto"` | resolver と一致する listing backend を使う | `local_029` と整合 |
@@ -72,7 +72,7 @@ profile 横断の `list_capture_devices()` を追加し、利用側が複数台�
 | ---- | ---------- | ---- | -------- | ---- |
 | todo | accepted N3DSXL candidate が `CaptureDeviceInfo` になる | new behavior | 3.1 | fake descriptor |
 | todo | rejected product string が reason 付き info になる | diagnostics | 3.1 | include_rejected |
-| todo | product string unreadable が status として残る | safety | 3.1 | open ではない |
+| todo | product string unreadable が product status として残る | safety | 3.1 | connection status には混ぜない |
 | todo | device id が backend prefix を持つ | contract | 3.1 | `d3xx:` / `libusb:` |
 | todo | listing は command を送らない | safety | 3.1 | fake protocol spy |
 | todo | unknown profile は error | edge | 3.1 | typo 検知 |
@@ -91,6 +91,7 @@ from typing import Literal
 
 ConnectionStatus = Literal["available", "rejected", "unsupported", "unknown"]
 IdStability = Literal["stable", "session", "unknown"]
+ProductStringStatus = Literal["accepted", "unreadable", "rejected", "unknown"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,7 +105,7 @@ class CaptureDeviceInfo:
     product_id: int | None
     serial_number: str | None
     product_string: str | None
-    product_string_status: str | None
+    product_string_status: ProductStringStatus
     connection_status: ConnectionStatus
     id_stability: IdStability
     reason: str | None = None
@@ -140,7 +141,7 @@ N3DSXL 初期 mapping:
 | テスト対象 | 検証内容 | 入力例 | 期待結果 |
 | ---------- | -------- | ------ | -------- |
 | accepted mapping | descriptor to info | accepted VID/PID/string | `available` |
-| unreadable mapping | product string None | accepted VID/PID | `product_string_status="unreadable"` |
+| unreadable mapping | product string None | accepted VID/PID | `connection_status="available"`, `product_string_status="unreadable"` |
 | rejected mapping | unsupported PID | include_rejected | `rejected` reason |
 | id generation | serial present | `nxl530228` | stable `d3xx:nxl530228` |
 | safety | no command | fake backend | connect / stream は呼ばれない |

@@ -2,6 +2,8 @@
 
 Project NyX の capture source として `ponkan-python` を使う前提で、ponkan-python 側に欲しい仕様・API を整理する。今回は NyX 側の個別不満を列挙するのではなく、ponkan-python の現行リファレンス実装を前提に、NyX が将来扱い得る device/profile を増やしても一貫した contract になるように再構成する。
 
+この文書は申し送り用の入力資料であり、後続の `local_028` 以降の仕様書で採用された内容だけを実装対象とする。
+
 ## 1. 調査した現行実装
 
 調査対象:
@@ -30,7 +32,7 @@ Project NyX の capture source として `ponkan-python` を使う前提で、po
 | backend | `auto`, `d3xx`, `d3xx-native`, `libusb` literal はあるが、high-level opener では `libusb` は unsupported。`auto` は D3XX path |
 | output | `top`, `bottom`, `both_vertical` |
 | color space | `RGB`, `BGR` |
-| FPS control | target FPS / pacing API はない。reader は backend completion と polling / queue policy に従う |
+| read cadence | FPS 制御用の public API はない。reader は backend completion と polling / queue policy に従う |
 | device discovery | N3DSXL 専用の low-level listing API と CLI はあるが、profile 横断の public listing API はない |
 | error model | exception hierarchy はあるが、GUI が機械的に分岐しやすい `code` / `reason` / `backend` / `profile` 属性は限定的 |
 
@@ -44,11 +46,11 @@ NyX は Nintendo Switch / 3DS 等の自動化 GUI・runtime・macro framework �
 |------------|-------------------------------|
 | capture source の選択 UI | 対応 profile / device family の列挙 |
 | runtime への `FrameSourcePort` 接続 | `open_capture()` と reader lifecycle |
-| `capture_fps`、表示補正、macro runtime との整合 | target FPS / output / colorspace / profile default の解決 |
+| `capture_fps`、表示補正、macro runtime との整合 | output / colorspace / layout metadata の解決 |
 | dependency unavailable 時の UI fallback | backend / driver / runtime capability の機械判定 |
 | user log / status bar 表示 | machine-readable error reason と remediation hint |
 
-NyX は `raw_slots`、queue size、drop policy、poll interval、read timeout などの低レベル tuning を通常 GUI に出さない方針にした。これらは ponkan-python 側の profile default として扱えるのが望ましい。
+NyX は `raw_slots`、queue size、drop policy、poll interval、read timeout などの低レベル tuning を通常 GUI に出さない方針にした。これらは ponkan-python 側の既定値として扱えるのが望ましい。
 
 ## 3. 最優先: Profile / Capability Registry
 
@@ -75,7 +77,6 @@ CaptureProfile(
     support_status="stable",
     default_output="both_vertical",
     default_colorspace="BGR",
-    default_target_fps=None,
     native_fps=59.834,
     screen_layout="3ds_dual_screen",
     supported_outputs=("top", "bottom", "both_vertical"),
@@ -162,81 +163,7 @@ CaptureDeviceInfo(
 - product string unreadable のような safety boundary を情報として返す。
 - profile が増えても同じ API で扱える。
 
-## 6. CaptureConfig Preset / Simplified Open API
-
-NyX は GUI に provider/profile/backend/queue/timing を露出したくない。ponkan-python 側に profile preset を持たせ、NyX は high-level 設定だけ渡す形にしたい。
-
-欲しい API:
-
-```python
-from ponkan import CaptureConfig, open_capture
-
-config = CaptureConfig.for_profile(
-    "n3dsxl",
-    backend="auto",
-    output="both_vertical",
-    colorspace="BGR",
-    target_fps=None,
-)
-reader = open_capture(config=config)
-```
-
-または:
-
-```python
-reader = open_capture(
-    profile="n3dsxl",
-    backend="auto",
-    output="both_vertical",
-    colorspace="BGR",
-    target_fps=None,
-)
-```
-
-NyX が通常設定として扱いたい項目:
-
-| 項目 | 理由 |
-|------|------|
-| profile | capture source の種類 |
-| backend preference | advanced 設定ファイル向け。通常 GUI には出さない |
-| output | NyX の frame source では `both_vertical` 相当 |
-| colorspace | OpenCV / NyX 内部では BGR |
-| target_fps | camera / window の `capture_fps` と揃える |
-| display transform hints | N3DSXL の HD aspect box など、NyX 表示・座標補正に必要 |
-
-ponkan-python 側 profile default に寄せたい項目:
-
-- `raw_slots`
-- `output_queue_size`
-- `drop_policy`
-- `poll_interval`
-- `read_timeout`
-- `collect_timing` の初期値
-- decoder / layout の選択
-
-## 7. Capture FPS / Frame Pacing
-
-NyX には camera / window source 向けに `capture_fps` がある。一方、ponkan-python 経由の N3DSXL capture は現状ほぼ native 約 60fps 前提で、target FPS を下げる public API がない。
-
-欲しい API:
-
-```python
-reader = open_capture(profile="n3dsxl", backend="auto", target_fps=30)
-```
-
-期待動作:
-
-| 条件 | 期待動作 |
-|------|----------|
-| `target_fps=None` | profile native default。N3DSXL では従来どおり約 60fps |
-| `target_fps=60` | native に近い pacing |
-| `target_fps=30` / `15` | reader 内部で frame drop / pacing し、read loop と delivery queue が過剰に回らない |
-| native より高い FPS | validation error、または `resolved_target_fps` と warning を返して明示的に clamp |
-| diagnostics enabled | effective FPS、drop count、pacing reason を stats で確認できる |
-
-NyX 側で単に `read()` 後に間引くと USB read / decode / queue 負荷は下がらない。できれば ponkan-python の reader / streaming layer で制御したい。
-
-## 8. Output / Layout Contract
+## 6. Output / Layout Contract
 
 NyX は macro runtime へ 1 枚の BGR frame を渡すため、現在は `CaptureOutput.BOTH_VERTICAL` と `colorspace="BGR"` を使っている。profile が増える場合、画面構成・座標変換・表示補正を NyX が各 device ごとに直書きしないよう、ponkan-python 側から layout metadata が欲しい。
 
@@ -253,7 +180,7 @@ NyX は macro runtime へ 1 枚の BGR frame を渡すため、現在は `Captur
 
 `CaptureOutput` は N3DSXL 固定 enum ではなく、profile metadata と整合する output set を返せる形が望ましい。
 
-## 9. Error Model
+## 7. Error Model
 
 NyX の GUI は user log / status bar / technical log を分ける。ponkan-python 側 error に structured fields があると、NyX 側で文字列解析せずに扱える。
 
@@ -273,8 +200,8 @@ class CaptureError(Exception):
 
 | reason | NyX の扱い |
 |--------|------------|
-| `package_missing` | capture source を hidden / install guidance |
-| `backend_dependency_missing` | backend 選択・driver guidance |
+| `missing_package` | capture source を hidden / install guidance |
+| `missing_package` | backend 選択・driver guidance |
 | `unsupported_platform` | profile は表示しても disabled |
 | `unsupported_profile` | UI に出さない |
 | `device_not_found` | source は表示し、未接続 status |
@@ -285,7 +212,7 @@ class CaptureError(Exception):
 
 現行 `D3xxBackendError` は `function` / `status` / `field_name` を持っており参考になる。`DependencyUnavailableError` や `UnsupportedOperation` も同じ粒度の structured context を持つと扱いやすい。
 
-## 10. Support Roadmap と NyX への見せ方
+## 8. Support Roadmap と NyX への見せ方
 
 NyX 側 UI は ponkan-python の support status に従って露出を制御したい。
 
@@ -306,15 +233,15 @@ NyX 側 UI は ponkan-python の support status に従って露出を制御し�
 | `classic_ds` | `unknown` | 現行実装・spec で protocol 詳細未確認。別途 source audit が必要 |
 | `optimize` / `nisetro` / `is_*` | `unsupported` | docs で非対応明記 |
 
-## 11. NyX 側がこの API を使うときの想定
+## 9. NyX 側がこの API を使うときの想定
 
 NyX 側の将来形:
 
 1. 起動時または設定画面表示時に `list_capture_profiles()` を軽量に呼ぶ。
 2. `support_status` と backend capability を見て、表示可能な capture source だけ menu に出す。
 3. profile 選択時は `profile_id` だけ settings に保存する。
-4. `open_capture(profile=..., target_fps=..., output=..., colorspace="BGR")` で reader を開く。
-5. `CaptureReader.stats()` / structured errors を user log / technical log に反映する。
+4. 既存 `open_capture(output=..., colorspace="BGR")` で reader を開く。
+5. structured errors を user log / technical log に反映する。
 
 NyX 側に残す設定:
 
@@ -334,17 +261,15 @@ NyX 側から消したい、または advanced file-only に留めたい設定:
 - `ponkan_read_timeout`
 - `ponkan_collect_timing`
 
-## 12. 依頼の優先順位
+## 10. 依頼の優先順位
 
 NyX 連携としての優先順位:
 
 1. `list_capture_profiles()` / `CaptureProfile` / support status
 2. `resolve_backend()` / `get_backend_capabilities()` の lightweight capability API
-3. `CaptureConfig.for_profile()` または `open_capture(profile=...)`
-4. `target_fps` / pacing / effective FPS diagnostics
-5. profile 横断の `list_capture_devices()`
-6. structured `CaptureError`
-7. output / layout metadata
-8. old 3DS / o3DS / classic DS 等の source audit と profile 追加
+3. profile 横断の `list_capture_devices()`
+4. structured `CaptureError`
+5. output / layout metadata
+6. old 3DS / o3DS / classic DS 等の source audit と profile 追加
 
 この順番なら、NyX は N3DSXL 固定実装から profile-driven UI に移行でき、将来の device support が増えても GUI 設定や runtime adapter の責務が破綻しにくい。

@@ -6,7 +6,7 @@
 
 ### 1.1 目的
 
-`ponkan` に profile 横断の公開 registry を追加し、利用側が N3DSXL 固定の `CaptureConfig` を直接解釈せずに、対応 device family、support status、default output、default colorspace、native FPS、layout 種別を取得できるようにする。
+`ponkan` に実装済み capture profile の公開 registry を追加し、利用側が N3DSXL 固定の `CaptureConfig` を直接解釈せずに、device family、support status、default output、default colorspace、native FPS、layout 種別を取得できるようにする。
 
 ### 1.2 用語定義
 
@@ -14,7 +14,7 @@
 | ---- | ---- |
 | capture profile | `n3dsxl` など、device family と capture contract を表す public metadata。 |
 | profile id | 利用者が設定として保存できる安定 ID。初期値は `n3dsxl`。 |
-| support status | profile の実装・検証状態。`stable`、`experimental`、`planned`、`unsupported`、`unknown` のいずれか。 |
+| support status | runtime registry に含まれる profile の実装・検証状態。初期 contract は `stable`、`experimental` のいずれか。 |
 | family | `3ds` など、NyX などの利用側 UI が大分類として扱える device family。 |
 | provider | profile を提供する実装主体。ここでは `ponkan-python`。 |
 | native FPS | profile の実機 capture が自然に供給する FPS。N3DSXL では約 59.8fps の観測値を初期 metadata とする。 |
@@ -23,7 +23,7 @@
 
 現行公開 API は `open_capture()`、`CaptureConfig`、`CaptureOutput`、`CaptureReader`、`capture_sizes()` を中心に、`new_3ds_xl` だけを暗黙的に扱う。Project NyX のような利用側が将来 old 3DS や別 profile を扱う場合、GUI 側に device family や support status の知識を重複実装すると、profile 追加のたびに設定と分岐が増殖する。
 
-この仕様では、N3DSXL 以外を実装しない。まず「何が安定対象で、何が planned / unsupported / unknown か」を ponkan-python 側から機械的に取得できる public contract を固定する。
+この仕様では、N3DSXL 以外を実装しない。runtime registry は「現在開ける、または実装済みで実験扱いの profile」だけを返す public contract とする。未実装 device の計画や source audit は `local_033` の roadmap で扱い、runtime API には混ぜない。
 
 ### 1.4 期待効果
 
@@ -31,8 +31,8 @@
 | ---- | ---- | ---- |
 | profile 発見 | 利用側が docs / import surface / config を推測する | `list_capture_profiles()` で取得できる |
 | N3DSXL 表示判断 | 利用側が `new_3ds_xl` と package availability を独自解釈する | `support_status` と `supported_outputs` で UI 表示を判断できる |
-| 将来 profile | 利用側設定に device 固有項目が増える | profile metadata と preset default に寄せる |
-| unsupported device | docs の文章を読む必要がある | `unsupported` profile または非登録として機械判定できる |
+| 将来 profile | 利用側設定に device 固有項目が増える | profile metadata と layout / capability contract に寄せる |
+| unsupported / future device | registry と roadmap の境界が曖昧 | runtime registry には含めず、`local_033` の source audit gate で扱う |
 | 実機安全 | registry 呼び出しから command 送信の有無が曖昧 | registry は USB device open も N3DSXL command 送信もしない |
 
 ### 1.5 着手条件
@@ -60,9 +60,9 @@
 | profile を列挙する | `list_capture_profiles()` | `CaptureProfile` の tuple を返す | USB device enumeration は行わない |
 | N3DSXL profile を取得する | `get_capture_profile("n3dsxl")` | `id="n3dsxl"` の profile を返す | 初期 stable target |
 | alias を解決する | `get_capture_profile("new_3ds_xl")` | `n3dsxl` profile を返す | 既存 `CaptureConfig.model` からの移行用 |
-| 未知 profile を扱う | `get_capture_profile("classic_ds")` | `UnknownCaptureProfile` または `KeyError` 系の `CaptureError` を返す | classic DS は source audit 前に予約しない |
-| status で UI 判断する | `support_status in {"stable", "experimental"}` | 通常 UI に表示できる | planned / unsupported は diagnostics 向け |
-| unsupported を表現する | `optimize` / `nisetro` / `is_*` | 通常 registry に含めない、または diagnostics mode で `unsupported` と reason を返す | 初期実装でどちらにするかを固定する |
+| 未知 profile を扱う | `get_capture_profile("classic_ds")` | `UnknownCaptureProfile` または `CaptureError` を返す | source audit 前に予約しない |
+| status で UI 判断する | `support_status in {"stable", "experimental"}` | 通常 UI に表示できる | runtime registry はこの 2 状態だけ返す |
+| future device を分離する | `old3ds` / `classic_ds` / `optimize` など | `list_capture_profiles()` には含めない | `local_033` の roadmap / docs で扱う |
 | 実機 command を送らない | registry API 呼び出し | USB open / command / hardware approval は不要 | safety boundary |
 
 ### 3.2 TDD Test List
@@ -80,9 +80,9 @@
 
 profile registry は low-level backend や device enumeration から独立した pure metadata とする。呼び出しは設定画面や CLI startup でも安全に実行でき、N3DSXL command を送らない。
 
-`support_status` は UI 表示のための状態であり、実機の現在接続状態ではない。driver や backend runtime の状態は `local_029` の backend capability API で扱う。
+`support_status` は UI 表示のための実装状態であり、実機の現在接続状態ではない。driver や backend runtime の状態は `local_029` の backend capability API で扱う。
 
-`classic_ds` は現行実装・現行 spec で protocol 詳細が未確認のため、初期 registry に stable / planned として追加しない。source audit 後に `unknown` または `planned` として追加するかを `local_035` で判断する。
+`old3ds`、`classic_ds`、Optimize / Nisetro / IS 系 device は初期 registry に追加しない。これらの扱いは `local_033` の source audit gate を通った後に、別 Work Unit で runtime registry へ追加するかを判断する。
 
 ## 4. 実装仕様
 
@@ -90,7 +90,7 @@ profile registry は low-level backend や device enumeration から独立した
 from dataclasses import dataclass
 from typing import Literal
 
-SupportStatus = Literal["stable", "experimental", "planned", "unsupported", "unknown"]
+SupportStatus = Literal["stable", "experimental"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,7 +110,6 @@ class CaptureProfile:
     supports_audio: bool
     supports_recording: bool
     aliases: tuple[str, ...] = ()
-    unsupported_reason: str | None = None
 ```
 
 初期 profile:
@@ -118,21 +117,19 @@ class CaptureProfile:
 | profile id | status | 根拠 | 備考 |
 | ---------- | ------ | ---- | ---- |
 | `n3dsxl` | `stable` | high-level read API、D3XX streaming、performance gate 済み | default output は `both_vertical` |
-| `old3ds` | `planned` | 初期 spec に設計枠あり、実装なし | 通常 UI には出さない |
-| `optimize` / `nisetro` / `is_nitro` / `is_twl` / `partner_ctr` | `unsupported` | docs で非対応明記 | diagnostics mode のみ |
 
 Public API:
 
 ```python
-def list_capture_profiles(*, include_unsupported: bool = False) -> tuple[CaptureProfile, ...]:
+def list_capture_profiles() -> tuple[CaptureProfile, ...]:
     ...
 
 
-def get_capture_profile(profile: str, *, include_unsupported: bool = False) -> CaptureProfile:
+def get_capture_profile(profile: str) -> CaptureProfile:
     ...
 ```
 
-`include_unsupported=False` では `stable`、`experimental`、`planned` のみを返す。`planned` を通常 UI に表示するかは利用側判断だが、ponkan-python は metadata として返せる。
+`list_capture_profiles()` は実装済み profile だけを返す。未実装 device を通常 UI から隠すための diagnostics registry はこの仕様では作らない。
 
 ## 5. テスト方針
 
@@ -143,8 +140,7 @@ def get_capture_profile(profile: str, *, include_unsupported: bool = False) -> C
 | `list_capture_profiles` | N3DSXL profile を返す | default | `n3dsxl` が含まれる |
 | `get_capture_profile` | exact id 解決 | `n3dsxl` | profile を返す |
 | `get_capture_profile` | alias 解決 | `new_3ds_xl` | `id == "n3dsxl"` |
-| unsupported filter | 非対応 profile の扱い | `include_unsupported=False` | unsupported は返らない |
-| unsupported diagnostics | 非対応 profile の明示 | `include_unsupported=True` | reason 付きで返る |
+| future profile filter | 未実装 profile の扱い | default | `old3ds` / `classic_ds` は返らない |
 | safety | 副作用なし | backend import monkeypatch | import / open されない |
 
 ### 統合テスト
@@ -168,7 +164,7 @@ uv run pytest tests/unit
 
 - [ ] `CaptureProfile` と `SupportStatus` を定義する。
 - [ ] N3DSXL profile の metadata を固定する。
-- [ ] old3ds / unsupported device の status 表現を固定する。
+- [ ] future / unsupported device を runtime registry に混ぜないことを固定する。
 - [ ] `list_capture_profiles()` と `get_capture_profile()` を実装する。
 - [ ] package root export を追加する。
 - [ ] docs/api に利用例と UI filtering 指針を追加する。
