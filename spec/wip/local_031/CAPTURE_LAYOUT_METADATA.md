@@ -44,7 +44,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_032/CAPTURE_LAYOUT_METADATA.md` | 新規 | layout metadata の仕様を定義する。 |
+| `spec/wip/local_031/CAPTURE_LAYOUT_METADATA.md` | 新規 | layout metadata の仕様を定義する。 |
 | `src/ponkan/layouts.py` | 新規 | `CaptureLayout`、`ScreenInfo`、`CompositeOutputInfo` を定義する。 |
 | `src/ponkan/profiles.py` | 修正 | profile と layout metadata を接続する。 |
 | `src/ponkan/capture.py` | 修正 | `CaptureOutput` validation を layout metadata と整合させる。 |

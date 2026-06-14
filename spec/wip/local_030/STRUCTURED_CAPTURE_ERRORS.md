@@ -37,17 +37,17 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 ### 1.5 着手条件
 
 - [ ] 現行 `src/ponkan/errors.py` の exception hierarchy を確認する。
-- [ ] `local_029` の backend capability reason と命名を合わせる。
+- [ ] `local_029` の device discovery reason と命名を合わせる。
 - [ ] 既存 unit test が例外メッセージに依存していないか確認する。
 
 ## 2. 対象ファイル
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_031/STRUCTURED_CAPTURE_ERRORS.md` | 新規 | structured error model の仕様を定義する。 |
+| `spec/wip/local_030/STRUCTURED_CAPTURE_ERRORS.md` | 新規 | structured error model の仕様を定義する。 |
 | `src/ponkan/errors.py` | 修正 | `CaptureError` common fields と subclass default を追加する。 |
 | `src/ponkan/capture.py` | 修正 | profile / backend context を例外生成時に渡す。 |
-| `src/ponkan/backends.py` | 修正 | capability reason と error reason を共通化する。 |
+| `src/ponkan/devices/discovery.py` | 修正 | discovery reason と error reason の命名を揃える。 |
 | `src/ponkan/devices/n3dsxl_ftd3.py` | 修正 | rejected / unreadable / open failure context を structured にする。 |
 | `docs/api.md` | 修正 | structured errors の扱いを追記する。 |
 | `tests/unit/test_structured_capture_errors.py` | 新規 | fields、string compatibility、subclass defaults を検証する。 |

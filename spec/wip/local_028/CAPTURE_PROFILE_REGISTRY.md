@@ -23,7 +23,7 @@
 
 現行公開 API は `open_capture()`、`CaptureConfig`、`CaptureOutput`、`CaptureReader`、`capture_sizes()` を中心に、`new_3ds_xl` だけを暗黙的に扱う。Project NyX のような利用側が将来 old 3DS や別 profile を扱う場合、GUI 側に device family や support status の知識を重複実装すると、profile 追加のたびに設定と分岐が増殖する。
 
-この仕様では、N3DSXL 以外を実装しない。runtime registry は「現在開ける、または実装済みで実験扱いの profile」だけを返す public contract とする。未実装 device の計画や source audit は `local_033` の roadmap で扱い、runtime API には混ぜない。
+この仕様では、N3DSXL 以外を実装しない。runtime registry は「現在開ける、または実装済みで実験扱いの profile」だけを返す public contract とする。未実装 device の計画や source audit は `local_032` の roadmap で扱い、runtime API には混ぜない。
 
 ### 1.4 期待効果
 
@@ -31,8 +31,8 @@
 | ---- | ---- | ---- |
 | profile 発見 | 利用側が docs / import surface / config を推測する | `list_capture_profiles()` で取得できる |
 | N3DSXL 表示判断 | 利用側が `new_3ds_xl` と package availability を独自解釈する | `support_status` と `supported_outputs` で UI 表示を判断できる |
-| 将来 profile | 利用側設定に device 固有項目が増える | profile metadata と layout / capability contract に寄せる |
-| unsupported / future device | registry と roadmap の境界が曖昧 | runtime registry には含めず、`local_033` の source audit gate で扱う |
+| 将来 profile | 利用側設定に device 固有項目が増える | profile metadata と layout / discovery contract に寄せる |
+| unsupported / future device | registry と roadmap の境界が曖昧 | runtime registry には含めず、`local_032` の source audit gate で扱う |
 | 実機安全 | registry 呼び出しから command 送信の有無が曖昧 | registry は USB device open も N3DSXL command 送信もしない |
 
 ### 1.5 着手条件
@@ -62,7 +62,7 @@
 | alias を解決する | `get_capture_profile("new_3ds_xl")` | `n3dsxl` profile を返す | 既存 `CaptureConfig.model` からの移行用 |
 | 未知 profile を扱う | `get_capture_profile("classic_ds")` | `UnknownCaptureProfile` または `CaptureError` を返す | source audit 前に予約しない |
 | status で UI 判断する | `support_status in {"stable", "experimental"}` | 通常 UI に表示できる | runtime registry はこの 2 状態だけ返す |
-| future device を分離する | `old3ds` / `classic_ds` / `optimize` など | `list_capture_profiles()` には含めない | `local_033` の roadmap / docs で扱う |
+| future device を分離する | `old3ds` / `classic_ds` / `optimize` など | `list_capture_profiles()` には含めない | `local_032` の roadmap / docs で扱う |
 | 実機 command を送らない | registry API 呼び出し | USB open / command / hardware approval は不要 | safety boundary |
 
 ### 3.2 TDD Test List
@@ -80,9 +80,9 @@
 
 profile registry は low-level backend や device enumeration から独立した pure metadata とする。呼び出しは設定画面や CLI startup でも安全に実行でき、N3DSXL command を送らない。
 
-`support_status` は UI 表示のための実装状態であり、実機の現在接続状態ではない。driver や backend runtime の状態は `local_029` の backend capability API で扱う。
+`support_status` は UI 表示のための実装状態であり、実機の現在接続状態ではない。driver や backend runtime の状態は `local_029` の device discovery redesign で扱う。
 
-`old3ds`、`classic_ds`、Optimize / Nisetro / IS 系 device は初期 registry に追加しない。これらの扱いは `local_033` の source audit gate を通った後に、別 Work Unit で runtime registry へ追加するかを判断する。
+`old3ds`、`classic_ds`、Optimize / Nisetro / IS 系 device は初期 registry に追加しない。これらの扱いは `local_032` の source audit gate を通った後に、別 Work Unit で runtime registry へ追加するかを判断する。
 
 ## 4. 実装仕様
 

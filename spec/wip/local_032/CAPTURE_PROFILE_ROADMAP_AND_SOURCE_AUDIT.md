@@ -43,7 +43,7 @@ profile registry に未検証 device を安易に追加すると、利用側 UI 
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_033/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | 新規 | profile roadmap と source audit gate を定義する。 |
+| `spec/wip/local_032/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | 新規 | profile roadmap と source audit gate を定義する。 |
 | `docs/api.md` | 修正 | N3DSXL 以外の非対象と source audit 前提を明記する。 |
 | `spec/wip/local_0xx/*` | 新規 | old3DS / classic DS などを実装する場合の個別 source audit spec。 |
 

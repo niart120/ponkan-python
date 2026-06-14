@@ -47,12 +47,12 @@ NyX は Nintendo Switch / 3DS 等の自動化 GUI・runtime・macro framework �
 | capture source の選択 UI | 対応 profile / device family の列挙 |
 | runtime への `FrameSourcePort` 接続 | `open_capture()` と reader lifecycle |
 | `capture_fps`、表示補正、macro runtime との整合 | output / colorspace / layout metadata の解決 |
-| dependency unavailable 時の UI fallback | backend / driver / runtime capability の機械判定 |
+| dependency unavailable 時の UI fallback | backend / driver / runtime state の機械判定 |
 | user log / status bar 表示 | machine-readable error reason と remediation hint |
 
 NyX は `raw_slots`、queue size、drop policy、poll interval、read timeout などの低レベル tuning を通常 GUI に出さない方針にした。これらは ponkan-python 側の既定値として扱えるのが望ましい。
 
-## 3. 最優先: Profile / Capability Registry
+## 3. 最優先: Profile Registry
 
 N3DSXL 固定の `CaptureConfig` を直接 GUI に露出すると、今後 o3DS / old 3DS / classic DS / other capture board を検討するたびに NyX 側設定が増殖する。まず ponkan-python 側に、device family と capture profile を列挙・解決する public contract が欲しい。
 
@@ -97,17 +97,16 @@ profile registry で表現したい family:
 
 NyX は `support_status in {"stable", "experimental"}` だけ通常 UI に表示し、`unsupported` / `planned` は開発者向け diagnostics に留める。
 
-## 4. Backend Resolution / Capability API
+## 4. Backend State in Device Discovery
 
 NyX は現状 `importlib.util.find_spec("ponkan")` だけで GUI の表示可否を決めている。これは package availability の確認としては軽いが、driver / backend runtime / platform の状態までは分からない。
 
-欲しい API:
+欲しい API は backend state を device discovery に含める形にする:
 
 ```python
-from ponkan import get_backend_capabilities, resolve_backend
+from ponkan import list_capture_devices
 
-backend = resolve_backend("auto", profile="n3dsxl")
-capabilities = get_backend_capabilities(profile="n3dsxl")
+devices = list_capture_devices(profile="n3dsxl", backend="auto")
 ```
 
 期待する情報:
@@ -118,7 +117,7 @@ capabilities = get_backend_capabilities(profile="n3dsxl")
 | backend availability | GUI に capture source を表示するか、warning に留めるかを決める |
 | unavailable reason | `missing_package`, `missing_driver`, `missing_runtime`, `unsupported_platform`, `device_not_found` など |
 | remediation hint | PyD3XX / driver / udev / Zadig 等の案内を NyX 側で出す |
-| opens device? | capability check が device open や command 送信を行うかどうか |
+| opens device? | discovery が device open や command 送信を行うかどうか |
 
 重要な境界:
 
@@ -201,7 +200,7 @@ class CaptureError(Exception):
 | reason | NyX の扱い |
 |--------|------------|
 | `missing_package` | capture source を hidden / install guidance |
-| `missing_package` | backend 選択・driver guidance |
+| `missing_driver` | backend 選択・driver guidance |
 | `unsupported_platform` | profile は表示しても disabled |
 | `unsupported_profile` | UI に出さない |
 | `device_not_found` | source は表示し、未接続 status |
@@ -238,7 +237,7 @@ NyX 側 UI は ponkan-python の support status に従って露出を制御し�
 NyX 側の将来形:
 
 1. 起動時または設定画面表示時に `list_capture_profiles()` を軽量に呼ぶ。
-2. `support_status` と backend capability を見て、表示可能な capture source だけ menu に出す。
+2. `support_status` と device discovery reason を見て、表示可能な capture source だけ menu に出す。
 3. profile 選択時は `profile_id` だけ settings に保存する。
 4. 既存 `open_capture(output=..., colorspace="BGR")` で reader を開く。
 5. structured errors を user log / technical log に反映する。
@@ -266,10 +265,9 @@ NyX 側から消したい、または advanced file-only に留めたい設定:
 NyX 連携としての優先順位:
 
 1. `list_capture_profiles()` / `CaptureProfile` / support status
-2. `resolve_backend()` / `get_backend_capabilities()` の lightweight capability API
-3. profile 横断の `list_capture_devices()`
-4. structured `CaptureError`
-5. output / layout metadata
-6. old 3DS / o3DS / classic DS 等の source audit と profile 追加
+2. backend state を含む profile 横断の `list_capture_devices()`
+3. structured `CaptureError`
+4. output / layout metadata
+5. old 3DS / o3DS / classic DS 等の source audit と profile 追加
 
 この順番なら、NyX は N3DSXL 固定実装から profile-driven UI に移行でき、将来の device support が増えても GUI 設定や runtime adapter の責務が破綻しにくい。
