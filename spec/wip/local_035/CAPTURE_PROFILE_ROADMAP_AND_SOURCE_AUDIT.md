@@ -36,7 +36,7 @@ profile registry に未検証 device を安易に追加すると、利用側 UI 
 
 ### 1.5 着手条件
 
-- [ ] `local_027` の support status 定義がある。
+- [ ] `local_028` の support status 定義がある。
 - [ ] `cc3dsfs-source-audit` skill を使う前提で原典調査の記録先を決める。
 - [ ] N3DSXL 以外を今回実装しない scope を確認する。
 
@@ -44,7 +44,7 @@ profile registry に未検証 device を安易に追加すると、利用側 UI 
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_034/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | 新規 | profile roadmap と source audit gate を定義する。 |
+| `spec/wip/local_035/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | 新規 | profile roadmap と source audit gate を定義する。 |
 | `src/ponkan/profiles.py` | 修正 | diagnostics mode で planned / unsupported / unknown を表現する場合の metadata を追加する。 |
 | `docs/api.md` | 修正 | N3DSXL 以外の support status と非対象を明記する。 |
 | `spec/wip/local_0xx/*` | 新規 | old3DS / classic DS などを実装する場合の個別 source audit spec。 |

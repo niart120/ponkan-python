@@ -45,7 +45,7 @@
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_027/CAPTURE_PROFILE_REGISTRY.md` | 新規 | profile registry の public contract を定義する。 |
+| `spec/wip/local_028/CAPTURE_PROFILE_REGISTRY.md` | 新規 | profile registry の public contract を定義する。 |
 | `src/ponkan/profiles.py` | 新規 | `CaptureProfile`、`SupportStatus`、`list_capture_profiles()`、`get_capture_profile()` を定義する。 |
 | `src/ponkan/__init__.py` | 修正 | profile registry API を package root から export する。 |
 | `docs/api.md` | 修正 | profile registry と support status の利用例を追記する。 |
@@ -80,9 +80,9 @@
 
 profile registry は low-level backend や device enumeration から独立した pure metadata とする。呼び出しは設定画面や CLI startup でも安全に実行でき、N3DSXL command を送らない。
 
-`support_status` は UI 表示のための状態であり、実機の現在接続状態ではない。driver や backend runtime の状態は `local_028` の backend capability API で扱う。
+`support_status` は UI 表示のための状態であり、実機の現在接続状態ではない。driver や backend runtime の状態は `local_029` の backend capability API で扱う。
 
-`classic_ds` は現行実装・現行 spec で protocol 詳細が未確認のため、初期 registry に stable / planned として追加しない。source audit 後に `unknown` または `planned` として追加するかを `local_034` で判断する。
+`classic_ds` は現行実装・現行 spec で protocol 詳細が未確認のため、初期 registry に stable / planned として追加しない。source audit 後に `unknown` または `planned` として追加するかを `local_035` で判断する。
 
 ## 4. 実装仕様
 

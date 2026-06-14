@@ -35,15 +35,15 @@ profile 横断の `list_capture_devices()` を追加し、利用側が複数台�
 
 ### 1.5 着手条件
 
-- [ ] `local_027` の profile registry が利用可能である。
-- [ ] `local_028` の backend resolver が利用可能である。
+- [ ] `local_028` の profile registry が利用可能である。
+- [ ] `local_029` の backend resolver が利用可能である。
 - [ ] 現行 `DeviceCandidate` / `RejectedDevice` / `DeviceListing` の情報を public info に変換できる。
 
 ## 2. 対象ファイル
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_031/CAPTURE_DEVICE_LISTING_API.md` | 新規 | profile 横断 listing API の仕様を定義する。 |
+| `spec/wip/local_032/CAPTURE_DEVICE_LISTING_API.md` | 新規 | profile 横断 listing API の仕様を定義する。 |
 | `src/ponkan/devices/base.py` | 新規 | `CaptureDeviceInfo` と共通 listing 型を定義する。 |
 | `src/ponkan/devices/n3dsxl_ftd3.py` | 修正 | N3DSXL listing を public info に変換する adapter を追加する。 |
 | `src/ponkan/capture.py` | 修正 | `device_id` 指定 open を後続で接続できるように config field を検討する。 |
@@ -62,7 +62,7 @@ profile 横断の `list_capture_devices()` を追加し、利用側が複数台�
 | unreadable product string | accepted VID/PID で product unreadable | `product_string_status="unreadable"` | open は別途 safety boundary |
 | device id を作る | serial あり | `d3xx:<serial>` など backend prefix 付き ID | stability best effort |
 | serial なし | descriptor のみ | backend / bus / address などで一時 ID | stable でないことを metadata に出す |
-| backend auto | `backend="auto"` | resolver と一致する listing backend を使う | `local_028` と整合 |
+| backend auto | `backend="auto"` | resolver と一致する listing backend を使う | `local_029` と整合 |
 | unknown profile | `profile="classic_ds"` | profile registry の error | source audit 前に暗黙対応しない |
 | open しない | listing API 呼び出し | N3DSXL connect / stream setup は実行しない | safety boundary |
 

@@ -39,7 +39,7 @@ N3DSXL streaming の performance や latency を変える作業は、既存 `loc
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_030/CAPTURE_FRAME_PACING.md` | 白紙化 | `target_fps` / pacing 仕様を deferred にする。 |
+| `spec/wip/local_031/CAPTURE_FRAME_PACING.md` | 白紙化 | `target_fps` / pacing 仕様を deferred にする。 |
 
 ## 3. 振る舞い仕様と設計方針
 

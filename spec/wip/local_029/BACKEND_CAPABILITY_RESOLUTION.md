@@ -36,7 +36,7 @@
 
 ### 1.5 着手条件
 
-- [ ] `local_027` の profile registry が実装済み、またはこの仕様内で profile id は文字列として暫定扱いできる。
+- [ ] `local_028` の profile registry が実装済み、またはこの仕様内で profile id は文字列として暫定扱いできる。
 - [ ] 現行 high-level `auto` が D3XX path を選ぶ事実を確認する。
 - [ ] `d3xx-native` を default 化しない既存判断を維持する。
 
@@ -44,7 +44,7 @@
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_028/BACKEND_CAPABILITY_RESOLUTION.md` | 新規 | backend capability / resolver の仕様を定義する。 |
+| `spec/wip/local_029/BACKEND_CAPABILITY_RESOLUTION.md` | 新規 | backend capability / resolver の仕様を定義する。 |
 | `src/ponkan/backends.py` | 新規 | backend capability 型と resolver API を追加する。 |
 | `src/ponkan/capture.py` | 修正 | `open_capture()` の backend validation と resolver を共通化する。 |
 | `src/ponkan/errors.py` | 修正 | capability API 用の structured reason を必要に応じて追加する。 |

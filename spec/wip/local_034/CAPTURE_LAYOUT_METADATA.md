@@ -36,7 +36,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 
 ### 1.5 着手条件
 
-- [ ] `local_027` の `CaptureProfile.screen_layout` が定義済みである。
+- [ ] `local_028` の `CaptureProfile.screen_layout` が定義済みである。
 - [ ] 現行 N3DSXL `CaptureFrame` shape と `CaptureOutput` の shape を確認する。
 - [ ] layout metadata は画像 buffer を生成しない pure data API とする。
 
@@ -44,7 +44,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_033/CAPTURE_LAYOUT_METADATA.md` | 新規 | layout metadata の仕様を定義する。 |
+| `spec/wip/local_034/CAPTURE_LAYOUT_METADATA.md` | 新規 | layout metadata の仕様を定義する。 |
 | `src/ponkan/layouts.py` | 新規 | `CaptureLayout`、`ScreenInfo`、`CompositeOutputInfo` を定義する。 |
 | `src/ponkan/profiles.py` | 修正 | profile と layout metadata を接続する。 |
 | `src/ponkan/capture.py` | 修正 | `CaptureOutput` validation を layout metadata と整合させる。 |
@@ -59,7 +59,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 | 振る舞い | 入力・状態 | 期待結果 | 備考 |
 | -------- | ---------- | -------- | ---- |
 | layout を取得する | `get_capture_layout("3ds_dual_screen")` | N3DSXL dual screen layout を返す | pure data |
-| profile から layout を辿る | `get_capture_profile("n3dsxl").screen_layout` | layout id が取得できる | `local_027` と整合 |
+| profile から layout を辿る | `get_capture_profile("n3dsxl").screen_layout` | layout id が取得できる | `local_028` と整合 |
 | screen list | N3DSXL layout | `top` と `bottom` を含む | `top_right` は 3D unsupported の扱いを明記 |
 | output set | N3DSXL layout | `top`、`bottom`、`both_vertical` | `CaptureOutput` と一致 |
 | composite size | `both_vertical` | `(480, 400, 3)` | bottom centered |
@@ -73,7 +73,7 @@ profile ごとの screen list、screen size、default composite、supported outp
 | todo | N3DSXL layout は top/bottom screen metadata を持つ | contract | 3.1 | size 検証 |
 | todo | `both_vertical` composite size が `(480, 400)` である | contract | 3.1 | existing `to_mosaic` と一致 |
 | todo | `CaptureOutput` values が supported outputs と一致する | regression | 3.1 | enum / metadata drift 防止 |
-| todo | profile layout id から layout を取得できる | integration | 3.1 | local_027 連携 |
+| todo | profile layout id から layout を取得できる | integration | 3.1 | local_028 連携 |
 | todo | unknown layout は error | edge | 3.1 | typo 検知 |
 
 ### 3.3 設計方針
