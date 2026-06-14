@@ -65,8 +65,8 @@
 | `spec/wip/local_027/NYX_CAPTURE_API_HANDOFF.md` | WIP 入力資料 | Project NyX から見た ponkan-python 連携要求と優先順位を保持する。 |
 | `spec/wip/local_027/CAPTURE_PROFILE_REGISTRY.md` | WIP follow-up | profile registry と support status の public contract を定義する。 |
 | `spec/wip/local_028/BACKEND_CAPABILITY_RESOLUTION.md` | WIP follow-up | lightweight backend capability / resolver API を定義する。 |
-| `spec/wip/local_029/PROFILE_PRESET_OPEN_CAPTURE.md` | WIP follow-up | profile preset と simplified `open_capture(profile=...)` を定義する。 |
-| `spec/wip/local_030/CAPTURE_FRAME_PACING.md` | WIP follow-up | `target_fps`、delivery pacing、diagnostics を定義する。 |
+| `spec/wip/local_029/PROFILE_PRESET_OPEN_CAPTURE.md` | deferred | profile preset と simplified `open_capture(profile=...)` は過剰仕様として白紙化する。 |
+| `spec/wip/local_030/CAPTURE_FRAME_PACING.md` | deferred | `target_fps` / delivery pacing は利用側 sampling で代替し、白紙化する。 |
 | `spec/wip/local_031/CAPTURE_DEVICE_LISTING_API.md` | WIP follow-up | profile 横断 device listing API を定義する。 |
 | `spec/wip/local_032/STRUCTURED_CAPTURE_ERRORS.md` | WIP follow-up | machine-readable error fields と reason code を定義する。 |
 | `spec/wip/local_033/CAPTURE_LAYOUT_METADATA.md` | WIP follow-up | screen / output / coordinate layout metadata を定義する。 |
@@ -123,8 +123,8 @@ Project NyX からの申し送りを受けた profile-driven capture API 群は�
 | ---- | ------------ | ------ | -------- | ---- | -------- | -------- |
 | 14 | `wip/local_027` | `CAPTURE_PROFILE_REGISTRY.md` | profile / support status registry | `complete/local_023` | 不要 | WIP |
 | 15 | `wip/local_028` | `BACKEND_CAPABILITY_RESOLUTION.md` | backend capability / resolver | `local_027` | 不要 | WIP |
-| 16 | `wip/local_029` | `PROFILE_PRESET_OPEN_CAPTURE.md` | profile-driven open API | `local_027`, `local_028` | smoke で必要 | WIP |
-| 17 | `wip/local_030` | `CAPTURE_FRAME_PACING.md` | target FPS / pacing diagnostics | `local_027`, `local_029` | performance smoke で必要 | WIP |
+| 16 | `wip/local_029` | `PROFILE_PRESET_OPEN_CAPTURE.md` | profile preset / `open_capture(profile=...)` は実装しない | なし | 不要 | deferred、白紙化 |
+| 17 | `wip/local_030` | `CAPTURE_FRAME_PACING.md` | `target_fps` / pacing API は実装しない | なし | 不要 | deferred、白紙化 |
 | 18 | `wip/local_031` | `CAPTURE_DEVICE_LISTING_API.md` | profile 横断 device listing | `local_027`, `local_028` | listing E2E で必要 | WIP |
 | 19 | `wip/local_032` | `STRUCTURED_CAPTURE_ERRORS.md` | structured error model | `local_028` | 不要 | WIP |
 | 20 | `wip/local_033` | `CAPTURE_LAYOUT_METADATA.md` | screen / output layout metadata | `local_027` | 不要 | WIP |

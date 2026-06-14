@@ -6,52 +6,40 @@
 
 ### 1.1 目的
 
-`target_fps` を high-level capture API に追加し、profile native FPS より低い delivery FPS を ponkan-python 側で制御できるようにする。NyX などの利用側が `read()` 後に単純間引きするだけでは USB read / decode / queue の負荷を十分に制御できないため、reader / streaming layer の contract と diagnostics を定義する。
+この仕様は白紙化する。`target_fps`、reader 内 pacing、`StreamStats` の pacing diagnostics は現時点の実装対象にしない。
 
 ### 1.2 用語定義
 
 | 用語 | 定義 |
 | ---- | ---- |
-| target FPS | 利用者が希望する frame delivery rate。`None` は profile native default。 |
-| native FPS | profile の実機 capture が自然に供給する FPS。N3DSXL は約 59.8fps。 |
-| resolved target FPS | validation / clamp / fallback 後に実際に使う FPS。 |
-| pacing drop | target FPS を守るために decode または delivery 前後で捨てた frame。 |
-| delivery pacing | consumer に渡す frame 数を制御すること。 |
-| acquisition throttling | backend read submit 自体の頻度を下げること。安全性と backend 制約の確認が必要。 |
+| deferred | 現時点では実装しない。実測と具体的な利用側要求が揃った場合に、別仕様として再設計する状態。 |
+| caller-side sampling | 利用側が `CaptureReader.read()` を任意間隔で呼び、必要な最新 frame だけを取得する使い方。 |
 
 ### 1.3 背景・問題
 
-現行 `CaptureReader` は backend completion と polling / queue policy に従い、N3DSXL ではほぼ native 約 60fps 前提で動く。NyX には camera / window source 向けの `capture_fps` があるが、ponkan-python で target FPS を指定する API はない。
+レビューで、この仕様の必須範囲は delivery pacing に留まり、USB read / decode / queue 負荷を根本的に下げる acquisition throttling までは扱えていないと判断した。利用側が最新 frame を任意間隔で取得する使い方で十分なら、ponkan-python 側に `target_fps` public API を追加する必要は薄い。
 
-利用側で `read()` 結果を間引くだけでは、USB read、decode、queue delivery の負荷は下がらない。初期実装では安全な delivery pacing と diagnostics を必須にし、backend ごとの acquisition throttling は測定と safety が取れた場合の拡張とする。
+N3DSXL streaming の performance や latency を変える作業は、既存 `local_021` の測定方針と同じく、実測を起点にした個別 optimization として扱う。
 
 ### 1.4 期待効果
 
-| 指標 | 現状 | 目標 |
-| ---- | ---- | ---- |
-| FPS 指定 | public API なし | `open_capture(..., target_fps=30)` を指定できる |
-| native 動作 | 約 60fps 前提 | `target_fps=None` で従来動作 |
-| 低 FPS 利用 | 利用側で read 後に間引く | reader / streaming layer が pacing する |
-| 過大 FPS | 暗黙動作 | validation error または clamp + warning を明示 |
-| diagnostics | delivered / dropped はあるが pacing 理由がない | resolved FPS、effective FPS、pacing drop を stats で確認できる |
+| 指標 | 白紙化前 | 白紙化後 |
+| ---- | -------- | -------- |
+| API surface | `target_fps` を high-level API に追加する計画 | 既存 `read()` 呼び出し間隔で利用側が調整する |
+| 負荷軽減 | delivery pacing だけでは USB/decode 負荷は下がりにくい | 誤った期待を public API に固定しない |
+| 再検討条件 | 未定義 | caller-side sampling では不足する実測 evidence が出た時点 |
 
 ### 1.5 着手条件
 
-- [ ] `local_029` で `CaptureConfig.target_fps` が追加済みである。
-- [ ] `local_027` の profile metadata から native FPS を取得できる。
-- [ ] existing `StreamStats` の counter 追加が既存 artifacts と互換になる方針を決める。
+- [ ] caller-side sampling では負荷、latency、jitter、または UX 要件を満たせない実測 evidence がある。
+- [ ] acquisition throttling が N3DSXL command sequence、pending transfer、shutdown safety を壊さない設計がある。
+- [ ] performance / hardware gate の acceptance を先に定義できる。
 
 ## 2. 対象ファイル
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_030/CAPTURE_FRAME_PACING.md` | 新規 | target FPS / pacing / diagnostics の仕様を定義する。 |
-| `src/ponkan/capture.py` | 修正 | `target_fps` validation と `CaptureReader` の pacing behavior を追加する。 |
-| `src/ponkan/streaming/engine.py` | 修正 | pacing policy を streaming layer に接続する。 |
-| `src/ponkan/streaming/stats.py` | 修正 | pacing diagnostics と resolved target FPS を追加する。 |
-| `src/ponkan/profiles.py` | 修正 | native FPS metadata を pacing validation に提供する。 |
-| `docs/api.md` | 修正 | `target_fps` の semantics と制約を追記する。 |
-| `tests/unit/test_capture_frame_pacing.py` | 新規 | fake clock / fake frames で pacing を検証する。 |
+| `spec/wip/local_030/CAPTURE_FRAME_PACING.md` | 白紙化 | `target_fps` / pacing 仕様を deferred にする。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -59,69 +47,24 @@
 
 | 振る舞い | 入力・状態 | 期待結果 | 備考 |
 | -------- | ---------- | -------- | ---- |
-| native default | `target_fps=None` | 従来通り native に近い delivery | behavior regression を避ける |
-| 60fps 指定 | `target_fps=60` | N3DSXL native に近い pacing | native よりわずかに高い場合の許容幅を定義 |
-| 30fps 指定 | `target_fps=30` | delivery が約 30fps になる | frame drop / pacing を stats に記録 |
-| 15fps 指定 | `target_fps=15` | delivery が約 15fps になる | read loop が過剰に busy wait しない |
-| 0 以下 | `target_fps <= 0` | validation error | config error |
-| native より高い | `target_fps > native_fps` | validation error、または resolved target + warning | 実装時にどちらかを固定 |
-| diagnostics | stats 取得 | effective FPS、pacing drop、resolved target を確認できる | JSON serializable |
-| shutdown | pacing 有効中に close | pending transfer cancel / drain / release を維持 | safety |
+| latest frame を取得する | 利用側が任意間隔で `read()` を呼ぶ | 既存 reader semantics に従って最新 frame を取得する | 新しい `target_fps` は追加しない |
+| native streaming を維持する | `target_fps` 指定なし | 従来の N3DSXL streaming behavior を維持する | regression を避ける |
 
 ### 3.2 TDD Test List
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | `target_fps=None` は pacing なしで既存 read behavior | regression | 3.1 | fake engine |
-| todo | `target_fps=30` は fake clock 上で delivery interval を守る | new behavior | 3.1 | deterministic clock |
-| todo | pacing drop が stats に加算される | diagnostics | 3.1 | `paced_dropped` など |
-| todo | `target_fps <= 0` は validation error | edge | 3.1 | config validation |
-| todo | native より高い FPS は仕様通り error / clamp になる | edge | 3.1 | policy 固定 |
-| todo | close 時の cleanup は pacing 有無で変わらない | cleanup | 3.1 | fake engine stop count |
+| deferred | `target_fps` を追加する | API design | 3.1 | 現時点では実装しない |
+| deferred | delivery pacing stats を追加する | diagnostics | 3.1 | 現時点では実装しない |
+| deferred | acquisition throttling を実装する | performance | 3.1 | 実測 evidence が必要 |
 
 ### 3.3 設計方針
 
-初期実装は delivery pacing を必須範囲にする。backend acquisition throttling は、USB command sequence や in-flight transfer safety への影響があるため、N3DSXL 実機で測定してから別の最適化として扱う。
-
-ただし、利用側で read 後に間引くよりは ponkan-python 内部で制御する。`CaptureReader.read()` が不要に古い frame を返さず、streaming queue と stats に pacing reason が残ることを優先する。
+利用側が必要な頻度で `read()` を呼ぶ設計を優先する。ponkan-python 側で FPS API を持つ場合は、delivery-only ではなく、取得負荷を実際に下げる設計と実機 gate を伴う別 Work Unit として再設計する。
 
 ## 4. 実装仕様
 
-`CaptureConfig` に追加済みの `target_fps` を validation する。
-
-```python
-def validate_target_fps(target_fps: float | None, *, native_fps: float | None) -> float | None:
-    if target_fps is None:
-        return None
-    if target_fps <= 0:
-        raise ValueError("target_fps must be positive or None")
-    if native_fps is not None and target_fps > native_fps * 1.01:
-        raise ValueError("target_fps must not exceed profile native_fps")
-    return target_fps
-```
-
-stats 追加案:
-
-```python
-@dataclass(slots=True)
-class StreamStats:
-    submitted: int = 0
-    completed: int = 0
-    decoded: int = 0
-    delivered: int = 0
-    dropped_raw: int = 0
-    dropped_decoded: int = 0
-    dropped_pacing: int = 0
-    resolved_target_fps: float | None = None
-    effective_delivered_fps: float | None = None
-```
-
-pacing policy:
-
-| Phase | 必須 | 内容 |
-| ----- | ---- | ---- |
-| Phase 1 | 必須 | decoded / queued frame から delivery interval に合う最新 frame だけ返す |
-| Phase 2 | 任意 follow-up | safe な backend で decode scheduling や acquisition submit を減らす |
+実装なし。
 
 ## 5. テスト方針
 
@@ -129,37 +72,21 @@ pacing policy:
 
 | テスト対象 | 検証内容 | 入力例 | 期待結果 |
 | ---------- | -------- | ------ | -------- |
-| validation | positive FPS | `30` | accepted |
-| validation | invalid FPS | `0`, `-1` | error |
-| validation | over native | `120` on N3DSXL | error / clamp policy 通り |
-| read pacing | 30fps interval | fake clock | delivery interval が概ね 33ms |
-| stats | pacing drop | extra frames | counter が増える |
-| cleanup | close | pacing enabled | stop は 1 回 |
+| なし | なし | なし | なし |
 
 ### 統合テスト
 
 | シナリオ | 検証内容 | 前提条件 | 期待結果 |
 | -------- | -------- | -------- | -------- |
-| 30fps smoke | target FPS 30 の read loop | 実機、承認済み command | effective FPS が目標範囲、usb/decode error なし |
-| native regression | target FPS None | 実機、承認済み command | 既存 performance gate と同等 |
+| なし | なし | なし | なし |
 
 ### 検証コマンド
 
 ```console
-uv run pytest tests/unit/test_capture_frame_pacing.py
-uv run ruff format --check .
-uv run ruff check .
-uv run ty check --no-progress
-uv run pytest tests/unit
+git diff --check
 ```
-
-Hardware gate は承認後に `requires_n3dsxl` / `performance` marker 付きで実行する。
 
 ## 6. 実装チェックリスト
 
-- [ ] `target_fps` validation policy を固定する。
-- [ ] delivery pacing を fake clock で deterministic に test する。
-- [ ] pacing diagnostics を `StreamStats` / performance artifact に追加する。
-- [ ] `docs/api.md` に `target_fps` の制約を追記する。
-- [ ] local gate を実行する。
-- [ ] 承認後に N3DSXL 30fps smoke と native regression を実行する。
+- [x] `target_fps` / pacing 仕様を白紙化する。
+- [x] 後続実装候補から外す。

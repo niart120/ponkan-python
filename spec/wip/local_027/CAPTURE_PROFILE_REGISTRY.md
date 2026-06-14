@@ -103,7 +103,6 @@ class CaptureProfile:
     support_status: SupportStatus
     default_output: str
     default_colorspace: str
-    default_target_fps: float | None
     native_fps: float | None
     screen_layout: str
     supported_outputs: tuple[str, ...]
