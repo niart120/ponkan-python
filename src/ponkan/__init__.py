@@ -1,9 +1,9 @@
 """Python helpers for new 3DS XL capture board frame acquisition.
 
-The package exposes the constants and size helpers needed to identify supported
-N3DSXL capture boards and to reason about raw USB frame sizes. Higher-level
-capture, decode, transport, and streaming APIs live in their dedicated
-submodules.
+The package root exposes the high-level reader, supported profile/layout
+metadata, safe device discovery helpers, and size constants needed by typical
+callers. Lower-level decode, transport, and streaming APIs live in their
+dedicated submodules.
 """
 
 from importlib.metadata import PackageNotFoundError, version

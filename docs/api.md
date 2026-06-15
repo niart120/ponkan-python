@@ -18,7 +18,8 @@ normal platform-gated dependency.
 
 ## Top-Level Imports
 
-The package root exports the high-level reader and size helpers:
+The package root exports the high-level reader, profile/layout/discovery
+metadata, and size helpers:
 
 ```python
 from ponkan import (
@@ -71,8 +72,11 @@ returned before their source audit and implementation gates are complete.
 | Field | N3DSXL value | Notes |
 | --- | --- | --- |
 | `id` | `"n3dsxl"` | Stable profile id for settings. |
+| `display_name` | `"new 3DS XL"` | Human-readable label for UI. |
+| `model` | `"new_3ds_xl"` | Model string accepted by `CaptureConfig`. |
 | `aliases` | `("new_3ds_xl",)` | Compatibility with the existing model name. |
 | `family` | `"3ds"` | Device family grouping. |
+| `provider` | `"ponkan-python"` | Implementation provider for the profile. |
 | `support_status` | `"stable"` | Runtime profiles are `"stable"` or `"experimental"`. |
 | `default_output` | `"both_vertical"` | Matches `CaptureConfig.output`. |
 | `default_colorspace` | `"RGB"` | Package default channel order. |
@@ -80,6 +84,9 @@ returned before their source audit and implementation gates are complete.
 | `native_fps` | `59.8` | Initial observed N3DSXL streaming rate. |
 | `screen_layout` | `"3ds_dual_screen"` | Layout metadata id for later lookup. |
 | `supported_outputs` | `("top", "bottom", "both_vertical")` | Matches current `CaptureOutput` values. |
+| `supports_3d` | `False` | 3D capture is outside the current MVP. |
+| `supports_audio` | `False` | Audio playback/capture is outside the current MVP. |
+| `supports_recording` | `False` | Recording is outside the current MVP. |
 
 `get_capture_profile()` accepts the stable id or alias and raises
 `UnknownCaptureProfile`, a `CaptureError` subclass, for unknown profile ids.
@@ -146,6 +153,12 @@ registry contains only `3ds_dual_screen`:
 `ScreenInfo.ndarray_shape` and `CompositeOutputInfo.ndarray_shape` expose the
 public `numpy.ndarray` shape as `(height, width, channels)`.
 
+`ScreenInfo` fields are `id`, `display_name`, `width`, `height`, `channels`,
+`colorspace`, `coordinate_space`, and `role`. `CompositeOutputInfo` fields are
+`id`, `display_name`, `width`, `height`, `channels`, `screens`, `placement`,
+and `default`. `CaptureLayout.aspect_hints` is a read-only mapping for
+display/preview hints such as bottom-screen centering.
+
 | Output | Shape | Placement |
 | --- | --- | --- |
 | `top` | `(240, 400, 3)` | Single top screen. |
@@ -199,7 +212,7 @@ open_capture(...) as cap:` so `close()` is called even when reads fail.
 | --- | --- | --- |
 | `source` | `0` | Source selector. |
 | `model` | `"new_3ds_xl"` | Only new 3DS XL is supported. |
-| `backend` | `"auto"` | On Windows this resolves to `"d3xx-native"`. `"d3xx"` and `"d3xx-native"` require the `d3xx` extra. |
+| `backend` | `"auto"` | On Windows this resolves to `"d3xx-native"`. PyD3XX is a normal Windows platform dependency, not an optional extra. |
 | `mode_3d` | `False` | `True` is rejected in the current MVP. |
 | `output` | `CaptureOutput.BOTH_VERTICAL` | Default layout for `read()`. |
 | `colorspace` | `"RGB"` | `"BGR"` is useful for OpenCV. |
@@ -230,6 +243,13 @@ if frame is not None:
 
 `CaptureReader.stats()` returns a `StreamStats` snapshot from the underlying
 streaming engine. `CaptureReader.close()` is idempotent and stops acquisition.
+
+Backend selection note: starting with the current unreleased changes,
+`backend="auto"` shares the discovery resolver and uses `"d3xx-native"` on
+Windows. The sequential D3XX path remains available only through
+`backend="d3xx"`. The `"libusb"` literal is accepted as a config value for
+discovery parity, but the high-level opener currently rejects it with
+`UnsupportedOperation`.
 
 ## Frames
 
@@ -294,16 +314,37 @@ descriptors and reports backend availability:
 | `resolved_backend` | Concrete backend used for enumeration. Windows `"auto"` resolves to `"d3xx-native"`. |
 | `backend_status` | `"available"`, `"unavailable"`, or `"unsupported"`. |
 | `reason` | Shared `CaptureReason` such as `"available"`, `"device_not_found"`, or `"missing_package"`. |
+| `remediation` | Optional backend-level recovery guidance. |
 | `devices` | Tuple of `CaptureDeviceInfo` descriptors. |
 
 `include_rejected=True` includes FTDI-family devices rejected by the N3DSXL
 safety boundary. Rejected devices are useful for diagnostics but should not be
 offered as normal capture targets.
 
-Each `CaptureDeviceInfo` includes a stable-or-best-effort `id`, backend,
-VID/PID, serial number, product string status, connection status, reason, and
-optional remediation. Serial-backed ids are marked with `id_stability="stable"`;
-bus/address ids are session-scoped.
+`CaptureDeviceInfo` fields:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Backend-prefixed stable-or-best-effort identifier. |
+| `display_name` | Product string or fallback human-readable label. |
+| `profile_id` | Profile this descriptor was classified for. |
+| `model` | Resolved capture model, or `"unknown"` for rejected devices. |
+| `backend` | Concrete backend that enumerated the descriptor. |
+| `backend_preference` | Original caller preference. |
+| `vendor_id` / `product_id` | USB identity fields when visible. |
+| `serial_number` | Serial number when visible. |
+| `product_string` | Product string when readable. |
+| `product_string_status` | `"accepted"`, `"unreadable"`, `"rejected"`, or `"unknown"`. |
+| `connection_status` | `"available"`, `"rejected"`, `"unsupported"`, or `"unknown"`. |
+| `id_stability` | `"stable"` for serial ids, `"session"` for bus/address ids, or `"unknown"`. |
+| `reason` | Device-level `CaptureReason`. |
+| `remediation` | Optional diagnostic detail such as a rejected product-string reason. |
+
+Dependency absence, such as missing PyD3XX, is returned as
+`backend_status="unavailable"`. Native backend API failures while enumerating
+descriptors may still propagate as `CaptureError` subclasses such as
+`D3xxBackendError`; those failures expose backend-specific `function`,
+`status`, and `field_name` attributes.
 
 Accepted device identity is constrained by `N3DSXL_VENDOR_ID`,
 `ACCEPTED_N3DSXL_PRODUCT_IDS`, and `ACCEPTED_N3DSXL_PRODUCT_STRINGS`.
@@ -336,7 +377,7 @@ Installed console scripts:
 
 | Command | Purpose |
 | --- | --- |
-| `ponkan-list-devices` | Print accepted and rejected FTDI-family devices without sending N3DSXL commands. |
+| `ponkan-list-devices` | Print accepted and rejected FTDI-family devices through the libusb descriptor path without sending N3DSXL commands. |
 | `ponkan-capture-raw --out <path>` | Capture one raw frame and metadata sidecar. |
 | `ponkan-raw-to-png <raw> --metadata <json> --out <dir>` | Decode raw video to top and bottom PNG files. |
 | `ponkan-stream-n3dsxl --duration 10 --stats` | Run a bounded streaming smoke loop and print counters. |
@@ -348,7 +389,7 @@ the project hardware safety policy.
 
 All package-level failures inherit from `CaptureError`.
 
-Every `CaptureError` exposes machine-readable context while preserving the
+Every `CaptureError` exposes common structured fields while preserving the
 existing exception class hierarchy and `str(error)` message:
 
 | Field | Meaning |
@@ -383,3 +424,9 @@ except CaptureError as exc:
 | `OptionalDependencyError` | Optional dependency such as Pillow is missing. |
 | `UnknownCaptureProfile` | A profile id or alias is not in the runtime profile registry. |
 | `UnknownCaptureLayout` | A layout id is not in the runtime layout registry. |
+| `D3xxBackendError` | Native D3XX binding call or descriptor parsing failed. |
+
+Backend-specific errors that do not override `code` use the generic
+`"capture_error"` code and expose their specific context through class
+attributes. For example, `D3xxBackendError` carries `function`, `status`, and
+`field_name`.
