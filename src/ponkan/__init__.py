@@ -18,10 +18,16 @@ from ponkan.layouts import (
     CaptureLayout,
     CompositeOutputInfo,
     ScreenInfo,
+    UnknownCaptureLayout,
     get_capture_layout,
     list_capture_layouts,
 )
-from ponkan.profiles import CaptureProfile, get_capture_profile, list_capture_profiles
+from ponkan.profiles import (
+    CaptureProfile,
+    UnknownCaptureProfile,
+    get_capture_profile,
+    list_capture_profiles,
+)
 from ponkan.protocol.sizes import (
     ACCEPTED_N3DSXL_PRODUCT_IDS,
     ACCEPTED_N3DSXL_PRODUCT_STRINGS,
@@ -49,6 +55,8 @@ __all__ = [
     "CaptureSizes",
     "CompositeOutputInfo",
     "ScreenInfo",
+    "UnknownCaptureLayout",
+    "UnknownCaptureProfile",
     "__version__",
     "capture_sizes",
     "get_capture_layout",

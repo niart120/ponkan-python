@@ -2,6 +2,7 @@ import tomllib
 from pathlib import Path
 
 import ponkan
+from ponkan import UnknownCaptureLayout, UnknownCaptureProfile
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -16,6 +17,27 @@ def test_package_imports() -> None:
     assert "get_capture_layout" in ponkan.__all__
     assert "list_capture_layouts" in ponkan.__all__
     assert ponkan.CaptureOutput.BOTH_VERTICAL == "both_vertical"
+
+
+def test_package_root_exports_unknown_profile_and_layout_errors() -> None:
+    assert UnknownCaptureProfile.__name__ == "UnknownCaptureProfile"
+    assert UnknownCaptureLayout.__name__ == "UnknownCaptureLayout"
+    assert "UnknownCaptureProfile" in ponkan.__all__
+    assert "UnknownCaptureLayout" in ponkan.__all__
+    assert ponkan.UnknownCaptureProfile is UnknownCaptureProfile
+    assert ponkan.UnknownCaptureLayout is UnknownCaptureLayout
+
+
+def test_api_docs_include_public_error_contract() -> None:
+    docs = (_PROJECT_ROOT / "docs" / "api.md").read_text(encoding="utf-8")
+
+    assert "UnknownCaptureProfile" in docs
+    assert "UnknownCaptureLayout" in docs
+    assert 'code="d3xx_backend_failed"' in docs
+    assert 'backend="d3xx"' in docs
+    assert 'reason="open_failed"' in docs
+    assert 'reason="read_failed"' in docs
+    assert "from ponkan.transport.d3xx_backend import D3xxBackendError" in docs
 
 
 def test_pyproject_declares_publish_metadata() -> None:

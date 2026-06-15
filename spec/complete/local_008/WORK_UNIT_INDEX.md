@@ -68,6 +68,7 @@
 | `spec/complete/local_030/STRUCTURED_CAPTURE_ERRORS.md` | 完了済み follow-up | machine-readable error fields と canonical reason code を定義する。 |
 | `spec/complete/local_031/CAPTURE_LAYOUT_METADATA.md` | 完了済み follow-up | screen / output / coordinate layout metadata を定義する。 |
 | `spec/complete/local_032/CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | 完了済み follow-up | future profile の source audit gate を定義する。 |
+| `spec/complete/local_033/EXCEPTION_FAILURE_PUBLIC_CONTRACT.md` | 完了済み follow-up | D3XX backend failure と unknown profile/layout error の public contract を定義する。 |
 
 ## 3. 振る舞い仕様と設計方針
 
@@ -114,7 +115,7 @@ Work Unit は次の依存順に扱う。
 
 ### 3.4 NyX 連携 WIP Input and Follow-up Candidates
 
-Project NyX からの申し送りを受けた profile-driven capture API 群は、完了済み入力資料 `local_027`、完了済み runtime profile registry `local_028`、完了済み device discovery `local_029`、完了済み structured errors `local_030`、完了済み layout metadata `local_031`、および完了済み profile roadmap `local_032` として扱う。`local_027` は非規範の入力資料専用であり、実装対象の仕様は `local_028` 以降で 1 項番 1 仕様に分ける。入力資料内の未採用案は、後続仕様に明示された場合だけ実装候補として扱う。残る WIP がある場合だけ 1 件ずつ選ぶ。
+Project NyX からの申し送りを受けた profile-driven capture API 群は、完了済み入力資料 `local_027`、完了済み runtime profile registry `local_028`、完了済み device discovery `local_029`、完了済み structured errors `local_030`、完了済み layout metadata `local_031`、完了済み profile roadmap `local_032`、および完了済み public exception contract `local_033` として扱う。`local_027` は非規範の入力資料専用であり、実装対象の仕様は `local_028` 以降で 1 項番 1 仕様に分ける。入力資料内の未採用案は、後続仕様に明示された場合だけ実装候補として扱う。残る WIP がある場合だけ 1 件ずつ選ぶ。
 
 | 順序 | ディレクトリ | 仕様書 | 主な目的 | 依存 | 実機要否 | 現在状態 |
 | ---- | ------------ | ------ | -------- | ---- | -------- | -------- |
@@ -124,6 +125,7 @@ Project NyX からの申し送りを受けた profile-driven capture API 群は�
 | 17 | `complete/local_029` | `CAPTURE_DEVICE_DISCOVERY_REDESIGN.md` | backend resolution を含む device discovery redesign | `local_028`, `local_030` | listing E2E は任意 | 完了 |
 | 18 | `complete/local_031` | `CAPTURE_LAYOUT_METADATA.md` | screen / output layout metadata | `local_028` | 不要 | 完了 |
 | 19 | `complete/local_032` | `CAPTURE_PROFILE_ROADMAP_AND_SOURCE_AUDIT.md` | future profile の source audit gate | `local_028` | 不要 | 完了 |
+| 20 | `complete/local_033` | `EXCEPTION_FAILURE_PUBLIC_CONTRACT.md` | D3XX backend failure と unknown profile/layout error の public contract | `local_030`, `local_031` | 不要 | 完了 |
 
 Main Agent は上から順に、次を満たす最小単位を選ぶ。
 
@@ -143,7 +145,7 @@ Main Agent は、この仕様群を使う作業開始時に次を提示する。
 
 ```text
 Agentic SDD bootstrap:
-- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_032/*
+- Constitution: AGENTS.md, spec/initial/*, spec/complete/local_008/* ... spec/complete/local_033/*
 - Git Context: <branch>, <clean | dirty>, <normal branch | isolated worktree | read-only>
 - Intent Delta: none | <summary>
 - Selected Work Unit: <spec file + TDD item>
@@ -253,6 +255,7 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | `complete/local_030` | structured capture errors complete | discovery model consumption deferred to local_029 |
 | `complete/local_031` | capture layout metadata complete | hardware not required |
 | `complete/local_032` | capture profile roadmap and source audit gate complete | no runtime profile added |
+| `complete/local_033` | exception failure public contract complete | hardware not required |
 
 ### 7.2 Gate Results
 
@@ -270,6 +273,7 @@ rg -n "Step [0-8]|TDD Test List|requires_n3dsxl|Source Audit" spec/complete/loca
 | D3XX timing measurement | pass | 2026-06-08: `local_021` で opt-in timing collection を追加。D3XX 10 秒 timing smoke、60 秒 performance smoke、`raw_slots=2`, `poll_interval=0.004` の低遅延 60 秒 timing smoke が pass。 |
 | D3XX native fast path backend | pass / default adoption deferred | 2026-06-09: `complete/local_022` で `D3xxNativeApi` と opt-in native backend を実装。unit 103 passed、ruff / ty pass。D3XX native 10 秒 timing smoke と 60 秒 performance smoke は pass。60 秒 native artifact は `delivered_fps=59.81666666666667`, `usb_errors=0`, `decode_errors=0`, `dropped_raw=1`。submit-to-complete p99 は sequential low-latency baseline より約 1.06ms 悪いため default 採用は保留。 |
 | High-level capture read API | pass | 2026-06-10: `complete/local_023` で `CaptureOutput`、`CaptureConfig`、`CaptureReader`、`open_capture()` を実装。unit 120 passed、ruff / ty pass。承認後の high-level E2E は `uv run pytest -m requires_n3dsxl tests/e2e/test_n3dsxl_high_level_capture_read_api.py -q`: 1 passed。artifact は `artifacts\n3dsxl\20260610-010730\pytest-high-level-read-api\test_n3dsxl_high_level_capture0\n3dsxl\high-level-read-api\read_stats.json`。 |
+| Exception failure public contract | pass | 2026-06-15: `complete/local_033` で `D3xxBackendError` の stable `code` / `backend` / `reason` と `UnknownCaptureProfile` / `UnknownCaptureLayout` root export を実装。`uv run pytest tests\unit\test_structured_capture_errors.py tests\unit\test_package.py`: 15 passed。`uv run pytest tests\unit`: 158 passed。ruff format / ruff check / ty / diff check pass。 |
 
 ### 7.3 Completion Notes
 
