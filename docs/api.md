@@ -36,6 +36,8 @@ from ponkan import (
     CaptureSizes,
     CompositeOutputInfo,
     ScreenInfo,
+    UnknownCaptureLayout,
+    UnknownCaptureProfile,
     capture_sizes,
     get_capture_layout,
     get_capture_profile,
@@ -403,6 +405,7 @@ existing exception class hierarchy and `str(error)` message:
 
 ```python
 from ponkan.errors import CaptureError
+from ponkan.transport.d3xx_backend import D3xxBackendError
 
 try:
     ...
@@ -426,7 +429,12 @@ except CaptureError as exc:
 | `UnknownCaptureLayout` | A layout id is not in the runtime layout registry. |
 | `D3xxBackendError` | Native D3XX binding call or descriptor parsing failed. |
 
-Backend-specific errors that do not override `code` use the generic
-`"capture_error"` code and expose their specific context through class
-attributes. For example, `D3xxBackendError` carries `function`, `status`, and
-`field_name`.
+`D3xxBackendError` is transport-specific and is imported from
+`ponkan.transport.d3xx_backend`, not from the package root. It preserves the
+existing message format and exposes common structured fields:
+`code="d3xx_backend_failed"`, `backend="d3xx"`, `recoverable=True`, and
+`reason="open_failed"` for native API/open-path failures. Descriptor parsing
+failures such as missing or invalid detail fields use `reason="read_failed"`.
+
+For technical logs, `D3xxBackendError` also carries backend-specific context
+through `function`, `status`, and `field_name`.

@@ -10,7 +10,7 @@ from types import ModuleType
 from typing import Any, Literal, Protocol, cast
 
 from ponkan.devices.n3dsxl_ftd3 import DeviceCandidate, classify_n3dsxl_device
-from ponkan.errors import CaptureError, DependencyUnavailableError
+from ponkan.errors import CaptureError, CaptureReason, DependencyUnavailableError
 from ponkan.protocol.sizes import N3DSXL_VENDOR_ID
 from ponkan.transport.libusb_backend import UsbDeviceInfo
 
@@ -187,6 +187,7 @@ class D3xxBackendError(CaptureError):
         status: int | None = None,
         *,
         field_name: str | None = None,
+        reason: CaptureReason = "open_failed",
     ) -> None:
         """Create a structured D3XX backend failure.
 
@@ -194,9 +195,16 @@ class D3xxBackendError(CaptureError):
             function: D3XX function or parser step associated with the failure.
             status: Optional native status code.
             field_name: Optional detail field that was missing or invalid.
+            reason: Shared machine-readable failure reason.
         """
         message = _d3xx_error_message(function, status, field_name)
-        super().__init__(message)
+        super().__init__(
+            message,
+            code="d3xx_backend_failed",
+            backend="d3xx",
+            reason=reason,
+            recoverable=True,
+        )
         self.function = function
         self.status = status
         self.field_name = field_name
@@ -211,7 +219,7 @@ class D3xxBackendError(CaptureError):
         Returns:
             Structured backend error.
         """
-        return cls("missing field", field_name=field_name)
+        return cls("missing field", field_name=field_name, reason="read_failed")
 
     @classmethod
     def invalid_integer(cls, field_name: str) -> "D3xxBackendError":
@@ -223,7 +231,7 @@ class D3xxBackendError(CaptureError):
         Returns:
             Structured backend error.
         """
-        return cls("invalid integer", field_name=field_name)
+        return cls("invalid integer", field_name=field_name, reason="read_failed")
 
     @classmethod
     def invalid_candidate(cls) -> "D3xxBackendError":

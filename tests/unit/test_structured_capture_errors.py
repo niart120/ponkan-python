@@ -13,6 +13,7 @@ from ponkan.errors import (
     UnsupportedOperation,
 )
 from ponkan.profiles import UnknownCaptureProfile
+from ponkan.transport.d3xx_backend import D3xxBackendError
 
 
 def test_capture_error_has_common_fields_and_preserves_message() -> None:
@@ -88,6 +89,48 @@ def test_ftd3_command_error_keeps_context_and_common_fields() -> None:
     assert error.code == "ftd3_command_failed"
     assert error.reason == "read_failed"
     assert error.recoverable is True
+
+
+def test_d3xx_backend_error_has_common_fields_and_context() -> None:
+    error = D3xxBackendError("FT_Create", 1)
+
+    assert str(error) == "FT_Create failed with status 1"
+    assert error.code == "d3xx_backend_failed"
+    assert error.backend == "d3xx"
+    assert error.reason == "open_failed"
+    assert error.recoverable is True
+    assert error.function == "FT_Create"
+    assert error.status == 1
+    assert error.field_name is None
+
+
+def test_d3xx_backend_missing_field_has_read_failure_context() -> None:
+    error = D3xxBackendError.missing_field("Description")
+
+    assert str(error) == "missing field: Description"
+    assert error.code == "d3xx_backend_failed"
+    assert error.backend == "d3xx"
+    assert error.reason == "read_failed"
+    assert error.recoverable is True
+    assert error.function == "missing field"
+    assert error.status is None
+    assert error.field_name == "Description"
+
+
+def test_d3xx_backend_factory_reasons_are_stable() -> None:
+    invalid_integer = D3xxBackendError.invalid_integer("ID")
+    invalid_candidate = D3xxBackendError.invalid_candidate()
+
+    assert invalid_integer.code == "d3xx_backend_failed"
+    assert invalid_integer.reason == "read_failed"
+    assert invalid_integer.function == "invalid integer"
+    assert invalid_integer.field_name == "ID"
+
+    assert invalid_candidate.code == "d3xx_backend_failed"
+    assert invalid_candidate.reason == "open_failed"
+    assert invalid_candidate.function == "invalid candidate"
+    assert invalid_candidate.status is None
+    assert invalid_candidate.field_name is None
 
 
 def test_unknown_capture_profile_uses_shared_reason() -> None:

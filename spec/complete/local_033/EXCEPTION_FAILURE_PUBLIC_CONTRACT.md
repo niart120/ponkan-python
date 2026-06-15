@@ -48,7 +48,7 @@
 
 | ファイル | 変更種別 | 変更内容 |
 | -------- | -------- | -------- |
-| `spec/wip/local_033/EXCEPTION_FAILURE_PUBLIC_CONTRACT.md` | 新規 | 例外・失敗経路の public contract 拡充仕様を定義する。 |
+| `spec/complete/local_033/EXCEPTION_FAILURE_PUBLIC_CONTRACT.md` | 完了済み | 例外・失敗経路の public contract 拡充仕様を定義する。 |
 | `src/ponkan/transport/d3xx_backend.py` | 修正 | `D3xxBackendError` に stable `code` / `reason` / `backend` を付与する。 |
 | `src/ponkan/__init__.py` | 修正 | `UnknownCaptureProfile` / `UnknownCaptureLayout` を root export に追加する。 |
 | `src/ponkan/profiles.py` | 既存利用 | `UnknownCaptureProfile` の structured fields を維持する。 |
@@ -75,12 +75,12 @@
 
 | 状態 | テスト項目 | 種別 | 関連仕様 | 備考 |
 | ---- | ---------- | ---- | -------- | ---- |
-| todo | `D3xxBackendError("FT_Create", 1)` は stable common fields と D3XX context を持つ | new behavior | 3.1 | `test_structured_capture_errors.py` |
-| todo | `D3xxBackendError.missing_field(...)` は field context と structured fields を持つ | new behavior | 3.1 | descriptor parse failure |
-| todo | `str(D3xxBackendError(...))` は既存 message format を維持する | regression | 3.1 | docs / logs 互換 |
-| todo | `UnknownCaptureProfile` / `UnknownCaptureLayout` を package root から import できる | public surface | 3.1 | `test_package.py` |
-| todo | `ponkan.__all__` に unknown error 型が含まれる | public surface | 3.1 | root export |
-| todo | API docs の root import 例に unknown error 型が含まれる | docs contract | 3.1 | release docs |
+| green | `D3xxBackendError("FT_Create", 1)` は stable common fields と D3XX context を持つ | new behavior | 3.1 | `test_structured_capture_errors.py` |
+| green | `D3xxBackendError.missing_field(...)` は field context と structured fields を持つ | new behavior | 3.1 | descriptor parse failure |
+| green | `str(D3xxBackendError(...))` は既存 message format を維持する | regression | 3.1 | docs / logs 互換 |
+| green | `UnknownCaptureProfile` / `UnknownCaptureLayout` を package root から import できる | public surface | 3.1 | `test_package.py` |
+| green | `ponkan.__all__` に unknown error 型が含まれる | public surface | 3.1 | root export |
+| green | API docs の root import 例に unknown error 型が含まれる | docs contract | 3.1 | release docs |
 
 ### 3.3 設計方針
 
@@ -176,9 +176,28 @@ git diff --check
 
 ## 6. 実装チェックリスト
 
-- [ ] `D3xxBackendError` の common structured fields を実装する。
-- [ ] factory method ごとの `reason` を固定する。
-- [ ] `UnknownCaptureProfile` / `UnknownCaptureLayout` を package root に export する。
-- [ ] API docs の root import と Error Types を更新する。
-- [ ] unit test を追加・更新する。
-- [ ] ruff / ty / pytest / diff check を実行する。
+- [x] `D3xxBackendError` の common structured fields を実装する。
+- [x] factory method ごとの `reason` を固定する。
+- [x] `UnknownCaptureProfile` / `UnknownCaptureLayout` を package root に export する。
+- [x] API docs の root import と Error Types を更新する。
+- [x] unit test を追加・更新する。
+- [x] ruff / ty / pytest / diff check を実行する。
+
+## 7. 実装結果
+
+### 7.1 完了状態
+
+`D3xxBackendError` は `code="d3xx_backend_failed"`、`backend="d3xx"`、`recoverable=True` を持つ `CaptureError` subclass になった。D3XX API / open-path failure は `reason="open_failed"`、descriptor parse failure は `reason="read_failed"` を返す。既存の `str(error)` 形式と `function` / `status` / `field_name` は維持した。
+
+`UnknownCaptureProfile` と `UnknownCaptureLayout` は package root から import でき、`ponkan.__all__` に含まれる。`D3xxBackendError` は transport-specific error として root export しない。
+
+### 7.2 Gate Results
+
+| Gate | 結果 | Evidence |
+| ---- | ---- | -------- |
+| Targeted unit | pass | `uv run pytest tests\unit\test_structured_capture_errors.py tests\unit\test_package.py`: 15 passed。 |
+| Format | pass | `uv run ruff format --check .`: 77 files already formatted。 |
+| Lint | pass | `uv run ruff check .`: All checks passed。 |
+| Type | pass | `uv run ty check --no-progress`: All checks passed。 |
+| Unit | pass | `uv run pytest tests\unit`: 158 passed。 |
+| Diff | pass | `git diff --check`。 |
