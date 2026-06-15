@@ -11,7 +11,8 @@
 - raw frame の保存と metadata 記録
 - RGB8 `numpy.ndarray` への変換
 - Pillow 互換出力
-- libusb async transfer による streaming MVP
+- profile / layout / device discovery metadata の提供
+- D3XX / D3XX native backend による streaming MVP
 
 詳細は次の仕様書を参照してください。
 
@@ -26,7 +27,7 @@ Python 3.12 以上を対象にしています。現在の検証基準は Python 
 pip install ponkan-python
 ```
 
-Windows の FTDI D3XX backend では、通常依存として PyD3XX を利用します。PNG 変換には Pillow extra を追加します。
+Windows の FTDI D3XX backend では、通常依存として PyD3XX を利用します。D3XX 用の optional extra はありません。PNG 変換には Pillow extra を追加します。
 
 ```console
 pip install "ponkan-python[image]"
@@ -54,6 +55,8 @@ with open_capture(output=CaptureOutput.TOP, colorspace="BGR") as cap:
     top_bgr = cap.read()
 ```
 
+`backend="auto"` は Windows では `d3xx-native` に解決されます。従来の sequential D3XX path を使う場合は `backend="d3xx"` を明示します。`libusb` は discovery / lower-level path では使われますが、high-level `open_capture()` では現在未対応です。
+
 3DS 固有の上画面・下画面・sequence などが必要な場合は `read_frame()` を使います。
 
 ```python
@@ -79,7 +82,7 @@ ponkan-raw-to-png captures/n3dsxl/raw_2d_001.bin --metadata captures/n3dsxl/raw_
 ponkan-stream-n3dsxl --duration 10 --stats
 ```
 
-実機へ N3DSXL command を送る操作は、事前に device identity と安全境界を確認してから実行してください。
+`ponkan-list-devices` は libusb descriptor path で FTDI-family device を分類し、N3DSXL command は送信しません。実機へ N3DSXL command を送る操作は、事前に device identity と安全境界を確認してから実行してください。
 
 ## Development
 

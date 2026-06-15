@@ -67,6 +67,7 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 | read failed | streaming read error | `code="read_failed"` | reconnect candidate |
 | decode failed | raw decode error | `code="decode_failed"` | technical log |
 | FTD3 context | command failure | 既存 `context` を維持し common fields も持つ | backward compatible |
+| D3XX backend context | native API call / descriptor parse failure | generic `code="capture_error"` と `function` / `status` / `field_name` を持つ | backend-specific technical log |
 | discovery との reason 共有 | backend / profile availability | `CaptureReason` を使う | `available` は discovery result 専用 |
 
 ### 3.2 TDD Test List
@@ -86,6 +87,8 @@ NyX のような GUI は user log、status bar、technical log を分ける必�
 既存 exception class 名は維持する。利用側が `except DeviceNotFound` のように分岐している可能性があるため、class hierarchy の破壊はしない。
 
 common fields は constructor kwargs で渡せるようにし、subclass は default `code` / `recoverable` を持つ。`Ftd3CommandError` の `context` は削除せず、common fields の `details` または `technical_context` として参照できるようにする。
+
+すべての `CaptureError` は common fields を持つが、すべての subclass が専用 `code` を持つわけではない。`D3xxBackendError` は既存の backend-specific context (`function`、`status`、`field_name`) を維持し、common field の `code` は base default の `capture_error` を使う。
 
 `code` は exception category、`reason` は availability / failure cause として分ける。例えば `DependencyUnavailableError` の `code` は `dependency_unavailable`、`reason` は `missing_package` / `missing_driver` / `missing_runtime` のいずれかにできる。discovery success の `available` は同じ enum に含めるが、`CaptureError.reason` では使わない。
 
@@ -159,6 +162,7 @@ subclass default:
 | `UnsupportedOperation` | `unsupported_operation` | `False` |
 | `DecodeError` | `decode_failed` | `False` |
 | `DependencyUnavailableError` | `dependency_unavailable` | `True` |
+| `D3xxBackendError` | `capture_error` | `False` |
 
 ## 5. テスト方針
 
@@ -171,6 +175,7 @@ subclass default:
 | string | message compatibility | custom message | `str(error)` が message |
 | dependency error | backend context | `for_backend_dependency("PyD3XX", "d3xx")` | backend / reason / remediation |
 | FTD3 | context compatibility | `Ftd3CommandContext` | `context` が残る |
+| D3XX | backend-specific context | `D3xxBackendError("FT_Create", 1)` | `function` / `status` が残る |
 | reason enum | discovery/error shared values | `CaptureReason` | local_029 と同じ reason を参照 |
 
 ### 統合テスト

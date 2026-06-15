@@ -74,9 +74,9 @@ NyX の初期実装は physical device selection を scope 外にして `open_ca
 | N3DSXL を列挙する | `list_capture_devices(profile="n3dsxl")` | `backend_status="available"` で accepted devices を `devices` に返す | command 送信なし |
 | backend auto | `backend="auto"` | OS / backend policy に従う `resolved_backend` を返す | policy drift を避ける |
 | Windows default | `sys_platform == "win32"`, `backend="auto"` | `resolved_backend="d3xx-native"` | D3XX sequential path の画面不安定観測を受けた Intent Delta |
-| native unavailable | Windows auto で native 初期化不可 | `backend_status="unavailable"`, `reason="missing_runtime"` または `reason="unsupported_platform"` | `d3xx` へ silent fallback しない |
+| native dependency unavailable | Windows auto で PyD3XX dependency が利用不可 | `backend_status="unavailable"`, `reason="missing_package"` の result を返す | `d3xx` へ silent fallback しない |
 | backend package 不足 | PyD3XX が import できない | `backend_status="unavailable"`, `reason="missing_package"` の result を返す | open しない |
-| backend driver 不足 | D3XX runtime / driver が使えない | `backend_status="unavailable"`, `reason="missing_driver"` または `reason="missing_runtime"` | remediation 付き |
+| D3XX API failure | descriptor enumeration 中に D3XX binding call / detail parse が失敗 | `D3xxBackendError` などの `CaptureError` を送出する | `function` / `status` / `field_name` を technical log に使う |
 | unsupported backend | profile に対して backend が未対応 | `backend_status="unsupported"`, `reason="unsupported_backend"` | source audit 前に暗黙対応しない |
 | device 未接続 | backend は使えるが候補なし | `backend_status="available"`, `reason="device_not_found"`, `devices=()` | UI は source を表示し未接続 status にできる |
 | rejected を含める | `include_rejected=True` | unsupported PID/product string も device info と reason 付きで `devices` に返す | diagnostics 用 |
@@ -94,22 +94,22 @@ NyX の初期実装は physical device selection を scope 外にして `open_ca
 | green | Windows auto は `d3xx-native` に解決される | behavior | 3.1 | D3XX sequential path の不安定観測に基づく |
 | green | Windows auto は native unavailable 時に `d3xx` へ silent fallback しない | safety | 3.1 | 明示指定のみ許可 |
 | green | PyD3XX missing が `reason="missing_package"` になる | diagnostics | 3.1 | import monkeypatch |
-| green | backend 不足時も single discovery result object で返る | contract | 3.1 | 空 tuple / 例外 / 疑似 device に分散しない |
+| green | backend dependency 不足時も single discovery result object で返る | contract | 3.1 | PyD3XX import failure を空 tuple / 疑似 device にしない |
 | green | accepted N3DSXL candidate が `CaptureDeviceInfo` になる | new behavior | 3.1 | fake descriptor |
 | green | rejected product string が reason 付き info になる | diagnostics | 3.1 | include_rejected |
 | green | product string unreadable が product status として残る | safety | 3.1 | connection status には混ぜない |
 | green | device id が backend prefix を持つ | contract | 3.1 | `d3xx:` / `libusb:` |
 | green | discovery は command を送らない | safety | 3.1 | fake protocol spy |
-| green | CLI listing は public discovery model を表示する | integration | 3.1 | duplicate classification 防止 |
+| green | CLI listing は libusb descriptor path の public discovery model を表示する | integration | 3.1 | duplicate classification 防止 |
 | green | unknown profile は unsupported result object を返す | edge | 3.1 | typo 検知 |
 
 ### 3.3 設計方針
 
 discovery API は「接続候補を表示するための metadata」を返す。device を open して capture できることを保証しない。実際の open / connect / command sequence は `open_capture()` が既存 safety boundary の中で行う。
 
-backend selection は discovery の入力条件であり、別個の backend state registry にはしない。`auto` の解決、backend dependency、driver/runtime 不足、device 未接続は `CaptureDeviceDiscovery` の `backend_status` / `reason` / `remediation` として表す。backend 不足を空 tuple や例外に混ぜず、device 候補だけを `devices` に入れる。
+backend selection は discovery の入力条件であり、別個の backend state registry にはしない。`auto` の解決、backend dependency 不足、device 未接続は `CaptureDeviceDiscovery` の `backend_status` / `reason` / `remediation` として表す。PyD3XX import failure は空 tuple や疑似 device にせず、backend-level unavailable result として返す。一方、D3XX API call failure や descriptor detail の unsupported shape は `D3xxBackendError` として送出し、呼び出し側の technical log が `function` / `status` / `field_name` を使えるようにする。
 
-`backend="auto"` の初期 resolver は OS / backend policy を共有する。Windows では `d3xx-native` を既定とし、D3XX sequential backend は `backend="d3xx"` の明示指定時だけ使う。これは `local_021` / `local_022` の過去測定では native default 化を見送った判断を、後続の「D3XX sequential path では画面が不安定になる」という観測で再評価する Intent Delta とする。native unavailable 時に `d3xx` へ silent fallback すると不安定 path へ戻るため、discovery は unavailable reason を返し、high-level open は structured error を送出する。
+`backend="auto"` の初期 resolver は OS / backend policy を共有する。Windows では `d3xx-native` を既定とし、D3XX sequential backend は `backend="d3xx"` の明示指定時だけ使う。これは `local_021` / `local_022` の過去測定では native default 化を見送った判断を、後続の「D3XX sequential path では画面が不安定になる」という観測で再評価する Intent Delta とする。native dependency が unavailable の場合に `d3xx` へ silent fallback すると不安定 path へ戻るため、discovery は unavailable reason を返し、high-level open は structured error を送出する。
 
 device id は設定保存に使えるようにするが、serial が読めない環境では一時 ID になる。`id_stability` を metadata に持たせ、利用側が permanent / session の違いを判断できるようにする。
 
@@ -189,7 +189,7 @@ N3DSXL 初期 mapping:
 | ---------- | -------- | ------ | -------- |
 | backend auto | policy resolution | default | high-level open と同じ backend |
 | Windows native default | policy resolution | Windows auto | `resolved_backend == "d3xx-native"` |
-| native fallback guard | native unavailable | Windows auto | `d3xx` へ silent fallback せず unavailable result |
+| native fallback guard | PyD3XX missing | Windows auto | `d3xx` へ silent fallback せず unavailable result |
 | backend missing | PyD3XX import missing | fake import error | `reason="missing_package"` |
 | accepted mapping | descriptor to info | accepted VID/PID/string | `available` |
 | unreadable mapping | product string None | accepted VID/PID | `connection_status="available"`, `product_string_status="unreadable"` |
@@ -201,7 +201,7 @@ N3DSXL 初期 mapping:
 
 | シナリオ | 検証内容 | 前提条件 | 期待結果 |
 | -------- | -------- | -------- | -------- |
-| CLI parity | public API と existing CLI listing の情報整合 | 実機なし fake | `backend="auto"` result と accepted/rejected が一致し、resolved backend を表示する |
+| CLI parity | libusb descriptor CLI と public discovery model の情報整合 | 実機なし fake | `backend="libusb"` result と accepted/rejected が一致し、resolved backend を表示する |
 | hardware listing | 実機 descriptor listing | 実機、command 承認不要 | command 送信なしで候補を列挙 |
 
 ### 検証コマンド
@@ -222,7 +222,7 @@ Hardware listing は N3DSXL command を送らないが、実機に触れるた�
 - [x] backend preference 解決を discovery に統合する。
 - [x] Windows の `backend="auto"` を `d3xx-native` に解決し、`d3xx` へ silent fallback しない。
 - [x] N3DSXL `DeviceListing` から public info への mapping を実装する。
-- [x] CLI listing を public discovery model へ寄せる。
+- [x] CLI listing を libusb descriptor path の public discovery model へ寄せる。
 - [x] rejected / unreadable / id stability / backend reason を unit test で固定する。
 - [x] docs/api に discovery の command scope と backend reason を明記する。
 - [x] local gate を実行する。
@@ -242,4 +242,4 @@ Hardware listing は N3DSXL command を送らないが、実機に触れるた�
 
 ### 7.2 Deferred
 
-実機 descriptor listing は command 送信を伴わないが、今回の PR は fake backend による contract 固定までとした。実機での `ponkan-list-devices` smoke は、必要な device identity と artifact 方針を示した上で別途実行する。
+実機 descriptor listing は command 送信を伴わないが、今回の PR は fake backend による contract 固定までとした。現行 `ponkan-list-devices` は libusb descriptor path の diagnostic CLI として扱う。`backend="auto"` / D3XX native の discovery smoke は、必要な device identity と artifact 方針を示した上で別途実行する。

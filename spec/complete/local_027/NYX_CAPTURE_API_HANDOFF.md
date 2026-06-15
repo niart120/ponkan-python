@@ -2,6 +2,8 @@
 
 状態: 完了済み入力資料。実装対象ではなく、`local_028` 以降の WIP 仕様に採用された内容だけを実装候補として扱う。
 
+注記: この文書の「現行実装」は申し送り作成時点の状態を示す。後続の `local_029` で Windows の `backend="auto"` は `d3xx-native` に解決する方針へ変更済みであり、release 向け migration note は `README.md` と `docs/api.md` に反映する。
+
 Project NyX の capture source として `ponkan-python` を使う前提で、ponkan-python 側に欲しい仕様・API を整理する。今回は NyX 側の個別不満を列挙するのではなく、ponkan-python の現行リファレンス実装を前提に、NyX が将来扱い得る device/profile を増やしても一貫した contract になるように再構成する。
 
 この文書は申し送り用の入力資料であり、後続の `local_028` 以降の仕様書で採用された内容だけを実装対象とする。
@@ -31,11 +33,11 @@ Project NyX の capture source として `ponkan-python` を使う前提で、po
 | supported model | `new_3ds_xl` のみ |
 | source selector | `0` と `"new_3ds_xl"` のみ |
 | mode | 2D のみ。`mode_3d=True` は `UnsupportedOperation` |
-| backend | `auto`, `d3xx`, `d3xx-native`, `libusb` literal はあるが、high-level opener では `libusb` は unsupported。`auto` は D3XX path |
+| backend | 申し送り時点では `auto`, `d3xx`, `d3xx-native`, `libusb` literal があり、high-level opener では `libusb` は unsupported。後続実装では Windows `auto` は `d3xx-native` path |
 | output | `top`, `bottom`, `both_vertical` |
 | color space | `RGB`, `BGR` |
 | read cadence | FPS 制御用の public API はない。reader は backend completion と polling / queue policy に従う |
-| device discovery | N3DSXL 専用の low-level listing API と CLI はあるが、profile 横断の public listing API はない |
+| device discovery | 申し送り時点では N3DSXL 専用の low-level listing API と CLI のみ。後続実装で profile 横断の `list_capture_devices()` を追加済み |
 | error model | exception hierarchy はあるが、GUI が機械的に分岐しやすい `code` / `reason` / `backend` / `profile` 属性は限定的 |
 
 README / docs は、現行 package が old DS、Optimize、Nisetro、IS device、GUI、録画、audio playback を提供しないことを明記している。一方、初期 spec では old 3DS を後続対象として設計枠だけ確保している。classic DS / DS Lite 相当については、現行実装・現行 spec では具体的な protocol / identity / layout が確認できなかったため、NyX 側から要求するなら別途 source audit が必要である。
@@ -127,7 +129,7 @@ devices = list_capture_devices(profile="n3dsxl", backend="auto")
 
 - package / backend module / driver service の確認は `open_capture()` より前に軽量に行いたい。
 - N3DSXL command を送る確認は explicit open の責務であり、GUI menu 構築では実行しない。
-- 現行 high-level `auto` は D3XX path で、`d3xx-native` は明示指定時だけ使われる。もし Windows で `auto` を `d3xx-native` 優先へ変える場合は、ponkan-python 側の release note / migration note が必要。
+- 後続の `local_029` で Windows high-level / discovery の `auto` は `d3xx-native` 優先へ変更された。この変更は release note / migration note として `README.md` と `docs/api.md` に明記する。
 
 ## 5. Device Listing API
 
