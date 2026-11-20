@@ -244,7 +244,7 @@ if frame is not None:
 ```
 
 `CaptureReader.stats()` returns a `StreamStats` snapshot from the underlying
-streaming engine. `CaptureReader.close()` is idempotent and stops acquisition.
+streaming engine. `CaptureReader.close()` is idempotent and releases the backend even before the first read.
 
 Backend selection note: starting with the current unreleased changes,
 `backend="auto"` shares the discovery resolver and uses `"d3xx-native"` on

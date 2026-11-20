@@ -63,6 +63,7 @@ class StreamingEngine:
         self._stats = StreamStats()
         self._completion_queue: queue.Queue[RawFrameResult] = queue.Queue(maxsize=raw_slots)
         self._running = False
+        self._released = False
         self._next_sequence = 0
         self._timing = StreamTimingCollector() if collect_timing else None
 
@@ -72,6 +73,9 @@ class StreamingEngine:
         The method is idempotent while already running. Each slot is checked out
         and submitted once.
         """
+        if self._released:
+            message = "streaming backend has already been released"
+            raise RuntimeError(message)
         if self._running:
             return
         self._running = True
@@ -86,16 +90,18 @@ class StreamingEngine:
                 shutdown drains using the backend's own semantics.
         """
         _ = timeout
-        if not self._running and self.buffer_pool.in_use_count() == 0:
+        if self._released:
             return
-        self._running = False
-        self._stats.cancelled += self.buffer_pool.in_use_count()
-        self.backend.cancel_all()
-        self.backend.drain()
-        for slot in self.buffer_pool.slots:
-            if slot.in_use:
-                self.buffer_pool.release(slot.index)
+        if self._running or self.buffer_pool.in_use_count():
+            self._running = False
+            self._stats.cancelled += self.buffer_pool.in_use_count()
+            self.backend.cancel_all()
+            self.backend.drain()
+            for slot in self.buffer_pool.slots:
+                if slot.in_use:
+                    self.buffer_pool.release(slot.index)
         self.backend.release()
+        self._released = True
 
     def process_completed(self, *, limit: int | None = None) -> int:
         """Decode completed raw results outside the callback.

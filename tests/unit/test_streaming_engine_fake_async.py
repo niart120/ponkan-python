@@ -4,6 +4,7 @@ import time
 import numpy as np
 import pytest
 
+from ponkan.capture import CaptureReader
 from ponkan.image.frame import CaptureFrame
 from ponkan.protocol.sizes import BOTTOM_WIDTH_3DS, HEIGHT_3DS, TOP_WIDTH_3DS, video_size
 from ponkan.streaming.buffers import RawFrameSlot
@@ -288,3 +289,18 @@ def test_stop_uses_cancel_drain_release_order() -> None:
     assert backend.calls[-3:] == ["cancel_all", "drain", "release"]
     assert engine.buffer_pool.in_use_count() == 0
     assert engine.stats().cancelled == 2
+
+
+def test_reader_closed_before_first_read_releases_owned_backend_once() -> None:
+    backend = _FakeAsyncBackend()
+    engine = StreamingEngine(backend)
+    reader = CaptureReader(engine)
+
+    reader.close()
+    assert backend.calls == ["release"]
+    engine.stop()
+
+    assert backend.calls.count("release") == 1
+    with pytest.raises(RuntimeError, match="released"):
+        engine.start()
+    assert not backend.submitted
